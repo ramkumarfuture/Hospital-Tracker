@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Hospital Tracker">
+<title>Hospital Tracker — Dr. Ram</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#F0EDE6;--sf:#fff;--s2:#F7F5F0;--s3:#EDEAE3;
+  --bd:rgba(0,0,0,0.08);--bd2:rgba(0,0,0,0.15);
+  --tx:#16150E;--t2:#5A5850;--t3:#9A9890;
+  --gn:#0A6644;--gbg:#D4EFE3;--gm:#1D9E75;
+  --bl:#1254A0;--bbg:#D8EAF8;
+  --am:#7A4500;--abg:#FDE8C0;
+  --rd:#8B2020;--rbg:#FAD8D8;
+  --pu:#5C35A8;--pbg:#EAE4F8;
+  --tl:#0E6B6B;--tbg:#D4F0F0;
+  --ac:#0A6644;--ac2:#084D33;
+  --r:12px;--rs:7px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);min-height:100vh;}
+.mn{font-family:'JetBrains Mono',monospace;}
+
+/* NAV */
+.nav{background:var(--ac2);position:sticky;top:0;z-index:200;box-shadow:0 2px 14px rgba(0,0,0,0.22);}
+.nav-in{max-width:1440px;margin:0 auto;display:flex;align-items:center;height:50px;padding:0 12px;gap:3px;}
+.aname{font-size:14px;font-weight:700;color:#fff;letter-spacing:-.4px;margin-right:10px;white-space:nowrap;flex-shrink:0;}
+.aname small{font-weight:300;font-size:11px;opacity:.6;margin-left:4px;}
+.tabs{display:flex;gap:2px;flex:1;overflow-x:auto;scrollbar-width:none;}
+.tabs::-webkit-scrollbar{display:none;}
+.tab{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);padding:5px 11px;border-radius:var(--rs);font-family:inherit;font-size:11px;font-weight:500;cursor:pointer;white-space:nowrap;transition:all .15s;}
+.tab:hover{background:rgba(255,255,255,.18);color:#fff;}
+.tab.on{background:rgba(255,255,255,.22);color:#fff;font-weight:600;}
+.nav-r{display:flex;align-items:center;gap:6px;margin-left:8px;flex-shrink:0;}
+.sp{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,.12);border-radius:20px;padding:3px 9px;font-size:11px;color:#fff;cursor:pointer;white-space:nowrap;}
+.sd{width:7px;height:7px;border-radius:50%;background:#4ade80;}
+.sd.spin{background:#fbbf24;animation:blink .8s infinite;}
+.sd.err{background:#f87171;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.ib{background:rgba(255,255,255,.12);border:none;color:#fff;width:30px;height:30px;border-radius:var(--rs);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;}
+.ib:hover{background:rgba(255,255,255,.22);}
+
+/* PAGES */
+.pg{display:none;max-width:1440px;margin:0 auto;padding:12px 12px 60px;}
+.pg.on{display:block;}
+
+/* DATE BAR */
+.dbar{background:var(--sf);border-bottom:1px solid var(--bd);position:sticky;top:50px;z-index:99;}
+.dbar-in{max-width:1440px;margin:0 auto;display:flex;align-items:center;gap:8px;padding:8px 12px;}
+.db2{background:none;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 10px;font-family:inherit;font-size:12px;color:var(--t2);cursor:pointer;transition:all .15s;}
+.db2:hover{border-color:var(--ac);color:var(--ac);}
+.db2.td{background:var(--ac);color:#fff;border-color:var(--ac);}
+.dc{flex:1;text-align:center;}
+.dc .db{font-size:14px;font-weight:600;}
+.dc .ds{font-size:11px;color:var(--t3);}
+input[type=date]{font-family:inherit;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 7px;background:var(--sf);color:var(--tx);outline:none;}
+input[type=date]:focus{border-color:var(--ac);}
+
+/* SHARED CARDS */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:8px;margin-bottom:11px;}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px;border-left:4px solid transparent;}
+.card.g{border-left-color:var(--gm);}
+.card.b{border-left-color:var(--bl);}
+.card.p{border-left-color:var(--pu);}
+.card.tl{border-left-color:var(--tl);}
+.card.a{border-left-color:#D97706;}
+.card.r{border-left-color:var(--rd);}
+.card .cl{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+.card .cv{font-size:19px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.card.g .cv{color:var(--gn);}
+.card.b .cv{color:var(--bl);}
+.card.p .cv{color:var(--pu);}
+.card.tl .cv{color:var(--tl);}
+.card.a .cv{color:var(--am);}
+.card.r .cv{color:var(--rd);}
+.card .cs{font-size:11px;color:var(--t3);margin-top:2px;}
+.card.warn{background:var(--abg);border-left-color:#D97706;}
+
+/* SUMROW */
+.sumrow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:11px;}
+.sc{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;}
+.sc .sl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+.sc .sv{font-size:21px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.sc .sd2{font-size:11px;color:var(--t3);margin-top:3px;}
+.sc.M .sl,.sc.M .sv{color:var(--pu);}
+.sc.T .sl,.sc.T .sv{color:var(--gn);}
+.sc.C .sl,.sc.C .sv{color:var(--bl);}
+.sc.X .sl,.sc.X .sv{color:var(--tl);}
+
+/* PAY STRIP */
+.pstrip{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 15px;margin-bottom:11px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+.pb{display:flex;flex-direction:column;gap:2px;flex:1;min-width:85px;}
+.pl{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;}
+.pv{font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.pv.cash{color:var(--gn);}
+.pv.gpay{color:var(--bl);}
+.pv.unac{color:var(--am);}
+.pbar{flex:3;min-width:100px;}
+.pbt{height:7px;background:var(--s3);border-radius:4px;overflow:hidden;display:flex;}
+.pbc{background:var(--gm);height:100%;transition:width .4s;}
+.pbg{background:var(--bl);height:100%;transition:width .4s;}
+.ppt{font-size:11px;color:var(--t3);margin-top:3px;}
+
+/* TABLE */
+.th2{display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;}
+.ttl{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;}
+.abtn{background:var(--ac);color:#fff;border:none;border-radius:var(--rs);padding:6px 13px;font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:4px;}
+.abtn:hover{opacity:.85;}
+.tw{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;margin-bottom:11px;}
+.ts{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:var(--s2);}
+th{padding:7px 6px;font-size:10px;font-weight:700;color:var(--t3);text-align:center;border-bottom:1px solid var(--bd2);white-space:nowrap;text-transform:uppercase;letter-spacing:.04em;}
+th.lft{text-align:left;}
+td{padding:4px 5px;border-bottom:1px solid var(--bd);text-align:center;vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:var(--s2);}
+.ci{width:100%;border:none;background:transparent;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--tx);text-align:center;padding:3px;border-radius:4px;outline:none;-moz-appearance:textfield;}
+.ci::-webkit-inner-spin-button,.ci::-webkit-outer-spin-button{-webkit-appearance:none;}
+.ci:focus{background:var(--gbg);}
+.ci.nm{font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;text-align:left;}
+.ci.lft{text-align:left;font-family:'Outfit',sans-serif;}
+select.ci{cursor:pointer;font-size:12px;font-family:'Outfit',sans-serif;}
+.tN{background:var(--bbg);color:var(--bl);}
+.tO{background:var(--s3);color:var(--t2);}
+.tM{background:var(--pbg);color:var(--pu);}
+.tP{background:var(--tbg);color:var(--tl);}
+.tL{background:var(--abg);color:var(--am);}
+.mC{background:var(--gbg);color:var(--gn);}
+.mG{background:var(--bbg);color:var(--bl);}
+.mS{background:var(--abg);color:var(--am);}
+.ts2,.ms2{border:none;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;cursor:pointer;padding:3px;border-radius:5px;outline:none;width:100%;text-align:center;}
+.td-tot{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--gn);background:var(--gbg);}
+.del-btn{background:none;border:none;cursor:pointer;color:var(--t3);font-size:12px;padding:3px 6px;border-radius:4px;}
+.del-btn:hover{color:var(--rd);background:var(--rbg);}
+.foot td{background:var(--s2);font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:600;border-top:2px solid var(--bd2);}
+.foot td.lbl{font-family:'Outfit',sans-serif;color:var(--t2);text-align:left;padding-left:8px;}
+.foot td.g{color:var(--gn);}
+.foot td.b{color:var(--bl);}
+.foot td.p{color:var(--pu);}
+.foot td.tl{color:var(--tl);}
+.foot td.r{color:var(--rd);}
+
+/* MONTH SEL */
+.msel{display:flex;align-items:center;gap:10px;margin-bottom:11px;flex-wrap:wrap;}
+.msel select,.msel-s{font-family:inherit;font-size:13px;border:1px solid var(--bd2);border-radius:var(--rs);padding:6px 10px;background:var(--sf);color:var(--tx);outline:none;}
+.msel select:focus{border-color:var(--ac);}
+
+/* P&L TAB */
+.pnl-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;}
+.pnl-section{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;}
+.pnl-hdr{background:var(--s2);padding:10px 14px;border-bottom:1px solid var(--bd);display:flex;align-items:center;justify-content:space-between;}
+.pnl-hdr-title{font-size:12px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;}
+.pnl-hdr-total{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;}
+.pnl-row{display:flex;align-items:center;padding:8px 14px;border-bottom:1px solid var(--bd);gap:10px;}
+.pnl-row:last-child{border-bottom:none;}
+.pnl-lbl{font-size:13px;flex:1;color:var(--tx);}
+.pnl-lbl.auto{color:var(--t2);font-size:12px;}
+.pnl-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;min-width:100px;text-align:right;}
+.pnl-val.income{color:var(--gn);}
+.pnl-val.expense{color:var(--rd);}
+.pnl-inp{font-family:'JetBrains Mono',monospace;font-size:13px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 8px;width:110px;text-align:right;outline:none;-moz-appearance:textfield;color:var(--tx);background:var(--sf);}
+.pnl-inp::-webkit-inner-spin-button,.pnl-inp::-webkit-outer-spin-button{-webkit-appearance:none;}
+.pnl-inp:focus{border-color:var(--ac);}
+.pnl-net{background:var(--ac2);border-radius:var(--r);padding:16px 20px;display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.pnl-net-lbl{font-size:14px;font-weight:600;color:rgba(255,255,255,.8);}
+.pnl-net-val{font-family:'JetBrains Mono',monospace;font-size:28px;font-weight:700;color:#fff;}
+.pnl-net-val.neg{color:#fca5a5;}
+.pnl-sumcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:14px;}
+
+/* STAFF TAB */
+.staff-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-bottom:14px;}
+.staff-card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;display:flex;align-items:center;gap:10px;transition:opacity .2s;}
+.staff-card.paid{opacity:.55;}
+.staff-name{flex:1;font-size:13px;font-weight:500;}
+.staff-card.paid .staff-name{text-decoration:line-through;color:var(--t3);}
+.staff-amt{font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--pu);min-width:70px;text-align:right;}
+.paid-toggle{background:none;border:1.5px solid var(--bd2);border-radius:50%;width:24px;height:24px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.paid-toggle.on{background:var(--gn);border-color:var(--gn);color:#fff;}
+.staff-edit-row{display:flex;gap:6px;margin-bottom:10px;}
+.staff-edit-row input{flex:1;border:1px solid var(--bd2);border-radius:var(--rs);padding:7px 10px;font-family:inherit;font-size:13px;color:var(--tx);background:var(--sf);outline:none;min-width:0;}
+.staff-edit-row input:focus{border-color:var(--ac);}
+.staff-total-bar{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+.stb-item{display:flex;flex-direction:column;gap:2px;}
+.stb-lbl{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.05em;}
+.stb-val{font-size:20px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+
+/* PHARMA */
+.pharma-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(255px,1fr));gap:10px;}
+.ag-card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;}
+.ag-hdr{background:var(--s2);padding:9px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bd);}
+.ag-name{font-size:13px;font-weight:600;}
+.ag-tot{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:700;color:var(--pu);}
+.ag-body{padding:8px;}
+.ag-entries{max-height:180px;overflow-y:auto;}
+.ag-row{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--bd);}
+.ag-row:last-child{border-bottom:none;}
+.ae-d{font-size:11px;color:var(--t2);width:78px;flex-shrink:0;}
+.ae-a{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:500;flex:1;}
+.ae-del{background:none;border:none;cursor:pointer;color:var(--t3);font-size:11px;padding:2px 4px;border-radius:3px;}
+.ae-del:hover{color:var(--rd);background:var(--rbg);}
+.ag-add{display:flex;gap:5px;margin-top:6px;}
+.ag-add input{flex:1;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 7px;font-family:inherit;font-size:12px;color:var(--tx);background:var(--sf);outline:none;min-width:0;}
+.ag-add input:focus{border-color:var(--ac);}
+.ag-add button{background:var(--ac);color:#fff;border:none;border-radius:var(--rs);padding:5px 9px;font-family:inherit;font-size:12px;cursor:pointer;}
+.ob-bar{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 15px;margin-bottom:13px;}
+.ob-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--bd);}
+.ob-row:last-child{border-bottom:none;}
+.ob-nm{font-size:12px;font-weight:500;flex:1;}
+.ob-tot{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--pu);font-weight:600;min-width:75px;text-align:right;}
+.ob-pi{font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:4px 6px;width:85px;outline:none;text-align:right;-moz-appearance:textfield;background:var(--sf);color:var(--tx);}
+.ob-pi::-webkit-inner-spin-button,.ob-pi::-webkit-outer-spin-button{-webkit-appearance:none;}
+.ob-pi:focus{border-color:var(--ac);}
+.ob-bal{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;min-width:75px;text-align:right;}
+.ob-bal.ow{color:var(--rd);}
+.ob-bal.cl{color:var(--gn);}
+
+/* CHART */
+.chart-wrap{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:14px;margin-bottom:12px;}
+.chart-title{font-size:12px;font-weight:600;color:var(--t2);margin-bottom:10px;}
+
+/* SECTION LABEL */
+.slbl{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.05em;margin:13px 0 7px;}
+
+/* MODAL */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;}
+.modal{background:var(--sf);border-radius:var(--r);padding:22px;width:100%;max-width:400px;}
+.modal h2{font-size:16px;font-weight:700;margin-bottom:5px;}
+.modal p{font-size:12px;color:var(--t2);line-height:1.65;margin-bottom:15px;}
+.fg{margin-bottom:10px;}
+.fg label{display:block;font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.fg input{width:100%;padding:8px 10px;border:1px solid var(--bd2);border-radius:var(--rs);font-family:inherit;font-size:13px;color:var(--tx);background:var(--sf);outline:none;}
+.fg input:focus{border-color:var(--ac);}
+.mbtns{display:flex;gap:8px;margin-top:15px;}
+.mbp{flex:1;background:var(--ac);color:#fff;border:none;border-radius:var(--rs);padding:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;}
+.mbs{background:var(--s2);color:var(--t2);border:1px solid var(--bd2);border-radius:var(--rs);padding:10px 13px;font-family:inherit;font-size:13px;cursor:pointer;}
+.ha{font-size:12px;color:var(--bl);display:block;margin-top:7px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--tx);color:#fff;padding:8px 18px;border-radius:20px;font-size:12px;z-index:400;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap;}
+.toast.on{opacity:1;}
+
+@media(max-width:640px){
+  .sumrow,.pnl-grid{grid-template-columns:repeat(2,1fr);}
+  .cards{grid-template-columns:repeat(2,1fr);}
+  .sc .sv{font-size:17px;}
+  .pnl-net-val{font-size:22px;}
+  .pharma-grid{grid-template-columns:1fr;}
+  .staff-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+
+<!-- SETUP MODAL -->
+<div class="overlay" id="setupModal">
+  <div class="modal">
+    <h2>⚕ Hospital Tracker</h2>
+    <p>Paste your JSONBin Master Key. Leave Bin ID blank on first use — the app creates it automatically and shows you the ID.</p>
+    <div class="fg">
+      <label>JSONBin Master Key <span id="key-len" style="font-weight:400;text-transform:none;color:var(--t3)"></span></label>
+      <textarea id="inp-key" placeholder="Paste your full Master Key here..." autocomplete="off" spellcheck="false"
+        style="font-family:'JetBrains Mono',monospace;font-size:11px;width:100%;height:70px;padding:8px 10px;border:1px solid var(--bd2);border-radius:var(--rs);resize:none;color:var(--tx);background:var(--sf);outline:none;line-height:1.5;word-break:break-all;"
+        oninput="updateKeyLen()"></textarea>
+    </div>
+    <div class="fg">
+      <label>Bin ID <span style="font-weight:400;text-transform:none;color:var(--t3)">— leave blank on first device</span></label>
+      <input type="text" id="inp-bin" placeholder="Paste Bin ID here on 2nd/3rd device" autocomplete="off" spellcheck="false"
+        style="font-family:'JetBrains Mono',monospace;font-size:12px;width:100%;padding:8px 10px;border:1px solid var(--bd2);border-radius:var(--rs);color:var(--tx);background:var(--sf);outline:none;">
+    </div>
+    <div id="key-warn" style="display:none;background:#FAD8D8;border-radius:var(--rs);padding:8px 12px;font-size:11px;color:#8B2020;margin:4px 0 6px;">
+      ⚠ Key looks short — JSONBin Master Keys are 60+ characters. Please re-copy from jsonbin.io → API Keys page.
+    </div>
+    <div style="background:var(--s2);border-radius:var(--rs);padding:9px 12px;font-size:11px;color:var(--t2);margin:4px 0 6px;line-height:1.65">
+      <b>First time:</b> Go to jsonbin.io → API Keys → click the <b>copy icon</b> next to your Master Key → paste above. Leave Bin ID blank → tap Connect.<br>
+      <b>Other devices:</b> Same Master Key + Bin ID shown after first connect.
+    </div>
+    <a class="ha" href="https://jsonbin.io" target="_blank">→ jsonbin.io — free account</a>
+    <div class="mbtns">
+      <button class="mbs" onclick="goOffline()">Offline only</button>
+      <button class="mbp" onclick="doSetup()">Connect & Sync</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-in">
+    <div class="aname">Hospital Tracker <small>Dr. Ram</small></div>
+    <div class="tabs">
+      <button class="tab on"  onclick="showTab('day',this)">📋 Day Register</button>
+      <button class="tab"     onclick="showTab('monthly',this)">📅 Monthly Summary</button>
+      <button class="tab"     onclick="showTab('ip',this)">🏥 IP Register</button>
+      <button class="tab"     onclick="showTab('pharma',this)">💊 Pharma</button>
+      <button class="tab"     onclick="showTab('staff',this)">👥 Staff Salaries</button>
+      <button class="tab"     onclick="showTab('pnl',this)">📊 P&amp;L</button>
+      <button class="tab"     onclick="showTab('trends',this)">📈 Trends</button>
+    </div>
+    <div class="nav-r">
+      <div class="sp" onclick="doSync()"><div class="sd" id="sdot"></div><span id="stext">Ready</span></div>
+      <button class="ib" onclick="openSettings()">⚙</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ═══════════ TAB 1: DAY REGISTER ═══════════ -->
+<div id="page-day" class="pg on">
+  <div class="dbar">
+    <div class="dbar-in">
+      <button class="db2" onclick="shiftDate(-1)">‹ Prev</button>
+      <div class="dc"><div class="db" id="dBig"></div><div class="ds" id="dDay"></div></div>
+      <input type="date" id="dPick" onchange="pickDate()">
+      <button class="db2 td" onclick="goToday()">Today</button>
+      <button class="db2" onclick="shiftDate(1)">Next ›</button>
+    </div>
+  </div>
+  <div style="padding-top:12px">
+    <div class="sumrow">
+      <div class="sc M"><div class="sl">M — Medicals</div><div class="sv" id="sc-M">₹0</div><div class="sd2">Pharmacy</div></div>
+      <div class="sc T"><div class="sl">T — Total</div><div class="sv" id="sc-T">₹0</div><div class="sd2">All inclusive</div></div>
+      <div class="sc C"><div class="sl">C — Census</div><div class="sv" id="sc-C">₹0</div><div class="sd2">excl. M/P/L types</div></div>
+      <div class="sc X"><div class="sl">XPL</div><div class="sv" id="sc-XPL">₹0</div><div class="sd2" id="sc-xpl-sub">X:0 P:0 L:0</div></div>
+    </div>
+    <div class="cards">
+      <div class="card g"><div class="cl">Patients</div><div class="cv" id="dc-pts">0</div><div class="cs" id="dc-types">—</div></div>
+      <div class="card b"><div class="cl">New</div><div class="cv" id="dc-new">0</div><div class="cs" id="dc-nr">₹0</div></div>
+      <div class="card" style="border-left-color:var(--t3)"><div class="cl">Old</div><div class="cv" id="dc-old">0</div><div class="cs" id="dc-or">₹0</div></div>
+      <div class="card p"><div class="cl">Med-only</div><div class="cv" id="dc-m">0</div><div class="cs">walk-in</div></div>
+      <div class="card tl"><div class="cl">PT-only</div><div class="cv" id="dc-p">0</div><div class="cs">physio</div></div>
+      <div class="card a"><div class="cl">Lab-only</div><div class="cv" id="dc-l">0</div><div class="cs">lab</div></div>
+      <div class="card" id="dc-recon"><div class="cl">Recon</div><div class="cv" id="dc-rv">✓</div><div class="cs" id="dc-rs">balanced</div></div>
+    </div>
+    <div class="pstrip">
+      <div class="pb"><div class="pl">Cash</div><div class="pv cash" id="pay-cash">₹0</div></div>
+      <div class="pb"><div class="pl">GPay</div><div class="pv gpay" id="pay-gpay">₹0</div></div>
+      <div class="pb"><div class="pl">Unaccounted</div><div class="pv unac" id="pay-unac">₹0</div></div>
+      <div class="pbar"><div class="pbt"><div class="pbc" id="pbc" style="width:0%"></div><div class="pbg" id="pbg" style="width:0%"></div></div><div class="ppt" id="ppt">Cash 0% · GPay 0%</div></div>
+    </div>
+    <div class="th2"><span class="ttl">Patient Register</span><button class="abtn" onclick="addRow()">+ Add Patient</button></div>
+    <div class="tw"><div class="ts"><table style="min-width:810px">
+      <thead><tr>
+        <th style="width:24px">#</th><th style="width:68px">MRN</th><th class="lft" style="min-width:108px">Name</th><th style="width:42px">Type</th>
+        <th style="width:52px">OPD</th><th style="width:52px">X-Ray</th><th style="width:52px">POP-D</th>
+        <th style="width:48px">PT</th><th style="width:48px">Lab</th><th style="width:62px">Medicals</th>
+        <th style="width:68px">Total ₹</th><th style="width:42px">Mode</th>
+        <th style="width:60px">Cash ₹</th><th style="width:60px">GPay ₹</th><th style="width:24px"></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+      <tfoot><tr class="foot">
+        <td colspan="4" class="lbl">Day total</td>
+        <td id="f-opd">—</td><td id="f-xray">—</td><td id="f-pop">—</td>
+        <td id="f-pt">—</td><td id="f-lab">—</td><td id="f-med">—</td>
+        <td id="f-tot" class="g">—</td><td></td>
+        <td id="f-cash" class="g">—</td><td id="f-gpay" class="b">—</td><td></td>
+      </tr></tfoot>
+    </table></div></div>
+    <div class="th2"><span class="ttl">Today's IP Admissions</span><button class="abtn" onclick="addIPnow()">+ Admit Patient</button></div>
+    <div id="day-ip"></div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 2: MONTHLY SUMMARY ═══════════ -->
+<div id="page-monthly" class="pg">
+  <div class="msel"><select id="mth-sel" onchange="renderMonthly()"></select><span style="font-size:12px;color:var(--t3)">Auto-calculated from daily entries</span></div>
+  <div id="mth-sumcards" class="cards" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))"></div>
+  <div class="tw"><div class="ts"><table id="mth-table" style="min-width:1000px">
+    <thead><tr>
+      <th class="lft">Date</th>
+      <th>GP</th><th>OP Med</th><th>Total</th><th>OP Amt</th>
+      <th>Census</th><th>N</th><th>O</th><th>Lab ₹</th><th>IP</th>
+      <th>X-Ray</th><th>PT</th><th>Lab</th><th>XPL</th>
+      <th>IP Name</th><th>Diagnosis</th><th>IP Bill</th><th>IP Med</th>
+    </tr></thead>
+    <tbody id="mth-body"></tbody>
+    <tfoot><tr class="foot" id="mth-foot"></tr></tfoot>
+  </table></div></div>
+</div>
+
+<!-- ═══════════ TAB 3: IP REGISTER ═══════════ -->
+<div id="page-ip" class="pg">
+  <div class="th2"><span class="ttl">IP Patient Register</span><button class="abtn" onclick="addIP()">+ Admit Patient</button></div>
+  <div class="tw"><div class="ts"><table style="min-width:750px">
+    <thead><tr>
+      <th style="width:24px">#</th><th class="lft" style="min-width:115px">Name</th>
+      <th style="width:88px">Admit</th><th class="lft" style="min-width:115px">Diagnosis</th>
+      <th style="width:72px">Ward/Bed</th><th style="width:68px">IP Bill ₹</th>
+      <th style="width:68px">IP Med ₹</th><th style="width:68px">Total ₹</th>
+      <th style="width:88px">Discharge</th><th style="width:68px">Status</th>
+      <th class="lft" style="min-width:90px">Notes</th><th style="width:24px"></th>
+    </tr></thead>
+    <tbody id="ip-tbody"></tbody>
+  </table></div></div>
+</div>
+
+<!-- ═══════════ TAB 4: PHARMA ═══════════ -->
+<div id="page-pharma" class="pg">
+  <div class="msel"><select id="ph-mth" onchange="renderPharma()"></select><button class="abtn" onclick="addAgency()">+ Add Agency</button></div>
+  <div class="slbl">Outstanding Balance — <span id="ph-mth-lbl"></span></div>
+  <div class="ob-bar" id="ob-bar"><div style="font-size:12px;color:var(--t3)">No purchases this month</div></div>
+  <div class="slbl">Purchase Entries by Agency</div>
+  <div class="pharma-grid" id="pharma-grid"></div>
+</div>
+
+<!-- ═══════════ TAB 5: STAFF SALARIES ═══════════ -->
+<div id="page-staff" class="pg">
+  <div class="msel"><select id="st-mth" onchange="renderStaff()"></select></div>
+  <div class="staff-total-bar">
+    <div class="stb-item"><div class="stb-lbl">Total Salary</div><div class="stb-val" id="st-total" style="color:var(--pu)">₹0</div></div>
+    <div class="stb-item"><div class="stb-lbl">Paid</div><div class="stb-val" id="st-paid" style="color:var(--gn)">₹0</div></div>
+    <div class="stb-item"><div class="stb-lbl">Pending</div><div class="stb-val" id="st-pend" style="color:var(--rd)">₹0</div></div>
+    <div class="stb-item"><div class="stb-lbl">Staff Count</div><div class="stb-val" id="st-cnt" style="color:var(--t2)">0</div></div>
+  </div>
+  <div class="staff-edit-row">
+    <input id="st-new-name" placeholder="Staff name" type="text">
+    <input id="st-new-amt" placeholder="Amount (₹)" type="number" min="0" style="max-width:130px">
+    <button class="abtn" onclick="addStaff()">+ Add Staff</button>
+  </div>
+  <div class="staff-grid" id="staff-grid"></div>
+</div>
+
+<!-- ═══════════ TAB 6: P&L ═══════════ -->
+<div id="page-pnl" class="pg">
+  <div class="msel"><select id="pnl-mth" onchange="renderPnL()"></select><span style="font-size:12px;color:var(--t3)">Auto-calculated where shown · Enter manual expenses below</span></div>
+  <div class="pnl-net" id="pnl-net-bar">
+    <span class="pnl-net-lbl">Net Hospital Income</span>
+    <span class="pnl-net-val" id="pnl-net-val">₹0</span>
+  </div>
+  <div class="pnl-sumcards" id="pnl-sumcards"></div>
+  <div class="pnl-grid">
+    <!-- INCOME -->
+    <div class="pnl-section">
+      <div class="pnl-hdr"><span class="pnl-hdr-title">Income</span><span class="pnl-hdr-total g" id="pnl-inc-tot" style="color:var(--gn)">₹0</span></div>
+      <div class="pnl-row"><span class="pnl-lbl auto">GP (GPay received)</span><span class="pnl-val income" id="pi-gp">₹0</span></div>
+      <div class="pnl-row"><span class="pnl-lbl auto">OP Med (OPD pharmacy)</span><span class="pnl-val income" id="pi-opmed">₹0</span></div>
+      <div class="pnl-row"><span class="pnl-lbl auto">Total OP (Census revenue)</span><span class="pnl-val income" id="pi-op">₹0</span></div>
+      <div class="pnl-row"><span class="pnl-lbl auto">IP Bill</span><span class="pnl-val income" id="pi-ipbill">₹0</span></div>
+      <div class="pnl-row"><span class="pnl-lbl auto">IP Med</span><span class="pnl-val income" id="pi-ipmed">₹0</span></div>
+      <div class="pnl-row"><span class="pnl-lbl auto">Total IP</span><span class="pnl-val income" id="pi-ip">₹0</span></div>
+      <div class="pnl-row" style="background:var(--s2)"><span class="pnl-lbl" style="font-weight:600">Gross Med Income</span><span class="pnl-val income" id="pi-gmed" style="font-size:15px">₹0</span></div>
+    </div>
+    <!-- EXPENSES -->
+    <div class="pnl-section">
+      <div class="pnl-hdr"><span class="pnl-hdr-title">Expenses</span><span class="pnl-hdr-total" id="pnl-exp-tot" style="color:var(--rd)">₹0</span></div>
+      <div class="pnl-row"><span class="pnl-lbl auto">Medical Expenses (pharma)</span><span class="pnl-val expense" id="pe-med">₹0</span></div>
+      <div class="pnl-row"><span class="pnl-lbl auto">Net Med Income</span><span class="pnl-val" id="pe-netmed" style="color:var(--gn)">₹0</span></div>
+      <div class="pnl-row"><span class="pnl-lbl auto">Salary Expenses</span><span class="pnl-val expense" id="pe-sal">₹0</span></div>
+      <div class="pnl-row"><span class="pnl-lbl">Implant Expenses</span><input class="pnl-inp" type="number" min="0" id="pe-imp" placeholder="0" oninput="savePnLExp()" onchange="savePnLExp()"></div>
+      <div class="pnl-row"><span class="pnl-lbl">Anaesthetist Charges</span><input class="pnl-inp" type="number" min="0" id="pe-ana" placeholder="0" oninput="savePnLExp()" onchange="savePnLExp()"></div>
+      <div class="pnl-row"><span class="pnl-lbl">Scopy / Spine Drs</span><input class="pnl-inp" type="number" min="0" id="pe-sco" placeholder="0" oninput="savePnLExp()" onchange="savePnLExp()"></div>
+      <div class="pnl-row"><span class="pnl-lbl">Outside Staff</span><input class="pnl-inp" type="number" min="0" id="pe-out" placeholder="0" oninput="savePnLExp()" onchange="savePnLExp()"></div>
+      <div class="pnl-row"><span class="pnl-lbl">GST</span><input class="pnl-inp" type="number" min="0" id="pe-gst" placeholder="0" oninput="savePnLExp()" onchange="savePnLExp()"></div>
+      <div class="pnl-row"><span class="pnl-lbl">EB Bill (Electricity)</span><input class="pnl-inp" type="number" min="0" id="pe-eb" placeholder="0" oninput="savePnLExp()" onchange="savePnLExp()"></div>
+      <div class="pnl-row"><span class="pnl-lbl">X-Ray Films</span><input class="pnl-inp" type="number" min="0" id="pe-xrf" placeholder="0" oninput="savePnLExp()" onchange="savePnLExp()"></div>
+      <div class="pnl-row"><span class="pnl-lbl">Other Hospital Expenses</span><input class="pnl-inp" type="number" min="0" id="pe-oth" placeholder="0" oninput="savePnLExp()" onchange="savePnLExp()"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════ TAB 7: TRENDS ═══════════ -->
+<div id="page-trends" class="pg">
+  <div class="msel"><select id="tr-mth" onchange="renderTrends()"></select></div>
+  <div class="chart-wrap"><div class="chart-title">Daily Income — Total vs Census vs Medicals</div><canvas id="ch-income" height="75"></canvas></div>
+  <div class="chart-wrap"><div class="chart-title">Patient Count — New vs Old per Day</div><canvas id="ch-pts" height="75"></canvas></div>
+  <div class="chart-wrap"><div class="chart-title">Payment Mode — Cash vs GPay per Day</div><canvas id="ch-pay" height="75"></canvas></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── GLOBALS ───
+let API_KEY='',BIN_ID='',LOCAL_ONLY=false;
+let curDate=isoToday(),allData={},pharmaData={},ipData=[],agencyList=[],staffList=[],staffPaid={},pnlExpenses={};
+let nid=1,ipNid=1,saveTimer=null;
+const COLS=['opd','xray','pop','pt','lab','med'];
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const DEF_AGENCIES=['Senthil','Karthikeya','NH Surgical','HR Surgical','Lakshmi','Geetha Dharmapuri','Thamaraikani','Senthil Balaji','Kumaran','Saravana','Cylinder','Geetha Salem','Sara','Dhanalakshmi','Senthil Murugan','Vishnu','Universal','Lifeline','Aanand','Latha','Salem','Jayshree','Ramesh G'];
+const DEF_STAFF=[{name:'Jayaprabhu',amt:19000},{name:'Kesavan',amt:17000},{name:'Karthik',amt:18000},{name:'Kanimozhi',amt:11000},{name:'Rekha',amt:8000},{name:'Chinnarasu',amt:14000},{name:'Kaja',amt:6000},{name:'Sandhya',amt:9000},{name:'Housekeeping night',amt:9000},{name:'Parvathi',amt:7700},{name:'Salammal',amt:7000},{name:'Iyer',amt:5000},{name:'Flower & Milk',amt:2560},{name:'Bathroom',amt:2500},{name:'Cook',amt:6000}];
+let charts={};
+
+// ─── MONTH SELECTS ───
+function populateMonthSelects(){
+  const yr=new Date().getFullYear();
+  const opts=[];
+  for(let y=yr-1;y<=yr+1;y++){
+    MONTHS.forEach((m,i)=>{
+      const val=`${y}-${String(i+1).padStart(2,'0')}`;
+      opts.push(`<option value="${val}">${m} ${y}</option>`);
+    });
+  }
+  const cm=curDate.substring(0,7);
+  ['mth-sel','ph-mth','st-mth','pnl-mth','tr-mth'].forEach(id=>{
+    const s=el(id); if(!s)return;
+    s.innerHTML=opts.join('');
+    for(let o of s.options){if(o.value===cm){o.selected=true;break;}}
+  });
+}
+
+// ─── BOOT ───
+window.onload=()=>{
+  API_KEY=ls('h_key')||''; BIN_ID=ls('h_bin')||''; LOCAL_ONLY=ls('h_local')==='1';
+  populateMonthSelects();
+  setDate(curDate);
+  if(LOCAL_ONLY){hide('setupModal');loadLocal();}
+  else if(API_KEY&&BIN_ID){hide('setupModal');fetchBin();}
+  else show('setupModal');
+};
+
+// ─── SETUP ───
+async function doSetup(){
+  const rawKey=el('inp-key').value||'';
+  const k=rawKey.replace(/\s+/g,'').trim();
+  const b=(el('inp-bin').value||'').trim();
+  if(!k){toast('Enter your API key'); return;}
+  API_KEY=k; setLs('h_key',k);
+  // Disable button to prevent double-tap
+  const btn=document.querySelector('.mbp');
+  if(btn){btn.disabled=true; btn.textContent='Connecting…';}
+  if(b){
+    BIN_ID=b; setLs('h_bin',b);
+    hide('setupModal');
+    await fetchBin();
+  } else {
+    await createBin();
+  }
+  if(btn){btn.disabled=false; btn.textContent='Connect & Sync';}
+}
+function goOffline(){
+  LOCAL_ONLY=true; setLs('h_local','1');
+  hide('setupModal');
+  // Load preloaded data if available
+  if(window._PRELOAD){ loadBundle(window._PRELOAD); saveLocal(); }
+  else loadLocal();
+  sync('ok','Offline');
+}
+function openSettings(){el('inp-key').value=API_KEY; el('inp-bin').value=BIN_ID; show('setupModal'); updateKeyLen();}
+
+// ─── JSONBIN ───
+async function createBin(){
+  sync('spin','Creating bin…');
+  // Use preloaded data as the initial bin content
+  const initData = window._PRELOAD || {opd:{},pharma:{},ip:[],agencies:DEF_AGENCIES,staff:DEF_STAFF,staffPaid:{},pnlExp:{}};
+  try{
+    const r=await fetch('https://api.jsonbin.io/v3/b',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'X-Master-Key':API_KEY,
+        'X-Bin-Name':'Hospital-Tracker',
+        'X-Private':'true'
+      },
+      body:JSON.stringify(initData)
+    });
+    if(!r.ok){
+      const err=await r.json().catch(()=>({}));
+      const msg=err.message||r.status||'Unknown error';
+      toast('JSONBin error: '+msg); sync('err','Failed'); return;
+    }
+    const j=await r.json();
+    BIN_ID=j.metadata?.id;
+    if(!BIN_ID){toast('No Bin ID in response — try again'); sync('err','Failed'); return;}
+    setLs('h_bin',BIN_ID);
+    loadBundle(initData);
+    saveLocal();
+    hide('setupModal');
+    sync('ok','Connected ✓');
+    toast('✓ Bin created! Your ID: '+BIN_ID+' — screenshot this!');
+    // Show Bin ID prominently
+    setTimeout(()=>alert('Your Bin ID (save this for other devices):\n\n'+BIN_ID), 300);
+  }catch(e){
+    sync('err','Failed');
+    toast('Network error — check internet connection');
+  }
+}
+async function fetchBin(){
+  sync('spin','Syncing…');
+  try{
+    const r=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`,{
+      headers:{'X-Master-Key':API_KEY}
+    });
+    if(!r.ok){const e=await r.json().catch(()=>({}));toast('Fetch error: '+(e.message||r.status));sync('err','Error');return;}
+    const j=await r.json();
+    loadBundle(j.record||{}); sync('ok','Synced ✓');
+  }catch(e){sync('err','Sync failed');loadLocal();toast('Offline — using local data');}
+}
+async function pushBin(){
+  saveLocal();
+  if(LOCAL_ONLY||!API_KEY||!BIN_ID)return;
+  sync('spin','Saving…');
+  try{
+    const payload=JSON.stringify(bundle());
+    const r=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':API_KEY},
+      body:payload
+    });
+    if(!r.ok){const e=await r.json().catch(()=>({}));toast('Save error: '+(e.message||r.status));sync('err','Save failed');return;}
+    sync('ok','Saved ✓');
+  }catch(e){sync('err','Save failed');toast('Save error: '+e.message);}
+}
+function doSync(){fetchBin();}
+function updateKeyLen(){
+  const ta=el('inp-key'); if(!ta)return;
+  const raw=ta.value||'';
+  const clean=raw.replace(/\s+/g,'');
+  const lenEl=el('key-len');
+  const warnEl=el('key-warn');
+  if(lenEl) lenEl.textContent=clean.length>0?'('+clean.length+' chars)':'';
+  if(warnEl) warnEl.style.display=(clean.length>0&&clean.length<50)?'block':'none';
+}
+
+// ─── PRELOADED DATA (Jan 1 – Mar 15 2026) ───
+window._PRELOAD = {"opd": {"2026-01-01": {"rows": [], "_c": {"T": 37583.0, "M": 21343.0, "C": 16240.0, "XPL": 11040.0, "Xr": 0, "PT": 0, "Lab": 2795.0, "gpay": 7953.0, "labAmt": 2795.0, "opd": 0, "cN": 12, "cO": 6, "cM": 0, "cP": 0, "cL": 0, "tot": 18}}, "2026-01-02": {"rows": [], "_c": {"T": 58622.0, "M": 29412.0, "C": 29210.0, "XPL": 21660.0, "Xr": 0, "PT": 0, "Lab": 6930.0, "gpay": 30707.0, "labAmt": 6930.0, "opd": 0, "cN": 17, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 24}}, "2026-01-03": {"rows": [], "_c": {"T": 39923.0, "M": 24123.0, "C": 15800.0, "XPL": 9600.0, "Xr": 0, "PT": 0, "Lab": 175.0, "gpay": 20828.0, "labAmt": 175.0, "opd": 0, "cN": 12, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 26}}, "2026-01-04": {"rows": [], "_c": {"T": 25254.0, "M": 17754.0, "C": 7500.0, "XPL": 4750.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 8533.0, "labAmt": 0, "opd": 0, "cN": 7, "cO": 8, "cM": 0, "cP": 0, "cL": 0, "tot": 15}}, "2026-01-05": {"rows": [], "_c": {"T": 60520.0, "M": 36320.0, "C": 24200.0, "XPL": 15450.0, "Xr": 0, "PT": 0, "Lab": 1700.0, "gpay": 14127.0, "labAmt": 1700.0, "opd": 0, "cN": 23, "cO": 12, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-01-06": {"rows": [], "_c": {"T": 40763.0, "M": 25513.0, "C": 15250.0, "XPL": 0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 10095.0, "labAmt": 0, "opd": 0, "cN": 12, "cO": 11, "cM": 0, "cP": 0, "cL": 0, "tot": 23}}, "2026-01-07": {"rows": [], "_c": {"T": 60312.0, "M": 32982.0, "C": 27330.0, "XPL": 20380.0, "Xr": 0, "PT": 0, "Lab": 4790.0, "gpay": 4500.0, "labAmt": 4790.0, "opd": 0, "cN": 16, "cO": 10, "cM": 0, "cP": 0, "cL": 0, "tot": 26}}, "2026-01-08": {"rows": [], "_c": {"T": 41744.0, "M": 28544.0, "C": 13200.0, "XPL": 0, "Xr": 0, "PT": 0, "Lab": 875.0, "gpay": 11972.0, "labAmt": 875.0, "opd": 0, "cN": 9, "cO": 15, "cM": 0, "cP": 0, "cL": 0, "tot": 24}}, "2026-01-09": {"rows": [], "_c": {"T": 45812.0, "M": 27432.0, "C": 18380.0, "XPL": 12030.0, "Xr": 0, "PT": 0, "Lab": 915.0, "gpay": 11612.0, "labAmt": 915.0, "opd": 0, "cN": 14, "cO": 12, "cM": 0, "cP": 0, "cL": 0, "tot": 26}}, "2026-01-10": {"rows": [], "_c": {"T": 26060.0, "M": 17310.0, "C": 8750.0, "XPL": 5000.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 7610.0, "labAmt": 0, "opd": 0, "cN": 8, "cO": 8, "cM": 0, "cP": 0, "cL": 0, "tot": 16}}, "2026-01-11": {"rows": [], "_c": {"T": 36366.0, "M": 15386.0, "C": 20980.0, "XPL": 16880.0, "Xr": 0, "PT": 0, "Lab": 5990.0, "gpay": 9924.0, "labAmt": 5990.0, "opd": 0, "cN": 4, "cO": 9, "cM": 0, "cP": 0, "cL": 0, "tot": 13}}, "2026-01-12": {"rows": [], "_c": {"T": 81576.0, "M": 52296.0, "C": 29280.0, "XPL": 17580.0, "Xr": 0, "PT": 0, "Lab": 1690.0, "gpay": 22909.0, "labAmt": 1690.0, "opd": 0, "cN": 21, "cO": 30, "cM": 0, "cP": 0, "cL": 0, "tot": 51}}, "2026-01-13": {"rows": [], "_c": {"T": 40663.0, "M": 29343.0, "C": 11320.0, "XPL": 6870.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 13373.0, "labAmt": 0, "opd": 0, "cN": 9, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 23}}, "2026-01-14": {"rows": [], "_c": {"T": 34935.0, "M": 16495.0, "C": 18440.0, "XPL": 12790.0, "Xr": 0, "PT": 0, "Lab": 4020.0, "gpay": 6585.0, "labAmt": 4020.0, "opd": 0, "cN": 10, "cO": 6, "cM": 0, "cP": 0, "cL": 0, "tot": 16}}, "2026-01-15": {"rows": [], "_c": {"T": 32968.0, "M": 19818.0, "C": 13150.0, "XPL": 8250.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 11302.0, "labAmt": 0, "opd": 0, "cN": 13, "cO": 4, "cM": 0, "cP": 0, "cL": 0, "tot": 17}}, "2026-01-16": {"rows": [], "_c": {"T": 26935.0, "M": 17435.0, "C": 9500.0, "XPL": 5250.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 6824.0, "labAmt": 0, "opd": 0, "cN": 14, "cO": 5, "cM": 0, "cP": 0, "cL": 0, "tot": 19}}, "2026-01-17": {"rows": [], "_c": {"T": 62764.0, "M": 36964.0, "C": 25800.0, "XPL": 16300.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 23560.0, "labAmt": 0, "opd": 0, "cN": 22, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 29}}, "2026-01-18": {"rows": [], "_c": {"T": 72754.0, "M": 41004.0, "C": 31750.0, "XPL": 20200.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 11396.0, "labAmt": 0, "opd": 0, "cN": 23, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 37}}, "2026-01-19": {"rows": [], "_c": {"T": 62829.0, "M": 38599.0, "C": 24230.0, "XPL": 15130.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 8699.0, "labAmt": 0, "opd": 0, "cN": 25, "cO": 13, "cM": 0, "cP": 0, "cL": 0, "tot": 38}}, "2026-01-20": {"rows": [], "_c": {"T": 76210.0, "M": 48320.0, "C": 27890.0, "XPL": 19040.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 29899.0, "labAmt": 0, "opd": 0, "cN": 27, "cO": 17, "cM": 0, "cP": 0, "cL": 0, "tot": 44}}, "2026-01-21": {"rows": [], "_c": {"T": 46835.0, "M": 30235.0, "C": 16600.0, "XPL": 9500.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 8928.0, "labAmt": 0, "opd": 0, "cN": 22, "cO": 11, "cM": 0, "cP": 0, "cL": 0, "tot": 33}}, "2026-01-22": {"rows": [], "_c": {"T": 35063.0, "M": 18663.0, "C": 16400.0, "XPL": 11350.0, "Xr": 0, "PT": 0, "Lab": 1700.0, "gpay": 6548.0, "labAmt": 1700.0, "opd": 0, "cN": 14, "cO": 12, "cM": 0, "cP": 0, "cL": 0, "tot": 26}}, "2026-01-23": {"rows": [], "_c": {"T": 63350.0, "M": 37020.0, "C": 26330.0, "XPL": 17480.0, "Xr": 0, "PT": 0, "Lab": 1540.0, "gpay": 20309.0, "labAmt": 1540.0, "opd": 0, "cN": 20, "cO": 15, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-01-24": {"rows": [], "_c": {"T": 68908.0, "M": 46158.0, "C": 22750.0, "XPL": 12400.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 12354.0, "labAmt": 0, "opd": 0, "cN": 28, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-01-25": {"rows": [], "_c": {"T": 32978.0, "M": 18828.0, "C": 14150.0, "XPL": 8550.0, "Xr": 0, "PT": 0, "Lab": 965.0, "gpay": 2081.0, "labAmt": 965.0, "opd": 0, "cN": 13, "cO": 8, "cM": 0, "cP": 0, "cL": 0, "tot": 21}}, "2026-01-26": {"rows": [], "_c": {"T": 65424.0, "M": 39994.0, "C": 25430.0, "XPL": 16880.0, "Xr": 0, "PT": 0, "Lab": 3115.0, "gpay": 20635.0, "labAmt": 3115.0, "opd": 0, "cN": 24, "cO": 17, "cM": 0, "cP": 0, "cL": 0, "tot": 41}}, "2026-01-27": {"rows": [], "_c": {"T": 49358.0, "M": 32278.0, "C": 17080.0, "XPL": 10530.0, "Xr": 0, "PT": 0, "Lab": 1690.0, "gpay": 18135.0, "labAmt": 1690.0, "opd": 0, "cN": 16, "cO": 12, "cM": 0, "cP": 0, "cL": 0, "tot": 28}}, "2026-01-28": {"rows": [], "_c": {"T": 35857.0, "M": 25757.0, "C": 10100.0, "XPL": 4500.0, "Xr": 0, "PT": 0, "Lab": 4595.0, "gpay": 2945.0, "labAmt": 4595.0, "opd": 0, "cN": 9, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 23}}, "2026-01-29": {"rows": [], "_c": {"T": 88359.0, "M": 50289.0, "C": 38070.0, "XPL": 24820.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 15608.0, "labAmt": 0, "opd": 0, "cN": 27, "cO": 21, "cM": 0, "cP": 0, "cL": 0, "tot": 48}}, "2026-01-30": {"rows": [], "_c": {"T": 27320.0, "M": 10530.0, "C": 16790.0, "XPL": 12790.0, "Xr": 0, "PT": 0, "Lab": 5330.0, "gpay": 11195.0, "labAmt": 5330.0, "opd": 0, "cN": 10, "cO": 2, "cM": 0, "cP": 0, "cL": 0, "tot": 12}}, "2026-01-31": {"rows": [], "_c": {"T": 35703.0, "M": 19023.0, "C": 16680.0, "XPL": 0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 9067.0, "labAmt": 0, "opd": 0, "cN": 7, "cO": 13, "cM": 0, "cP": 0, "cL": 0, "tot": 20}}, "2026-02-01": {"rows": [], "_c": {"T": 18748.0, "M": 13848.0, "C": 4900.0, "XPL": 2600.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 6388.0, "labAmt": 0, "opd": 0, "cN": 4, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 11}}, "2026-02-02": {"rows": [], "_c": {"T": 76686.0, "M": 52636.0, "C": 24050.0, "XPL": 13750.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 19583.0, "labAmt": 0, "opd": 0, "cN": 20, "cO": 26, "cM": 0, "cP": 0, "cL": 0, "tot": 46}}, "2026-02-03": {"rows": [], "_c": {"T": 24919.0, "M": 16869.0, "C": 8050.0, "XPL": 4650.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 3642.0, "labAmt": 0, "opd": 0, "cN": 6, "cO": 8, "cM": 0, "cP": 0, "cL": 0, "tot": 14}}, "2026-02-04": {"rows": [], "_c": {"T": 63498.0, "M": 40948.0, "C": 22550.0, "XPL": 12200.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 30644.0, "labAmt": 0, "opd": 0, "cN": 25, "cO": 17, "cM": 0, "cP": 0, "cL": 0, "tot": 42}}, "2026-02-05": {"rows": [], "_c": {"T": 38359.0, "M": 25359.0, "C": 13000.0, "XPL": 6750.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 9847.0, "labAmt": 0, "opd": 0, "cN": 9, "cO": 15, "cM": 0, "cP": 0, "cL": 0, "tot": 24}}, "2026-02-06": {"rows": [], "_c": {"T": 43276.0, "M": 25176.0, "C": 18100.0, "XPL": 12100.0, "Xr": 0, "PT": 0, "Lab": 2425.0, "gpay": 11105.0, "labAmt": 2425.0, "opd": 0, "cN": 14, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 28}}, "2026-02-07": {"rows": [], "_c": {"T": 64897.0, "M": 39467.0, "C": 25430.0, "XPL": 16580.0, "Xr": 0, "PT": 0, "Lab": 2465.0, "gpay": 22922.0, "labAmt": 2465.0, "opd": 0, "cN": 21, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-02-08": {"rows": [], "_c": {"T": 29960.0, "M": 14980.0, "C": 14980.0, "XPL": 9780.0, "Xr": 0, "PT": 0, "Lab": 765.0, "gpay": 11102.0, "labAmt": 765.0, "opd": 0, "cN": 13, "cO": 6, "cM": 0, "cP": 0, "cL": 0, "tot": 19}}, "2026-02-09": {"rows": [], "_c": {"T": 83944.0, "M": 39824.0, "C": 44120.0, "XPL": 50870.0, "Xr": 0, "PT": 0, "Lab": 10010.0, "gpay": 44229.0, "labAmt": 10010.0, "opd": 0, "cN": 29, "cO": 23, "cM": 0, "cP": 0, "cL": 0, "tot": 52}}, "2026-02-10": {"rows": [], "_c": {"T": 39863.0, "M": 22013.0, "C": 17850.0, "XPL": 11550.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 11388.0, "labAmt": 0, "opd": 0, "cN": 13, "cO": 16, "cM": 0, "cP": 0, "cL": 0, "tot": 29}}, "2026-02-11": {"rows": [], "_c": {"T": 41277.0, "M": 19147.0, "C": 22130.0, "XPL": 15530.0, "Xr": 0, "PT": 0, "Lab": 2615.0, "gpay": 5941.0, "labAmt": 2615.0, "opd": 0, "cN": 15, "cO": 9, "cM": 0, "cP": 0, "cL": 0, "tot": 24}}, "2026-02-12": {"rows": [], "_c": {"T": 43036.0, "M": 22666.0, "C": 20370.0, "XPL": 14770.0, "Xr": 0, "PT": 0, "Lab": 2010.0, "gpay": 13393.0, "labAmt": 2010.0, "opd": 0, "cN": 15, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 22}}, "2026-02-13": {"rows": [], "_c": {"T": 71784.0, "M": 38874.0, "C": 32910.0, "XPL": 23260.0, "Xr": 0, "PT": 0, "Lab": 3585.0, "gpay": 16979.0, "labAmt": 3585.0, "opd": 0, "cN": 24, "cO": 15, "cM": 0, "cP": 0, "cL": 0, "tot": 39}}, "2026-02-14": {"rows": [], "_c": {"T": 50977.0, "M": 37157.0, "C": 13820.0, "XPL": 6220.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 26504.0, "labAmt": 0, "opd": 0, "cN": 15, "cO": 13, "cM": 0, "cP": 0, "cL": 0, "tot": 28}}, "2026-02-15": {"rows": [], "_c": {"T": 27452.0, "M": 18252.0, "C": 9200.0, "XPL": 5650.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 8325.0, "labAmt": 0, "opd": 0, "cN": 7, "cO": 10, "cM": 0, "cP": 0, "cL": 0, "tot": 17}}, "2026-02-16": {"rows": [], "_c": {"T": 37915.0, "M": 22765.0, "C": 15150.0, "XPL": 10000.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 15141.0, "labAmt": 0, "opd": 0, "cN": 16, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 23}}, "2026-02-17": {"rows": [], "_c": {"T": 43699.0, "M": 22909.0, "C": 20790.0, "XPL": 14880.0, "Xr": 0, "PT": 0, "Lab": 2065.0, "gpay": 6532.0, "labAmt": 2065.0, "opd": 0, "cN": 12, "cO": 16, "cM": 0, "cP": 0, "cL": 0, "tot": 28}}, "2026-02-18": {"rows": [], "_c": {"T": 40256.0, "M": 22626.0, "C": 17630.0, "XPL": 12530.0, "Xr": 0, "PT": 0, "Lab": 2515.0, "gpay": 6292.0, "labAmt": 2515.0, "opd": 0, "cN": 14, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 21}}, "2026-02-19": {"rows": [], "_c": {"T": 61022.0, "M": 37292.0, "C": 23730.0, "XPL": 15480.0, "Xr": 0, "PT": 0, "Lab": 2890.0, "gpay": 27680.0, "labAmt": 2890.0, "opd": 0, "cN": 21, "cO": 16, "cM": 0, "cP": 0, "cL": 0, "tot": 37}}, "2026-02-20": {"rows": [], "_c": {"T": 57842.0, "M": 33102.0, "C": 24740.0, "XPL": 15990.0, "Xr": 0, "PT": 0, "Lab": 2170.0, "gpay": 10662.0, "labAmt": 2170.0, "opd": 0, "cN": 23, "cO": 12, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-02-21": {"rows": [], "_c": {"T": 71778.0, "M": 45598.0, "C": 26180.0, "XPL": 17430.0, "Xr": 0, "PT": 0, "Lab": 4215.0, "gpay": 22182.0, "labAmt": 4215.0, "opd": 0, "cN": 19, "cO": 16, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-02-22": {"rows": [], "_c": {"T": 29510.0, "M": 17260.0, "C": 12250.0, "XPL": 7000.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 14339.0, "labAmt": 0, "opd": 0, "cN": 10, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 17}}, "2026-02-23": {"rows": [], "_c": {"T": 91837.0, "M": 54557.0, "C": 37280.0, "XPL": 22180.0, "Xr": 0, "PT": 0, "Lab": 765.0, "gpay": 42871.0, "labAmt": 765.0, "opd": 0, "cN": 33, "cO": 22, "cM": 0, "cP": 0, "cL": 0, "tot": 55}}, "2026-02-24": {"rows": [], "_c": {"T": 36928.0, "M": 21678.0, "C": 15250.0, "XPL": 8700.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 11160.0, "labAmt": 0, "opd": 0, "cN": 14, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 21}}, "2026-02-25": {"rows": [], "_c": {"T": 42156.0, "M": 27346.0, "C": 14810.0, "XPL": 9000.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 15979.0, "labAmt": 0, "opd": 0, "cN": 16, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 23}}, "2026-02-26": {"rows": [], "_c": {"T": 41786.0, "M": 24716.0, "C": 17070.0, "XPL": 11470.0, "Xr": 0, "PT": 0, "Lab": 2585.0, "gpay": 12017.0, "labAmt": 2585.0, "opd": 0, "cN": 13, "cO": 10, "cM": 0, "cP": 0, "cL": 0, "tot": 23}}, "2026-02-27": {"rows": [], "_c": {"T": 44415.0, "M": 23065.0, "C": 21350.0, "XPL": 14200.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 14775.0, "labAmt": 0, "opd": 0, "cN": 15, "cO": 15, "cM": 0, "cP": 0, "cL": 0, "tot": 30}}, "2026-02-28": {"rows": [], "_c": {"T": 62763.0, "M": 37533.0, "C": 25230.0, "XPL": 16330.0, "Xr": 0, "PT": 0, "Lab": 3465.0, "gpay": 26011.0, "labAmt": 3465.0, "opd": 0, "cN": 28, "cO": 11, "cM": 0, "cP": 0, "cL": 0, "tot": 39}}, "2026-03-01": {"rows": [], "_c": {"T": 44931.0, "M": 27241.0, "C": 17690.0, "XPL": 12290.0, "Xr": 0, "PT": 0, "Lab": 1820.0, "gpay": 13974.0, "labAmt": 1820.0, "opd": 0, "cN": 14, "cO": 11, "cM": 0, "cP": 0, "cL": 0, "tot": 25}}, "2026-03-02": {"rows": [], "_c": {"T": 60240.0, "M": 34660.0, "C": 25580.0, "XPL": 16180.0, "Xr": 0, "PT": 0, "Lab": 1190.0, "gpay": 14146.0, "labAmt": 1190.0, "opd": 0, "cN": 20, "cO": 15, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-03-03": {"rows": [], "_c": {"T": 54944.0, "M": 23364.0, "C": 31580.0, "XPL": 0, "Xr": 0, "PT": 0, "Lab": 2615.0, "gpay": 19636.0, "labAmt": 2615.0, "opd": 0, "cN": 21, "cO": 10, "cM": 0, "cP": 0, "cL": 0, "tot": 32}}, "2026-03-04": {"rows": [], "_c": {"T": 44678.0, "M": 20528.0, "C": 24150.0, "XPL": 17450.0, "Xr": 0, "PT": 0, "Lab": 4050.0, "gpay": 5773.0, "labAmt": 4050.0, "opd": 0, "cN": 16, "cO": 15, "cM": 0, "cP": 0, "cL": 0, "tot": 31}}, "2026-03-05": {"rows": [], "_c": {"T": 48381.0, "M": 31301.0, "C": 17080.0, "XPL": 11780.0, "Xr": 0, "PT": 0, "Lab": 2465.0, "gpay": 13444.0, "labAmt": 2465.0, "opd": 0, "cN": 18, "cO": 12, "cM": 0, "cP": 0, "cL": 0, "tot": 30}}, "2026-03-06": {"rows": [], "_c": {"T": 48543.0, "M": 28363.0, "C": 20180.0, "XPL": 13080.0, "Xr": 0, "PT": 0, "Lab": 1415.0, "gpay": 11321.0, "labAmt": 1415.0, "opd": 0, "cN": 19, "cO": 8, "cM": 0, "cP": 0, "cL": 0, "tot": 27}}, "2026-03-07": {"rows": [], "_c": {"T": 45537.0, "M": 28127.0, "C": 17410.0, "XPL": 25760.0, "Xr": 0, "PT": 0, "Lab": 530.0, "gpay": 19820.0, "labAmt": 530.0, "opd": 0, "cN": 20, "cO": 10, "cM": 0, "cP": 0, "cL": 0, "tot": 30}}, "2026-03-08": {"rows": [], "_c": {"T": 26567.0, "M": 15417.0, "C": 11150.0, "XPL": 7050.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 10274.0, "labAmt": 0, "opd": 0, "cN": 11, "cO": 6, "cM": 0, "cP": 0, "cL": 0, "tot": 17}}, "2026-03-09": {"rows": [], "_c": {"T": 41276.0, "M": 27376.0, "C": 13900.0, "XPL": 7000.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 8620.0, "labAmt": 0, "opd": 0, "cN": 19, "cO": 12, "cM": 0, "cP": 0, "cL": 0, "tot": 31}}, "2026-03-10": {"rows": [], "_c": {"T": 37159.0, "M": 18309.0, "C": 18850.0, "XPL": 13450.0, "Xr": 0, "PT": 0, "Lab": 3350.0, "gpay": 13509.0, "labAmt": 3350.0, "opd": 0, "cN": 13, "cO": 9, "cM": 0, "cP": 0, "cL": 0, "tot": 22}}, "2026-03-11": {"rows": [], "_c": {"T": 64174.0, "M": 40974.0, "C": 23200.0, "XPL": 12625.0, "Xr": 0, "PT": 0, "Lab": 475.0, "gpay": 13272.0, "labAmt": 475.0, "opd": 0, "cN": 23, "cO": 18, "cM": 0, "cP": 0, "cL": 0, "tot": 41}}, "2026-03-12": {"rows": [], "_c": {"T": 57036.0, "M": 37576.0, "C": 19460.0, "XPL": 11110.0, "Xr": 0, "PT": 0, "Lab": 355.0, "gpay": 17553.0, "labAmt": 355.0, "opd": 0, "cN": 21, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-03-13": {"rows": [], "_c": {"T": 52748.0, "M": 29998.0, "C": 22750.0, "XPL": 14550.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 13917.0, "labAmt": 0, "opd": 0, "cN": 19, "cO": 9, "cM": 0, "cP": 0, "cL": 0, "tot": 28}}, "2026-03-14": {"rows": [], "_c": {"T": 63762.0, "M": 39562.0, "C": 24200.0, "XPL": 15000.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 20199.0, "labAmt": 0, "opd": 0, "cN": 23, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 37}}, "2026-03-15": {"rows": [], "_c": {"T": 50136.0, "M": 26446.0, "C": 23690.0, "XPL": 16090.0, "Xr": 0, "PT": 0, "Lab": 2220.0, "gpay": 17988.0, "labAmt": 2220.0, "opd": 0, "cN": 21, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 28}}}, "pharma": {"2026-01": {"Senthil": [{"date": "2026-01-27", "amt": 2300.0}], "Karthikeya": [{"date": "2026-01-06", "amt": 3623.0}, {"date": "2026-01-09", "amt": 6178.0}, {"date": "2026-01-12", "amt": 15091.0}, {"date": "2026-01-15", "amt": 11292.0}, {"date": "2026-01-19", "amt": 2880.0}, {"date": "2026-01-20", "amt": 13939.0}, {"date": "2026-01-24", "amt": 4551.0}], "NH Surgical": [{"date": "2026-01-02", "amt": 4111.0}, {"date": "2026-01-05", "amt": 10969.0}, {"date": "2026-01-06", "amt": 4167.0}, {"date": "2026-01-07", "amt": 662.0}, {"date": "2026-01-09", "amt": 3376.0}, {"date": "2026-01-13", "amt": 5240.0}, {"date": "2026-01-14", "amt": 9163.0}, {"date": "2026-01-20", "amt": 4840.0}, {"date": "2026-01-21", "amt": 748.0}, {"date": "2026-01-24", "amt": 3885.0}, {"date": "2026-01-26", "amt": 3834.0}, {"date": "2026-01-27", "amt": 914.0}, {"date": "2026-01-29", "amt": 3903.0}, {"date": "2026-01-22", "amt": 7655.0}, {"date": "2026-01-29", "amt": 15667.0}], "HR Surgical": [{"date": "2026-01-02", "amt": 5124.0}, {"date": "2026-01-03", "amt": 1139.0}, {"date": "2026-01-08", "amt": 9890.0}, {"date": "2026-01-09", "amt": 347.0}, {"date": "2026-01-19", "amt": 9727.0}, {"date": "2026-01-21", "amt": 6402.0}, {"date": "2026-01-24", "amt": 1796.0}, {"date": "2026-01-26", "amt": 3802.0}, {"date": "2026-01-29", "amt": 4268.0}, {"date": "2026-01-04", "amt": 617.0}, {"date": "2026-01-27", "amt": 1005.0}], "Lakshmi": [{"date": "2026-01-01", "amt": 4113.0}, {"date": "2026-01-03", "amt": 10999.0}, {"date": "2026-01-06", "amt": 3830.0}, {"date": "2026-01-10", "amt": 3874.0}, {"date": "2026-01-14", "amt": 13748.0}, {"date": "2026-01-15", "amt": 2910.0}, {"date": "2026-01-19", "amt": 10130.0}, {"date": "2026-01-20", "amt": 2372.0}, {"date": "2026-01-21", "amt": 2205.0}, {"date": "2026-01-22", "amt": 6012.0}, {"date": "2026-01-26", "amt": 4743.0}, {"date": "2026-01-29", "amt": 1397.0}, {"date": "2026-01-30", "amt": 18769.0}], "Geetha Dharmapuri": [{"date": "2026-01-22", "amt": 2359.0}, {"date": "2026-01-26", "amt": 8189.0}], "Thamaraikani": [{"date": "2026-01-25", "amt": 10200.0}], "Senthil Balaji": [{"date": "2026-01-05", "amt": 3751.0}, {"date": "2026-01-08", "amt": 3805.0}, {"date": "2026-01-13", "amt": 1050.0}, {"date": "2026-01-14", "amt": 3725.0}, {"date": "2026-01-15", "amt": 2133.0}, {"date": "2026-01-24", "amt": 2133.0}, {"date": "2026-01-24", "amt": 5655.0}, {"date": "2026-01-29", "amt": 3200.0}, {"date": "2026-01-24", "amt": 1463.0}], "Kumaran": [{"date": "2026-01-02", "amt": 5514.0}, {"date": "2026-01-08", "amt": 17915.0}, {"date": "2026-01-13", "amt": 1901.0}, {"date": "2026-01-15", "amt": 19687.0}, {"date": "2026-01-24", "amt": 21508.0}, {"date": "2026-01-29", "amt": 9738.0}, {"date": "2026-01-20", "amt": 11309.0}], "Saravana": [{"date": "2026-01-01", "amt": 5319.0}, {"date": "2026-01-05", "amt": 12069.0}, {"date": "2026-01-08", "amt": 3912.0}, {"date": "2026-01-12", "amt": 9149.0}, {"date": "2026-01-13", "amt": 11441.0}, {"date": "2026-01-20", "amt": 12069.0}, {"date": "2026-01-23", "amt": 13061.0}, {"date": "2026-01-30", "amt": 9149.0}, {"date": "2026-01-02", "amt": 11292.0}, {"date": "2026-01-05", "amt": 8275.0}, {"date": "2026-01-12", "amt": 8275.0}, {"date": "2026-01-19", "amt": 8275.0}, {"date": "2026-01-22", "amt": 6620.0}, {"date": "2026-01-30", "amt": 8275.0}]}, "2026-02": {"Senthil": [{"date": "2026-02-10", "amt": 53.0}, {"date": "2026-02-28", "amt": 1611.0}], "Karthikeya": [{"date": "2026-02-05", "amt": 3623.0}, {"date": "2026-02-07", "amt": 1166.0}, {"date": "2026-02-11", "amt": 1463.0}, {"date": "2026-02-12", "amt": 13037.0}, {"date": "2026-02-16", "amt": 11309.0}, {"date": "2026-02-18", "amt": 1463.0}, {"date": "2026-02-21", "amt": 14189.0}, {"date": "2026-02-21", "amt": 13939.0}, {"date": "2026-02-23", "amt": 3623.0}, {"date": "2026-02-27", "amt": 11309.0}, {"date": "2026-02-28", "amt": 4343.0}], "NH Surgical": [{"date": "2026-02-02", "amt": 5763.0}, {"date": "2026-02-05", "amt": 3067.0}, {"date": "2026-02-07", "amt": 6918.0}, {"date": "2026-02-09", "amt": 9170.0}, {"date": "2026-02-11", "amt": 1688.0}, {"date": "2026-02-12", "amt": 4584.0}, {"date": "2026-02-14", "amt": 6671.0}, {"date": "2026-02-18", "amt": 4040.0}, {"date": "2026-02-20", "amt": 6996.0}, {"date": "2026-02-21", "amt": 2237.0}, {"date": "2026-02-23", "amt": 1323.0}, {"date": "2026-02-24", "amt": 5862.0}, {"date": "2026-02-27", "amt": 4317.0}, {"date": "2026-02-28", "amt": 6137.0}, {"date": "2026-02-02", "amt": 11781.0}], "HR Surgical": [{"date": "2026-02-02", "amt": 1197.0}, {"date": "2026-02-07", "amt": 6190.0}, {"date": "2026-02-09", "amt": 4174.0}, {"date": "2026-02-12", "amt": 947.0}, {"date": "2026-02-13", "amt": 673.0}, {"date": "2026-02-14", "amt": 2930.0}, {"date": "2026-02-19", "amt": 2990.0}, {"date": "2026-02-27", "amt": 6014.0}, {"date": "2026-02-28", "amt": 2756.0}, {"date": "2026-02-06", "amt": 7900.0}, {"date": "2026-02-12", "amt": 1052.0}], "Lakshmi": [{"date": "2026-02-03", "amt": 3363.0}, {"date": "2026-02-07", "amt": 16925.0}, {"date": "2026-02-09", "amt": 1328.0}, {"date": "2026-02-10", "amt": 3162.0}, {"date": "2026-02-14", "amt": 6299.0}, {"date": "2026-02-16", "amt": 4789.0}, {"date": "2026-02-20", "amt": 4743.0}, {"date": "2026-02-21", "amt": 8793.0}, {"date": "2026-02-23", "amt": 4743.0}, {"date": "2026-02-25", "amt": 2147.0}, {"date": "2026-02-26", "amt": 504.0}, {"date": "2026-02-28", "amt": 9245.0}, {"date": "2026-02-11", "amt": 1733.0}], "Thamaraikani": [{"date": "2026-02-17", "amt": 10200.0}, {"date": "2026-02-02", "amt": 17349.0}, {"date": "2026-02-07", "amt": 8189.0}, {"date": "2026-02-02", "amt": 8189.0}, {"date": "2026-02-16", "amt": 8189.0}, {"date": "2026-02-20", "amt": 9424.0}, {"date": "2026-02-21", "amt": 8189.0}, {"date": "2026-02-28", "amt": 8189.0}], "Senthil Balaji": [{"date": "2026-02-02", "amt": 1875.0}, {"date": "2026-02-09", "amt": 5884.0}, {"date": "2026-02-11", "amt": 6399.0}, {"date": "2026-02-20", "amt": 4801.0}, {"date": "2026-02-25", "amt": 4266.0}, {"date": "2026-02-19", "amt": 1226.0}], "Kumaran": [{"date": "2026-02-02", "amt": 21508.0}, {"date": "2026-02-07", "amt": 3544.0}, {"date": "2026-02-14", "amt": 25256.0}, {"date": "2026-02-21", "amt": 5514.0}, {"date": "2026-02-23", "amt": 1728.0}, {"date": "2026-02-26", "amt": 3938.0}], "Saravana": [{"date": "2026-02-02", "amt": 2815.0}, {"date": "2026-02-07", "amt": 12069.0}, {"date": "2026-02-14", "amt": 9149.0}, {"date": "2026-02-21", "amt": 12069.0}, {"date": "2026-02-23", "amt": 9149.0}, {"date": "2026-02-03", "amt": 1016.0}, {"date": "2026-02-07", "amt": 25248.0}, {"date": "2026-02-06", "amt": 3649.0}, {"date": "2026-02-03", "amt": 3465.0}, {"date": "2026-02-10", "amt": 3465.0}, {"date": "2026-02-17", "amt": 6930.0}]}, "2026-03": {"Senthil": [{"date": "2026-03-14", "amt": 11840.0}], "Karthikeya": [{"date": "2026-03-04", "amt": 11309.0}, {"date": "2026-03-07", "amt": 24692.0}, {"date": "2026-03-12", "amt": 10874.0}, {"date": "2026-03-14", "amt": 4343.0}, {"date": "2026-03-13", "amt": 7021.0}, {"date": "2026-03-14", "amt": 2932.0}], "NH Surgical": [{"date": "2026-03-03", "amt": 3940.0}, {"date": "2026-03-05", "amt": 3648.0}, {"date": "2026-03-07", "amt": 11501.0}, {"date": "2026-03-10", "amt": 1869.0}, {"date": "2026-03-11", "amt": 2125.0}, {"date": "2026-03-13", "amt": 7128.0}], "HR Surgical": [{"date": "2026-03-11", "amt": 1055.0}, {"date": "2026-03-13", "amt": 2258.0}], "Lakshmi": [{"date": "2026-03-02", "amt": 754.0}, {"date": "2026-03-04", "amt": 3385.0}, {"date": "2026-03-07", "amt": 554.0}, {"date": "2026-03-11", "amt": 4001.0}, {"date": "2026-03-14", "amt": 2511.0}], "Geetha Dharmapuri": [{"date": "2026-03-11", "amt": 1900.0}, {"date": "2026-03-12", "amt": 24717.0}], "Thamaraikani": [{"date": "2026-03-05", "amt": 10200.0}, {"date": "2026-03-10", "amt": 8189.0}, {"date": "2026-03-14", "amt": 8189.0}], "Senthil Balaji": [{"date": "2026-03-07", "amt": 4266.0}, {"date": "2026-03-10", "amt": 1217.0}], "Kumaran": [{"date": "2026-03-02", "amt": 11845.0}, {"date": "2026-03-04", "amt": 5514.0}, {"date": "2026-03-07", "amt": 3544.0}, {"date": "2026-03-13", "amt": 4525.0}], "Saravana": [{"date": "2026-03-07", "amt": 2815.0}, {"date": "2026-03-12", "amt": 3611.0}, {"date": "2026-03-05", "amt": 9292.0}]}}, "ip": [{"id": 1, "name": "Thangavel", "admitDate": "2026-01-02", "diagnosis": "Ankle MM", "ward": "", "bill": 25000.0, "med": 18000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 2, "name": "Kamatchi", "admitDate": "2026-01-04", "diagnosis": "Hysterectomy", "ward": "", "bill": 13800.0, "med": 0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 3, "name": "Ramesh", "admitDate": "2026-01-05", "diagnosis": "DER", "ward": "", "bill": 47500.0, "med": 27500.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 4, "name": "Deepa", "admitDate": "2026-01-14", "diagnosis": "Forearm", "ward": "", "bill": 36700.0, "med": 23500.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 5, "name": "Mahesh", "admitDate": "2026-01-16", "diagnosis": "Disc", "ward": "", "bill": 52000.0, "med": 28000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 6, "name": "Vignesh", "admitDate": "2026-01-21", "diagnosis": "DER", "ward": "", "bill": 32000.0, "med": 20000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 7, "name": "Chitra", "admitDate": "2026-01-22", "diagnosis": "Tendoachiles", "ward": "", "bill": 30000.0, "med": 18000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 8, "name": "Chinnasamy", "admitDate": "2026-01-29", "diagnosis": "Distal femur", "ward": "", "bill": 47000.0, "med": 30000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 9, "name": "Elango", "admitDate": "2026-02-06", "diagnosis": "SC humerus", "ward": "", "bill": 19200.0, "med": 16800.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 10, "name": "Anand", "admitDate": "2026-02-08", "diagnosis": "SOF", "ward": "", "bill": 110000.0, "med": 30000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 11, "name": "Madhu", "admitDate": "2026-02-09", "diagnosis": "Tendoachilles", "ward": "", "bill": 35000.0, "med": 23500.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 12, "name": "Jothi", "admitDate": "2026-02-10", "diagnosis": "Ankle LM", "ward": "", "bill": 41000.0, "med": 30000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 13, "name": "Sibi", "admitDate": "2026-02-13", "diagnosis": "SSG", "ward": "", "bill": 20000.0, "med": 15000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 14, "name": "Vijayakumar", "admitDate": "2026-02-19", "diagnosis": "LB Knee", "ward": "", "bill": 23000.0, "med": 22000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 15, "name": "Periannan", "admitDate": "2026-02-20", "diagnosis": "Spine", "ward": "", "bill": 94500.0, "med": 29000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 16, "name": "Dasarathan", "admitDate": "2026-02-21", "diagnosis": "BB Forearm", "ward": "", "bill": 40000.0, "med": 25000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 17, "name": "Sathya", "admitDate": "2026-02-23", "diagnosis": "TA", "ward": "", "bill": 29000.0, "med": 21000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 18, "name": "Karpagam", "admitDate": "2026-02-26", "diagnosis": "Ulna", "ward": "", "bill": 23000.0, "med": 17000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 19, "name": "Vijay", "admitDate": "2026-02-27", "diagnosis": "Radius + MC", "ward": "", "bill": 40000.0, "med": 21500.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 20, "name": "Sivasankar", "admitDate": "2026-03-01", "diagnosis": "ACL", "ward": "", "bill": 55000.0, "med": 26000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 21, "name": "Sampath", "admitDate": "2026-03-04", "diagnosis": "Perilumate", "ward": "", "bill": 25000.0, "med": 27000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 22, "name": "Dhanush", "admitDate": "2026-03-06", "diagnosis": "SC Humerus", "ward": "", "bill": 14000.0, "med": 7000.0, "discharge": "", "status": "Discharged", "notes": ""}], "agencies": ["Senthil", "Karthikeya", "NH Surgical", "HR Surgical", "Lakshmi", "Geetha Dharmapuri", "Thamaraikani", "Senthil Balaji", "Kumaran", "Saravana", "Cylinder", "Geetha Salem", "Sara", "Dhanalakshmi", "Senthil Murugan", "Vishnu", "Universal", "Lifeline", "Aanand", "Latha", "Salem", "Jayshree", "Ramesh G"], "staff": [{"name": "Bathroom", "amt": 2500.0}, {"name": "Chinnarasu", "amt": 14000.0}, {"name": "Cook", "amt": 6000.0}, {"name": "Flower & Milk", "amt": 2380.0}, {"name": "Housekeeping night", "amt": 9000.0}, {"name": "Iyer", "amt": 5000.0}, {"name": "Jayaprabhu", "amt": 19000.0}, {"name": "Kaja", "amt": 8000.0}, {"name": "Kanimozhi", "amt": 11000.0}, {"name": "Karthik", "amt": 18000.0}, {"name": "Kesavan", "amt": 17000.0}, {"name": "Parvathi", "amt": 8500.0}, {"name": "Rekha", "amt": 8000.0}, {"name": "Salammal", "amt": 8500.0}, {"name": "Sandhya", "amt": 9000.0}, {"name": "Sylvi", "amt": 6300.0}], "staffPaid": {"2026-01": {"Bathroom": true, "Chinnarasu": true, "Cook": true, "Flower & Milk": true, "Housekeeping night": true, "Iyer": true, "Jayaprabhu": true, "Kaja": true, "Kanimozhi": true, "Karthik": true, "Kesavan": true, "Parvathi": true, "Rekha": true, "Salammal": true, "Sandhya": true, "Sylvi": true}, "2026-02": {"Bathroom": true, "Chinnarasu": true, "Cook": true, "Flower & Milk": true, "Housekeeping night": true, "Iyer": true, "Jayaprabhu": true, "Kaja": true, "Kanimozhi": true, "Karthik": true, "Kesavan": true, "Parvathi": true, "Rekha": true, "Salammal": true, "Sandhya": true, "Sylvi": true}, "2026-03": {}}, "pnlExp": {"2026-01": {"imp": 0, "ana": 7500.0, "sco": 15000.0, "out": 21060.0, "gst": 0, "eb": 0, "xrf": 41570.0, "oth": 2200.0}, "2026-02": {"imp": 60000.0, "ana": 0, "sco": 15000.0, "out": 0, "gst": 0, "eb": 0, "xrf": 10200.0, "oth": 6000.0}, "2026-03": {"imp": 25000.0, "ana": 0, "sco": 0, "out": 0, "gst": 0, "eb": 0, "xrf": 40670.0, "oth": 0}}};
+
+function bundle(){return{opd:allData,pharma:pharmaData,ip:ipData,agencies:agencyList,staff:staffList,staffPaid,pnlExp:pnlExpenses};}
+function loadBundle(d){
+  allData=d.opd||{}; pharmaData=d.pharma||{}; ipData=d.ip||[];
+  agencyList=d.agencies||[...DEF_AGENCIES]; staffList=d.staff||[...DEF_STAFF];
+  staffPaid=d.staffPaid||{}; pnlExpenses=d.pnlExp||{};
+  ipNid=ipData.length>0?Math.max(...ipData.map(x=>x.id||0))+1:1;
+  renderDay(); renderIPTab(); renderPharma(); renderStaff();
+}
+function saveLocal(){setLs('h_data',JSON.stringify(bundle()));}
+function loadLocal(){
+  const stored=ls('h_data');
+  if(!stored&&window._PRELOAD){loadBundle(window._PRELOAD);saveLocal();return;}
+  try{const d=JSON.parse(stored||'{}');loadBundle(Object.keys(d).length?d:(window._PRELOAD||{}));}
+  catch{loadBundle(window._PRELOAD||{});}
+}
+
+// ─── TABS ───
+function showTab(name,btn){
+  document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('on'));
+  el('page-'+name).classList.add('on'); btn.classList.add('on');
+  if(name==='monthly')renderMonthly();
+  if(name==='pharma')renderPharma();
+  if(name==='staff')renderStaff();
+  if(name==='pnl')renderPnL();
+  if(name==='trends')renderTrends();
+  if(name==='ip')renderIPTab();
+}
+
+// ─── DATE ───
+function isoToday(){return new Date().toISOString().split('T')[0];}
+function setDate(d){
+  curDate=d; el('dPick').value=d;
+  const dt=new Date(d+'T00:00:00');
+  el('dBig').textContent=dt.toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+  el('dDay').textContent=dt.toLocaleDateString('en-IN',{weekday:'long'});
+}
+function shiftDate(n){const d=new Date(curDate+'T00:00:00');d.setDate(d.getDate()+n);setDate(d.toISOString().split('T')[0]);renderDay();}
+function pickDate(){setDate(el('dPick').value);renderDay();}
+function goToday(){setDate(isoToday());renderDay();}
+
+// ─── DAY REGISTER ───
+function renderDay(){
+  if(!allData[curDate])allData[curDate]={rows:[]};
+  nid=1; el('tbody').innerHTML='';
+  allData[curDate].rows.forEach(r=>{renderRow(r);nid=Math.max(nid,r.id+1);});
+  recalc(); renderDayIP();
+}
+function addRow(pre){
+  const id=nid++;
+  const r={id,mrn:'',name:'',type:'N',opd:'',xray:'',pop:'',pt:'',lab:'',med:'',mode:'C',cash:'',gpay:''};
+  if(pre)Object.assign(r,pre);
+  allData[curDate].rows.push(r); renderRow(r); recalc(); sched();
+  setTimeout(()=>{const i=document.querySelector(`#row-${id} .nm`);if(i)i.focus();},40);
+}
+function renderRow(r){
+  const idx=allData[curDate].rows.findIndex(x=>x.id===r.id)+1;
+  const tr=document.createElement('tr'); tr.id='row-'+r.id;
+  tr.innerHTML=`
+    <td style="color:var(--t3);font-size:10px;font-family:'JetBrains Mono',monospace">${idx}</td>
+    <td><input class="ci" value="${esc(r.mrn||'')}" placeholder="MRN" style="font-family:'Outfit',sans-serif;font-size:12px;text-align:center" oninput="sv(${r.id},'mrn',this.value)"></td>
+    <td><input class="ci nm" value="${esc(r.name)}" placeholder="Name" oninput="sv(${r.id},'name',this.value)"></td>
+    <td><select class="ts2 t${r.type}" onchange="setType(${r.id},this)">
+      <option value="N" ${r.type==='N'?'selected':''}>N</option><option value="O" ${r.type==='O'?'selected':''}>O</option>
+      <option value="M" ${r.type==='M'?'selected':''}>M</option><option value="P" ${r.type==='P'?'selected':''}>P</option>
+      <option value="L" ${r.type==='L'?'selected':''}>L</option></select></td>
+    ${COLS.map(c=>`<td><input class="ci" type="number" min="0" value="${r[c]||''}" placeholder="—" oninput="sv(${r.id},'${c}',this.value)"></td>`).join('')}
+    <td class="td-tot" id="tot-${r.id}">—</td>
+    <td><select class="ms2 m${r.mode}" onchange="setMode(${r.id},this)">
+      <option value="C" ${r.mode==='C'?'selected':''}>C</option><option value="G" ${r.mode==='G'?'selected':''}>G</option>
+      <option value="S" ${r.mode==='S'?'selected':''}>S</option></select></td>
+    <td><input class="ci" type="number" min="0" value="${r.cash||''}" placeholder="—" style="color:var(--gn)" oninput="sv(${r.id},'cash',this.value)"></td>
+    <td><input class="ci" type="number" min="0" value="${r.gpay||''}" placeholder="—" style="color:var(--bl)" oninput="sv(${r.id},'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(${r.id})">✕</button></td>`;
+  el('tbody').appendChild(tr);
+}
+function sv(id,key,val){const r=allData[curDate].rows.find(x=>x.id===id);if(r)r[key]=val;recalc();sched();}
+function setType(id,sel){sel.className='ts2 t'+sel.value;sv(id,'type',sel.value);}
+function setMode(id,sel){sel.className='ms2 m'+sel.value;sv(id,'mode',sel.value);}
+function delRow(id){allData[curDate].rows=allData[curDate].rows.filter(x=>x.id!==id);el('row-'+id)?.remove();renumber();recalc();sched();}
+function renumber(){allData[curDate].rows.forEach((r,i)=>{const t=el('row-'+r.id);if(t)t.cells[0].textContent=i+1;});}
+
+function recalc(){
+  const day=allData[curDate]||{rows:[]};
+  const ft={opd:0,xray:0,pop:0,pt:0,lab:0,med:0};
+  let T=0,M=0,C=0,XPL=0,Xr=0,PT=0,Lab=0,cash=0,gpay=0;
+  let cN=0,cO=0,cM=0,cP=0,cL=0,rN=0,rO=0;
+  day.rows.forEach(r=>{
+    const vals={opd:n(r.opd),xray:n(r.xray),pop:n(r.pop),pt:n(r.pt),lab:n(r.lab),med:n(r.med)};
+    const rt=vals.opd+vals.xray+vals.pop+vals.pt+vals.lab+vals.med;
+    const te=el('tot-'+r.id); if(te)te.textContent=rt>0?'₹'+fmt(rt):'—';
+    COLS.forEach(c=>ft[c]+=vals[c]); T+=rt; M+=vals.med;
+    Xr+=vals.xray; PT+=vals.pt; Lab+=vals.lab; XPL+=vals.xray+vals.pt+vals.lab;
+    if(r.type!=='M'&&r.type!=='P'&&r.type!=='L') C+=vals.opd+vals.xray+vals.pop+vals.pt+vals.lab;
+    cash+=n(r.cash); gpay+=n(r.gpay);
+    if(r.type==='N'){cN++;rN+=rt;}else if(r.type==='O'){cO++;rO+=rt;}
+    else if(r.type==='M')cM++; else if(r.type==='P')cP++; else if(r.type==='L')cL++;
+  });
+  COLS.forEach(c=>{const e=el('f-'+c);if(e)e.textContent=ft[c]>0?'₹'+fmt(ft[c]):'—';});
+  setText('f-tot',T>0?'₹'+fmt(T):'—'); setText('f-cash',cash>0?'₹'+fmt(cash):'—'); setText('f-gpay',gpay>0?'₹'+fmt(gpay):'—');
+  setText('sc-M','₹'+fmt(M)); setText('sc-T','₹'+fmt(T)); setText('sc-C','₹'+fmt(C)); setText('sc-XPL','₹'+fmt(XPL));
+  setText('sc-xpl-sub',`X:₹${fmt(Xr)} P:₹${fmt(PT)} L:₹${fmt(Lab)}`);
+  setText('dc-pts',day.rows.length); setText('dc-types',`N:${cN} O:${cO} M:${cM} P:${cP} L:${cL}`);
+  setText('dc-new',cN); setText('dc-nr','₹'+fmt(rN));
+  setText('dc-old',cO); setText('dc-or','₹'+fmt(rO));
+  setText('dc-m',cM); setText('dc-p',cP); setText('dc-l',cL);
+  setText('pay-cash','₹'+fmt(cash)); setText('pay-gpay','₹'+fmt(gpay));
+  const ua=T-cash-gpay; setText('pay-unac',Math.abs(ua)>0.4?'₹'+fmt(Math.abs(ua)):'₹0');
+  const cp=T>0?Math.round(cash/T*100):0,gp=T>0?Math.round(gpay/T*100):0;
+  el('pbc').style.width=cp+'%'; el('pbg').style.width=gp+'%';
+  setText('ppt',`Cash ${cp}% · GPay ${gp}%`);
+  const rc=el('dc-recon');
+  if(T>0&&Math.abs(ua)>0.5){rc.className='card warn';setText('dc-rv','₹'+fmt(Math.abs(ua)));setText('dc-rs',ua>0?'not recorded':'over-recorded');}
+  else{rc.className='card';setText('dc-rv','✓');setText('dc-rs','balanced');}
+  allData[curDate]._c={T,M,C,XPL,Xr,PT,Lab,cash,gpay,labAmt:ft.lab,opd:ft.opd,cN,cO,cM,cP,cL,tot:day.rows.length};
+}
+
+// ─── DAY IP ───
+function renderDayIP(){
+  const ips=ipData.filter(x=>x.admitDate===curDate);
+  const d=el('day-ip');
+  if(!ips.length){d.innerHTML='<div style="font-size:12px;color:var(--t3);padding:4px 0 8px">No IP admissions today</div>';return;}
+  d.innerHTML='<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px">'+ips.map(ip=>`
+    <div style="display:flex;gap:10px;align-items:center;padding:7px 12px;background:var(--sf);border:1px solid var(--bd);border-radius:var(--rs);font-size:13px">
+      <span style="font-weight:600">${esc(ip.name)}</span>
+      <span style="color:var(--t2);flex:1">${esc(ip.diagnosis||'—')}</span>
+      <span style="color:var(--pu);font-family:'JetBrains Mono',monospace">₹${fmt(n(ip.bill)+n(ip.med))}</span>
+      <span style="font-size:11px;padding:2px 7px;border-radius:10px;background:${ip.status==='Discharged'?'var(--gbg)':'var(--bbg)'};color:${ip.status==='Discharged'?'var(--gn)':'var(--bl)'}">${ip.status||'Admitted'}</span>
+    </div>`).join('')+'</div>';
+}
+function addIPnow(){showTab('ip',document.querySelectorAll('.tab')[2]);addIP(curDate);}
+
+// ─── MONTHLY SUMMARY ───
+function renderMonthly(){
+  const mth=el('mth-sel').value;
+  const [yr,mo]=mth.split('-').map(Number);
+  const days=new Date(yr,mo,0).getDate();
+  const body=el('mth-body'),foot=el('mth-foot'); body.innerHTML=''; foot.innerHTML='';
+  let sums={gp:0,med:0,T:0,C:0,N:0,O:0,lab:0,ip:0,Xr:0,PT:0,Lab:0,XPL:0};
+  for(let d=1;d<=days;d++){
+    const ds=`${yr}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const c=allData[ds]?._c||computeCache((allData[ds]||{rows:[]}).rows);
+    const dayIPs=ipData.filter(x=>x.admitDate===ds);
+    const ipCnt=dayIPs.length, ipNms=dayIPs.map(x=>x.name).join(', '), ipDx=dayIPs.map(x=>x.diagnosis).join(', ');
+    const ipB=dayIPs.reduce((s,x)=>s+n(x.bill),0), ipM=dayIPs.reduce((s,x)=>s+n(x.med),0);
+    sums.gp+=c.gpay||0; sums.med+=c.M||0; sums.T+=c.T||0; sums.C+=c.C||0;
+    sums.N+=c.cN||0; sums.O+=c.cO||0; sums.lab+=c.labAmt||0; sums.ip+=ipCnt;
+    sums.Xr+=c.Xr||0; sums.PT+=c.PT||0; sums.Lab+=c.Lab||0; sums.XPL+=c.XPL||0;
+    const dow=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short'});
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td class="lft" style="font-size:11px;white-space:nowrap">${String(d).padStart(2,'0')}-${String(mo).padStart(2,'0')}-${yr} <span style="color:var(--t3)">${dow}</span></td>
+      <td class="mn" style="color:var(--bl)">${c.gpay>0?'₹'+fmt(c.gpay):'—'}</td>
+      <td class="mn" style="color:var(--pu)">${c.M>0?'₹'+fmt(c.M):'—'}</td>
+      <td class="mn" style="color:var(--gn);font-weight:600">${c.T>0?'₹'+fmt(c.T):'—'}</td>
+      <td class="mn">${c.C>0?'₹'+fmt(c.C):'—'}</td>
+      <td style="font-weight:600">${c.tot||0}</td>
+      <td style="color:var(--bl)">${c.cN||0}</td><td>${c.cO||0}</td>
+      <td class="mn">${c.labAmt>0?'₹'+fmt(c.labAmt):'—'}</td>
+      <td style="color:${ipCnt>0?'var(--rd)':'var(--t3)'}">${ipCnt||'—'}</td>
+      <td class="mn">${c.Xr>0?'₹'+fmt(c.Xr):'—'}</td>
+      <td class="mn">${c.PT>0?'₹'+fmt(c.PT):'—'}</td>
+      <td class="mn">${c.Lab>0?'₹'+fmt(c.Lab):'—'}</td>
+      <td class="mn" style="color:var(--tl);font-weight:600">${c.XPL>0?'₹'+fmt(c.XPL):'—'}</td>
+      <td style="font-size:11px">${esc(ipNms)||'—'}</td>
+      <td style="font-size:11px">${esc(ipDx)||'—'}</td>
+      <td class="mn">${ipB>0?'₹'+fmt(ipB):'—'}</td>
+      <td class="mn">${ipM>0?'₹'+fmt(ipM):'—'}</td>`;
+    body.appendChild(tr);
+  }
+  foot.innerHTML=`<td class="lbl">Month Total</td>
+    <td class="b mn">₹${fmt(sums.gp)}</td><td class="p mn">₹${fmt(sums.med)}</td>
+    <td class="g mn" style="font-size:13px">₹${fmt(sums.T)}</td><td class="mn">₹${fmt(sums.C)}</td>
+    <td style="font-weight:700">${sums.N+sums.O}</td><td class="b">${sums.N}</td><td>${sums.O}</td>
+    <td class="mn">₹${fmt(sums.lab)}</td><td style="color:var(--rd)">${sums.ip}</td>
+    <td class="mn">₹${fmt(sums.Xr)}</td><td class="mn">₹${fmt(sums.PT)}</td>
+    <td class="mn">₹${fmt(sums.Lab)}</td><td class="tl mn" style="font-size:13px">₹${fmt(sums.XPL)}</td>
+    <td colspan="4"></td>`;
+  el('mth-sumcards').innerHTML=[
+    {l:'Month Total',v:'₹'+fmt(sums.T),c:'g'},{l:'GPay',v:'₹'+fmt(sums.gp),c:'b'},
+    {l:'Medicals',v:'₹'+fmt(sums.med),c:'p'},{l:'Census',v:'₹'+fmt(sums.C),c:''},
+    {l:'XPL',v:'₹'+fmt(sums.XPL),c:'tl'},{l:'Patients',v:sums.N+sums.O,c:''},
+    {l:'New',v:sums.N,c:'b'},{l:'IP Count',v:sums.ip,c:'r'}
+  ].map(x=>`<div class="card ${x.c}"><div class="cl">${x.l}</div><div class="cv">${x.v}</div></div>`).join('');
+}
+
+function computeCache(rows){
+  let T=0,M=0,C=0,XPL=0,Xr=0,PT=0,Lab=0,gpay=0,labAmt=0,opd=0,cN=0,cO=0,cM=0,cP=0,cL=0,tot=0;
+  (rows||[]).forEach(r=>{
+    const v2={opd:n(r.opd),xray:n(r.xray),pop:n(r.pop),pt:n(r.pt),lab:n(r.lab),med:n(r.med)};
+    const rt=Object.values(v2).reduce((a,b)=>a+b,0);
+    T+=rt;M+=v2.med;Xr+=v2.xray;PT+=v2.pt;Lab+=v2.lab;
+    XPL+=v2.xray+v2.pt+v2.lab;labAmt+=v2.lab;gpay+=n(r.gpay);opd+=v2.opd;
+    if(r.type!=='M'&&r.type!=='P'&&r.type!=='L') C+=v2.opd+v2.xray+v2.pop+v2.pt+v2.lab;
+    if(r.type==='N')cN++; else if(r.type==='O')cO++; else if(r.type==='M')cM++; else if(r.type==='P')cP++; else if(r.type==='L')cL++;
+    tot++;
+  });
+  return{T,M,C,XPL,Xr,PT,Lab,gpay,labAmt,opd,cN,cO,cM,cP,cL,tot};
+}
+
+// ─── IP REGISTER ───
+function renderIPTab(){
+  const tbody=el('ip-tbody'); tbody.innerHTML='';
+  if(!ipData.length){tbody.innerHTML='<tr><td colspan="12" style="color:var(--t3);font-size:12px;padding:16px;text-align:center">No IP admissions yet</td></tr>';return;}
+  ipData.forEach((ip,i)=>{
+    const tr=document.createElement('tr'); tr.id='ipr-'+ip.id;
+    const tot=n(ip.bill)+n(ip.med);
+    tr.innerHTML=`
+      <td style="color:var(--t3);font-size:10px">${i+1}</td>
+      <td><input class="ci nm" value="${esc(ip.name)}" placeholder="Name" oninput="ipSet(${ip.id},'name',this.value)"></td>
+      <td><input class="ci" type="date" value="${ip.admitDate||''}" style="font-size:11px" onchange="ipSet(${ip.id},'admitDate',this.value)"></td>
+      <td><input class="ci lft" value="${esc(ip.diagnosis||'')}" placeholder="Diagnosis" oninput="ipSet(${ip.id},'diagnosis',this.value)"></td>
+      <td><input class="ci" value="${esc(ip.ward||'')}" placeholder="W1-B2" oninput="ipSet(${ip.id},'ward',this.value)"></td>
+      <td><input class="ci" type="number" min="0" value="${ip.bill||''}" placeholder="—" style="color:var(--pu)" oninput="ipSet(${ip.id},'bill',this.value)"></td>
+      <td><input class="ci" type="number" min="0" value="${ip.med||''}" placeholder="—" style="color:var(--pu)" oninput="ipSet(${ip.id},'med',this.value)"></td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--pu)">${tot>0?'₹'+fmt(tot):'—'}</td>
+      <td><input class="ci" type="date" value="${ip.discharge||''}" style="font-size:11px" onchange="ipSet(${ip.id},'discharge',this.value)"></td>
+      <td><select class="ci" style="font-size:11px" onchange="ipSet(${ip.id},'status',this.value)">
+        <option ${(ip.status||'Admitted')==='Admitted'?'selected':''}>Admitted</option>
+        <option ${ip.status==='Discharged'?'selected':''}>Discharged</option>
+        <option ${ip.status==='Referred'?'selected':''}>Referred</option>
+      </select></td>
+      <td><input class="ci lft" value="${esc(ip.notes||'')}" placeholder="Notes" oninput="ipSet(${ip.id},'notes',this.value)"></td>
+      <td><button class="del-btn" onclick="delIP(${ip.id})">✕</button></td>`;
+    tbody.appendChild(tr);
+  });
+}
+function addIP(ad){
+  const id=ipNid++;
+  ipData.push({id,name:'',admitDate:ad||curDate,diagnosis:'',ward:'',bill:'',med:'',discharge:'',status:'Admitted',notes:''});
+  renderIPTab(); renderDayIP(); sched();
+  setTimeout(()=>{const r=el('ipr-'+id);if(r){const i=r.querySelector('.nm');if(i)i.focus();}},40);
+}
+function ipSet(id,key,val){const ip=ipData.find(x=>x.id===id);if(ip){ip[key]=val;if(key==='bill'||key==='med')renderIPTab();sched();renderDayIP();}}
+function delIP(id){ipData=ipData.filter(x=>x.id!==id);renderIPTab();renderDayIP();sched();}
+
+// ─── PHARMA ───
+function renderPharma(){
+  const mth=el('ph-mth').value;
+  const [yr,mo]=mth.split('-').map(Number);
+  setText('ph-mth-lbl',new Date(yr,mo-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'}));
+  if(!pharmaData[mth])pharmaData[mth]={};
+  const grid=el('pharma-grid'); grid.innerHTML='';
+  const obRows=[];
+  agencyList.forEach(ag=>{
+    const entries=pharmaData[mth][ag]||[];
+    const total=entries.reduce((s,e)=>s+n(e.amt),0);
+    const paid=n(pharmaData[mth][ag+'_paid']);
+    if(total>0)obRows.push({ag,total,paid,bal:total-paid});
+    const card=document.createElement('div'); card.className='ag-card';
+    card.innerHTML=`
+      <div class="ag-hdr"><span class="ag-name">${esc(ag)}</span><span class="ag-tot">₹${fmt(total)}</span></div>
+      <div class="ag-body">
+        <div class="ag-entries" id="ae-${slugify(ag)}-${mth}"></div>
+        <div class="ag-add">
+          <input type="date" id="ad-${slugify(ag)}-dt" value="${isoToday()}" style="max-width:115px">
+          <input type="number" min="0" id="ad-${slugify(ag)}-am" placeholder="Amount">
+          <button onclick="addPE('${ag}','${mth}')">Add</button>
+        </div>
+        <button onclick="rmAgency('${ag}')" style="margin-top:5px;background:none;border:none;font-size:11px;color:var(--t3);cursor:pointer">Remove agency</button>
+      </div>`;
+    grid.appendChild(card);
+    const eDiv=el(`ae-${slugify(ag)}-${mth}`);
+    if(!entries.length){eDiv.innerHTML='<div style="font-size:11px;color:var(--t3);padding:3px 0">No entries</div>';return;}
+    entries.forEach((e,i)=>{
+      const row=document.createElement('div'); row.className='ag-row';
+      row.innerHTML=`<span class="ae-d">${e.date}</span><span class="ae-a">₹${fmt(n(e.amt))}</span><button class="ae-del" onclick="delPE('${ag}','${mth}',${i})">✕</button>`;
+      eDiv.appendChild(row);
+    });
+  });
+  const ob=el('ob-bar');
+  if(!obRows.length){ob.innerHTML='<div style="font-size:12px;color:var(--t3)">No purchases this month</div>';return;}
+  const totOwed=obRows.reduce((s,x)=>s+x.bal,0);
+  ob.innerHTML=`<div style="font-size:12px;font-weight:600;color:var(--t2);margin-bottom:9px">
+    Total purchases: <span style="font-family:'JetBrains Mono',monospace;color:var(--pu)">₹${fmt(obRows.reduce((s,x)=>s+x.total,0))}</span> &nbsp;·&nbsp;
+    Total outstanding: <span style="font-family:'JetBrains Mono',monospace;color:var(--rd)">₹${fmt(totOwed>0?totOwed:0)}</span>
+  </div>`+obRows.map(x=>`
+    <div class="ob-row">
+      <span class="ob-nm">${esc(x.ag)}</span>
+      <span class="ob-tot">₹${fmt(x.total)}</span>
+      <input class="ob-pi" type="number" min="0" placeholder="Paid" value="${x.paid||''}" oninput="setPaid('${x.ag}','${mth}',this.value)">
+      <span class="ob-bal ${x.bal>0?'ow':'cl'}">${x.bal>0?'−₹'+fmt(x.bal):'✓ Clear'}</span>
+    </div>`).join('');
+}
+function addPE(ag,mth){
+  const date=el(`ad-${slugify(ag)}-dt`)?.value, amt=el(`ad-${slugify(ag)}-am`)?.value;
+  if(!amt||!date){toast('Enter date and amount');return;}
+  if(!pharmaData[mth])pharmaData[mth]={};
+  if(!pharmaData[mth][ag])pharmaData[mth][ag]=[];
+  pharmaData[mth][ag].push({date,amt:parseFloat(amt)});
+  sched(); renderPharma();
+}
+function delPE(ag,mth,idx){pharmaData[mth][ag].splice(idx,1);sched();renderPharma();}
+function setPaid(ag,mth,val){
+  if(!pharmaData[mth])pharmaData[mth]={};
+  pharmaData[mth][ag+'_paid']=parseFloat(val)||0; sched();
+  setTimeout(()=>renderPharma(),800);
+}
+function addAgency(){const nm=prompt('New agency name:');if(!nm?.trim())return;if(agencyList.includes(nm.trim())){toast('Already exists');return;}agencyList.push(nm.trim());sched();renderPharma();}
+function rmAgency(ag){if(!confirm(`Remove "${ag}"?`))return;agencyList=agencyList.filter(x=>x!==ag);sched();renderPharma();}
+function slugify(s){return s.replace(/[^a-zA-Z0-9]/g,'_');}
+
+// ─── STAFF SALARIES ───
+function renderStaff(){
+  const mth=el('st-mth').value;
+  if(!staffPaid[mth])staffPaid[mth]={};
+  const paid=staffPaid[mth];
+  let total=0,paidAmt=0;
+  const grid=el('staff-grid'); grid.innerHTML='';
+  staffList.forEach((s,i)=>{
+    const isPaid=!!paid[s.name];
+    total+=s.amt; if(isPaid)paidAmt+=s.amt;
+    const card=document.createElement('div');
+    card.className='staff-card'+(isPaid?' paid':'');
+    card.innerHTML=`
+      <button class="paid-toggle ${isPaid?'on':''}" onclick="togglePaid('${esc(s.name)}','${mth}')" title="${isPaid?'Mark unpaid':'Mark paid'}">${isPaid?'✓':''}</button>
+      <span class="staff-name">${esc(s.name)}</span>
+      <span class="staff-amt">₹${fmt(s.amt)}</span>
+      <button class="del-btn" onclick="delStaff(${i})" title="Remove">✕</button>`;
+    grid.appendChild(card);
+  });
+  setText('st-total','₹'+fmt(total));
+  setText('st-paid','₹'+fmt(paidAmt));
+  setText('st-pend','₹'+fmt(total-paidAmt));
+  setText('st-cnt',staffList.length);
+}
+function togglePaid(name,mth){
+  if(!staffPaid[mth])staffPaid[mth]={};
+  staffPaid[mth][name]=!staffPaid[mth][name];
+  sched(); renderStaff();
+}
+function addStaff(){
+  const nm=el('st-new-name').value.trim(), am=parseFloat(el('st-new-amt').value);
+  if(!nm||!am){toast('Enter name and amount');return;}
+  staffList.push({name:nm,amt:am});
+  el('st-new-name').value=''; el('st-new-amt').value='';
+  sched(); renderStaff();
+}
+function delStaff(idx){if(!confirm('Remove staff member?'))return;staffList.splice(idx,1);sched();renderStaff();}
+
+// ─── P&L ───
+function renderPnL(){
+  const mth=el('pnl-mth').value;
+  const [yr,mo]=mth.split('-').map(Number);
+  const days=new Date(yr,mo,0).getDate();
+  // aggregate from daily entries
+  let totT=0,totMed=0,totGP=0,totC=0;
+  let totIPB=0,totIPM=0;
+  for(let d=1;d<=days;d++){
+    const ds=`${yr}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const c=allData[ds]?._c||computeCache((allData[ds]||{rows:[]}).rows);
+    totT+=c.T||0; totMed+=c.M||0; totGP+=c.gpay||0; totC+=c.C||0;
+  }
+  // IP
+  ipData.filter(x=>x.admitDate&&x.admitDate.startsWith(mth)).forEach(x=>{totIPB+=n(x.bill);totIPM+=n(x.med);});
+  const totIP=totIPB+totIPM;
+  const grossMed=totMed+totIPM;
+  // pharma purchases = medical expenses
+  const pharmaTotal=agencyList.reduce((s,ag)=>{
+    const entries=(pharmaData[mth]?.[ag])||[];
+    return s+entries.reduce((a,e)=>a+n(e.amt),0);
+  },0);
+  const netMed=grossMed-pharmaTotal;
+  // salary
+  const salaryTotal=staffList.reduce((s,x)=>s+x.amt,0);
+  // manual expenses
+  const exp=pnlExpenses[mth]||{};
+  const setInp=(id,val)=>{const e=el(id);if(e)e.value=val||'';};
+  setInp('pe-imp',exp.imp); setInp('pe-ana',exp.ana); setInp('pe-sco',exp.sco);
+  setInp('pe-out',exp.out); setInp('pe-gst',exp.gst); setInp('pe-eb',exp.eb);
+  setInp('pe-xrf',exp.xrf); setInp('pe-oth',exp.oth);
+  // auto vals
+  setText('pi-gp','₹'+fmt(totGP));
+  setText('pi-opmed','₹'+fmt(totMed));
+  setText('pi-op','₹'+fmt(totC));
+  setText('pi-ipbill','₹'+fmt(totIPB));
+  setText('pi-ipmed','₹'+fmt(totIPM));
+  setText('pi-ip','₹'+fmt(totIP));
+  setText('pi-gmed','₹'+fmt(grossMed));
+  setText('pe-med','₹'+fmt(pharmaTotal));
+  setText('pe-netmed','₹'+fmt(netMed));
+  setText('pe-sal','₹'+fmt(salaryTotal));
+  recalcPnL(mth,totT,totC,totIP,grossMed,pharmaTotal,netMed,salaryTotal);
+}
+function savePnLExp(){
+  const mth=el('pnl-mth').value;
+  if(!pnlExpenses[mth])pnlExpenses[mth]={};
+  const e=pnlExpenses[mth];
+  ['imp','ana','sco','out','gst','eb','xrf','oth'].forEach(k=>{e[k]=parseFloat(el('pe-'+k)?.value)||0;});
+  sched();
+  // re-read salary for recalc
+  const salaryTotal=staffList.reduce((s,x)=>s+x.amt,0);
+  const mthData=el('pnl-mth').value; renderPnL();
+}
+function recalcPnL(mth,totT,totC,totIP,grossMed,pharmaTotal,netMed,salaryTotal){
+  const exp=pnlExpenses[mth]||{};
+  const manualExp=['imp','ana','sco','out','gst','eb','xrf','oth'].reduce((s,k)=>s+n(exp[k]),0);
+  const totalExp=pharmaTotal+salaryTotal+manualExp;
+  const netIncome=totT+totIP+netMed-salaryTotal-manualExp-pharmaTotal;
+  // actually: Net = Total OP + Total IP + Net Med - all expenses (excl pharma already in net med)
+  const net2=totC+totIP+netMed-salaryTotal-manualExp;
+  setText('pnl-inc-tot','₹'+fmt(totT+totIP));
+  setText('pnl-exp-tot','₹'+fmt(totalExp));
+  const nv=el('pnl-net-val');
+  nv.textContent=(net2>=0?'₹':'−₹')+fmt(Math.abs(net2));
+  nv.className='pnl-net-val'+(net2<0?' neg':'');
+  el('pnl-sumcards').innerHTML=[
+    {l:'Total OP',v:'₹'+fmt(totT),c:'g'},{l:'Total IP',v:'₹'+fmt(totIP),c:'p'},
+    {l:'Gross Med',v:'₹'+fmt(grossMed),c:'tl'},{l:'Med Expenses',v:'₹'+fmt(pharmaTotal),c:'r'},
+    {l:'Net Med',v:'₹'+fmt(netMed),c:'g'},{l:'Salary',v:'₹'+fmt(salaryTotal),c:'a'},
+    {l:'Other Exp',v:'₹'+fmt(manualExp),c:'r'},{l:'Net Income',v:(net2>=0?'₹':'−₹')+fmt(Math.abs(net2)),c:net2>=0?'g':'r'}
+  ].map(x=>`<div class="card ${x.c}"><div class="cl">${x.l}</div><div class="cv">${x.v}</div></div>`).join('');
+}
+
+// ─── TRENDS ───
+function renderTrends(){
+  const mth=el('tr-mth').value;
+  const [yr,mo]=mth.split('-').map(Number);
+  const days=new Date(yr,mo,0).getDate();
+  const labels=[],dT=[],dC=[],dM=[],dN=[],dO=[],dCash=[],dGPay=[];
+  for(let d=1;d<=days;d++){
+    const ds=`${yr}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const c=allData[ds]?._c||computeCache((allData[ds]||{rows:[]}).rows);
+    labels.push(d+''); dT.push(c.T||0); dC.push(c.C||0); dM.push(c.M||0);
+    dN.push(c.cN||0); dO.push(c.cO||0);
+    dCash.push((c.T||0)-(c.gpay||0)); dGPay.push(c.gpay||0);
+  }
+  mkChart('ch-income','income',labels,
+    [{label:'Total',data:dT,borderColor:'#1D9E75',backgroundColor:'rgba(29,158,117,0.08)',tension:.3},
+     {label:'Census',data:dC,borderColor:'#1254A0',backgroundColor:'rgba(18,84,160,0.06)',tension:.3},
+     {label:'Medicals',data:dM,borderColor:'#5C35A8',backgroundColor:'rgba(92,53,168,0.06)',tension:.3}],'line');
+  mkChart('ch-pts','pts',labels,
+    [{label:'New',data:dN,backgroundColor:'rgba(18,84,160,0.7)'},{label:'Old',data:dO,backgroundColor:'rgba(158,158,150,0.5)'}],'bar');
+  mkChart('ch-pay','pay',labels,
+    [{label:'Cash',data:dCash,backgroundColor:'rgba(29,158,117,0.7)'},{label:'GPay',data:dGPay,backgroundColor:'rgba(18,84,160,0.7)'}],'bar');
+}
+function mkChart(cid,key,labels,datasets,type){
+  if(charts[key])charts[key].destroy();
+  charts[key]=new Chart(el(cid).getContext('2d'),{type,data:{labels,datasets},
+    options:{responsive:true,plugins:{legend:{position:'top',labels:{font:{family:'Outfit',size:11}}}},
+      scales:{x:{ticks:{font:{family:'Outfit',size:10}}},y:{ticks:{font:{family:'Outfit',size:10},callback:v=>v>=1000?'₹'+(v/1000).toFixed(0)+'k':'₹'+v}}}}});
+}
+
+// ─── UTILS ───
+function n(v){return parseFloat(v)||0;}
+function fmt(x){return Math.round(x).toLocaleString('en-IN');}
+function setText(id,val){const e=el(id);if(e)e.textContent=val;}
+function el(id){return document.getElementById(id);}
+function v(id){return el(id)?el(id).value:'';}
+function show(id){el(id).style.display='flex';}
+function hide(id){el(id).style.display='none';}
+function ls(k){return localStorage.getItem(k);}
+function setLs(k,vl){localStorage.setItem(k,vl);}
+function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function sched(){clearTimeout(saveTimer);saveTimer=setTimeout(pushBin,1500);}
+function sync(state,txt){el('sdot').className='sd'+(state==='spin'?' spin':state==='err'?' err':'');el('stext').textContent=txt;}
+function toast(msg){const t=el('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2800);}
+function doSync(){fetchBin();}
+
+// ─── PRELOADED DATA (Jan 1 – Mar 15 2026) ───
+window._PRELOAD = {"opd": {"2026-01-01": {"rows": [], "_c": {"T": 37583.0, "M": 21343.0, "C": 16240.0, "XPL": 11040.0, "Xr": 0, "PT": 0, "Lab": 2795.0, "gpay": 7953.0, "labAmt": 2795.0, "opd": 0, "cN": 12, "cO": 6, "cM": 0, "cP": 0, "cL": 0, "tot": 18}}, "2026-01-02": {"rows": [], "_c": {"T": 58622.0, "M": 29412.0, "C": 29210.0, "XPL": 21660.0, "Xr": 0, "PT": 0, "Lab": 6930.0, "gpay": 30707.0, "labAmt": 6930.0, "opd": 0, "cN": 17, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 24}}, "2026-01-03": {"rows": [], "_c": {"T": 39923.0, "M": 24123.0, "C": 15800.0, "XPL": 9600.0, "Xr": 0, "PT": 0, "Lab": 175.0, "gpay": 20828.0, "labAmt": 175.0, "opd": 0, "cN": 12, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 26}}, "2026-01-04": {"rows": [], "_c": {"T": 25254.0, "M": 17754.0, "C": 7500.0, "XPL": 4750.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 8533.0, "labAmt": 0, "opd": 0, "cN": 7, "cO": 8, "cM": 0, "cP": 0, "cL": 0, "tot": 15}}, "2026-01-05": {"rows": [], "_c": {"T": 60520.0, "M": 36320.0, "C": 24200.0, "XPL": 15450.0, "Xr": 0, "PT": 0, "Lab": 1700.0, "gpay": 14127.0, "labAmt": 1700.0, "opd": 0, "cN": 23, "cO": 12, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-01-06": {"rows": [], "_c": {"T": 40763.0, "M": 25513.0, "C": 15250.0, "XPL": 0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 10095.0, "labAmt": 0, "opd": 0, "cN": 12, "cO": 11, "cM": 0, "cP": 0, "cL": 0, "tot": 23}}, "2026-01-07": {"rows": [], "_c": {"T": 60312.0, "M": 32982.0, "C": 27330.0, "XPL": 20380.0, "Xr": 0, "PT": 0, "Lab": 4790.0, "gpay": 4500.0, "labAmt": 4790.0, "opd": 0, "cN": 16, "cO": 10, "cM": 0, "cP": 0, "cL": 0, "tot": 26}}, "2026-01-08": {"rows": [], "_c": {"T": 41744.0, "M": 28544.0, "C": 13200.0, "XPL": 0, "Xr": 0, "PT": 0, "Lab": 875.0, "gpay": 11972.0, "labAmt": 875.0, "opd": 0, "cN": 9, "cO": 15, "cM": 0, "cP": 0, "cL": 0, "tot": 24}}, "2026-01-09": {"rows": [], "_c": {"T": 45812.0, "M": 27432.0, "C": 18380.0, "XPL": 12030.0, "Xr": 0, "PT": 0, "Lab": 915.0, "gpay": 11612.0, "labAmt": 915.0, "opd": 0, "cN": 14, "cO": 12, "cM": 0, "cP": 0, "cL": 0, "tot": 26}}, "2026-01-10": {"rows": [], "_c": {"T": 26060.0, "M": 17310.0, "C": 8750.0, "XPL": 5000.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 7610.0, "labAmt": 0, "opd": 0, "cN": 8, "cO": 8, "cM": 0, "cP": 0, "cL": 0, "tot": 16}}, "2026-01-11": {"rows": [], "_c": {"T": 36366.0, "M": 15386.0, "C": 20980.0, "XPL": 16880.0, "Xr": 0, "PT": 0, "Lab": 5990.0, "gpay": 9924.0, "labAmt": 5990.0, "opd": 0, "cN": 4, "cO": 9, "cM": 0, "cP": 0, "cL": 0, "tot": 13}}, "2026-01-12": {"rows": [], "_c": {"T": 81576.0, "M": 52296.0, "C": 29280.0, "XPL": 17580.0, "Xr": 0, "PT": 0, "Lab": 1690.0, "gpay": 22909.0, "labAmt": 1690.0, "opd": 0, "cN": 21, "cO": 30, "cM": 0, "cP": 0, "cL": 0, "tot": 51}}, "2026-01-13": {"rows": [], "_c": {"T": 40663.0, "M": 29343.0, "C": 11320.0, "XPL": 6870.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 13373.0, "labAmt": 0, "opd": 0, "cN": 9, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 23}}, "2026-01-14": {"rows": [], "_c": {"T": 34935.0, "M": 16495.0, "C": 18440.0, "XPL": 12790.0, "Xr": 0, "PT": 0, "Lab": 4020.0, "gpay": 6585.0, "labAmt": 4020.0, "opd": 0, "cN": 10, "cO": 6, "cM": 0, "cP": 0, "cL": 0, "tot": 16}}, "2026-01-15": {"rows": [], "_c": {"T": 32968.0, "M": 19818.0, "C": 13150.0, "XPL": 8250.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 11302.0, "labAmt": 0, "opd": 0, "cN": 13, "cO": 4, "cM": 0, "cP": 0, "cL": 0, "tot": 17}}, "2026-01-16": {"rows": [], "_c": {"T": 26935.0, "M": 17435.0, "C": 9500.0, "XPL": 5250.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 6824.0, "labAmt": 0, "opd": 0, "cN": 14, "cO": 5, "cM": 0, "cP": 0, "cL": 0, "tot": 19}}, "2026-01-17": {"rows": [], "_c": {"T": 62764.0, "M": 36964.0, "C": 25800.0, "XPL": 16300.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 23560.0, "labAmt": 0, "opd": 0, "cN": 22, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 29}}, "2026-01-18": {"rows": [], "_c": {"T": 72754.0, "M": 41004.0, "C": 31750.0, "XPL": 20200.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 11396.0, "labAmt": 0, "opd": 0, "cN": 23, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 37}}, "2026-01-19": {"rows": [], "_c": {"T": 62829.0, "M": 38599.0, "C": 24230.0, "XPL": 15130.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 8699.0, "labAmt": 0, "opd": 0, "cN": 25, "cO": 13, "cM": 0, "cP": 0, "cL": 0, "tot": 38}}, "2026-01-20": {"rows": [], "_c": {"T": 76210.0, "M": 48320.0, "C": 27890.0, "XPL": 19040.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 29899.0, "labAmt": 0, "opd": 0, "cN": 27, "cO": 17, "cM": 0, "cP": 0, "cL": 0, "tot": 44}}, "2026-01-21": {"rows": [], "_c": {"T": 46835.0, "M": 30235.0, "C": 16600.0, "XPL": 9500.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 8928.0, "labAmt": 0, "opd": 0, "cN": 22, "cO": 11, "cM": 0, "cP": 0, "cL": 0, "tot": 33}}, "2026-01-22": {"rows": [], "_c": {"T": 35063.0, "M": 18663.0, "C": 16400.0, "XPL": 11350.0, "Xr": 0, "PT": 0, "Lab": 1700.0, "gpay": 6548.0, "labAmt": 1700.0, "opd": 0, "cN": 14, "cO": 12, "cM": 0, "cP": 0, "cL": 0, "tot": 26}}, "2026-01-23": {"rows": [], "_c": {"T": 63350.0, "M": 37020.0, "C": 26330.0, "XPL": 17480.0, "Xr": 0, "PT": 0, "Lab": 1540.0, "gpay": 20309.0, "labAmt": 1540.0, "opd": 0, "cN": 20, "cO": 15, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-01-24": {"rows": [], "_c": {"T": 68908.0, "M": 46158.0, "C": 22750.0, "XPL": 12400.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 12354.0, "labAmt": 0, "opd": 0, "cN": 28, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-01-25": {"rows": [], "_c": {"T": 32978.0, "M": 18828.0, "C": 14150.0, "XPL": 8550.0, "Xr": 0, "PT": 0, "Lab": 965.0, "gpay": 2081.0, "labAmt": 965.0, "opd": 0, "cN": 13, "cO": 8, "cM": 0, "cP": 0, "cL": 0, "tot": 21}}, "2026-01-26": {"rows": [], "_c": {"T": 65424.0, "M": 39994.0, "C": 25430.0, "XPL": 16880.0, "Xr": 0, "PT": 0, "Lab": 3115.0, "gpay": 20635.0, "labAmt": 3115.0, "opd": 0, "cN": 24, "cO": 17, "cM": 0, "cP": 0, "cL": 0, "tot": 41}}, "2026-01-27": {"rows": [], "_c": {"T": 49358.0, "M": 32278.0, "C": 17080.0, "XPL": 10530.0, "Xr": 0, "PT": 0, "Lab": 1690.0, "gpay": 18135.0, "labAmt": 1690.0, "opd": 0, "cN": 16, "cO": 12, "cM": 0, "cP": 0, "cL": 0, "tot": 28}}, "2026-01-28": {"rows": [], "_c": {"T": 35857.0, "M": 25757.0, "C": 10100.0, "XPL": 4500.0, "Xr": 0, "PT": 0, "Lab": 4595.0, "gpay": 2945.0, "labAmt": 4595.0, "opd": 0, "cN": 9, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 23}}, "2026-01-29": {"rows": [], "_c": {"T": 88359.0, "M": 50289.0, "C": 38070.0, "XPL": 24820.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 15608.0, "labAmt": 0, "opd": 0, "cN": 27, "cO": 21, "cM": 0, "cP": 0, "cL": 0, "tot": 48}}, "2026-01-30": {"rows": [], "_c": {"T": 27320.0, "M": 10530.0, "C": 16790.0, "XPL": 12790.0, "Xr": 0, "PT": 0, "Lab": 5330.0, "gpay": 11195.0, "labAmt": 5330.0, "opd": 0, "cN": 10, "cO": 2, "cM": 0, "cP": 0, "cL": 0, "tot": 12}}, "2026-01-31": {"rows": [], "_c": {"T": 35703.0, "M": 19023.0, "C": 16680.0, "XPL": 0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 9067.0, "labAmt": 0, "opd": 0, "cN": 7, "cO": 13, "cM": 0, "cP": 0, "cL": 0, "tot": 20}}, "2026-02-01": {"rows": [], "_c": {"T": 18748.0, "M": 13848.0, "C": 4900.0, "XPL": 2600.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 6388.0, "labAmt": 0, "opd": 0, "cN": 4, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 11}}, "2026-02-02": {"rows": [], "_c": {"T": 76686.0, "M": 52636.0, "C": 24050.0, "XPL": 13750.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 19583.0, "labAmt": 0, "opd": 0, "cN": 20, "cO": 26, "cM": 0, "cP": 0, "cL": 0, "tot": 46}}, "2026-02-03": {"rows": [], "_c": {"T": 24919.0, "M": 16869.0, "C": 8050.0, "XPL": 4650.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 3642.0, "labAmt": 0, "opd": 0, "cN": 6, "cO": 8, "cM": 0, "cP": 0, "cL": 0, "tot": 14}}, "2026-02-04": {"rows": [], "_c": {"T": 63498.0, "M": 40948.0, "C": 22550.0, "XPL": 12200.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 30644.0, "labAmt": 0, "opd": 0, "cN": 25, "cO": 17, "cM": 0, "cP": 0, "cL": 0, "tot": 42}}, "2026-02-05": {"rows": [], "_c": {"T": 38359.0, "M": 25359.0, "C": 13000.0, "XPL": 6750.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 9847.0, "labAmt": 0, "opd": 0, "cN": 9, "cO": 15, "cM": 0, "cP": 0, "cL": 0, "tot": 24}}, "2026-02-06": {"rows": [], "_c": {"T": 43276.0, "M": 25176.0, "C": 18100.0, "XPL": 12100.0, "Xr": 0, "PT": 0, "Lab": 2425.0, "gpay": 11105.0, "labAmt": 2425.0, "opd": 0, "cN": 14, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 28}}, "2026-02-07": {"rows": [], "_c": {"T": 64897.0, "M": 39467.0, "C": 25430.0, "XPL": 16580.0, "Xr": 0, "PT": 0, "Lab": 2465.0, "gpay": 22922.0, "labAmt": 2465.0, "opd": 0, "cN": 21, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-02-08": {"rows": [], "_c": {"T": 29960.0, "M": 14980.0, "C": 14980.0, "XPL": 9780.0, "Xr": 0, "PT": 0, "Lab": 765.0, "gpay": 11102.0, "labAmt": 765.0, "opd": 0, "cN": 13, "cO": 6, "cM": 0, "cP": 0, "cL": 0, "tot": 19}}, "2026-02-09": {"rows": [], "_c": {"T": 83944.0, "M": 39824.0, "C": 44120.0, "XPL": 50870.0, "Xr": 0, "PT": 0, "Lab": 10010.0, "gpay": 44229.0, "labAmt": 10010.0, "opd": 0, "cN": 29, "cO": 23, "cM": 0, "cP": 0, "cL": 0, "tot": 52}}, "2026-02-10": {"rows": [], "_c": {"T": 39863.0, "M": 22013.0, "C": 17850.0, "XPL": 11550.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 11388.0, "labAmt": 0, "opd": 0, "cN": 13, "cO": 16, "cM": 0, "cP": 0, "cL": 0, "tot": 29}}, "2026-02-11": {"rows": [], "_c": {"T": 41277.0, "M": 19147.0, "C": 22130.0, "XPL": 15530.0, "Xr": 0, "PT": 0, "Lab": 2615.0, "gpay": 5941.0, "labAmt": 2615.0, "opd": 0, "cN": 15, "cO": 9, "cM": 0, "cP": 0, "cL": 0, "tot": 24}}, "2026-02-12": {"rows": [], "_c": {"T": 43036.0, "M": 22666.0, "C": 20370.0, "XPL": 14770.0, "Xr": 0, "PT": 0, "Lab": 2010.0, "gpay": 13393.0, "labAmt": 2010.0, "opd": 0, "cN": 15, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 22}}, "2026-02-13": {"rows": [], "_c": {"T": 71784.0, "M": 38874.0, "C": 32910.0, "XPL": 23260.0, "Xr": 0, "PT": 0, "Lab": 3585.0, "gpay": 16979.0, "labAmt": 3585.0, "opd": 0, "cN": 24, "cO": 15, "cM": 0, "cP": 0, "cL": 0, "tot": 39}}, "2026-02-14": {"rows": [], "_c": {"T": 50977.0, "M": 37157.0, "C": 13820.0, "XPL": 6220.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 26504.0, "labAmt": 0, "opd": 0, "cN": 15, "cO": 13, "cM": 0, "cP": 0, "cL": 0, "tot": 28}}, "2026-02-15": {"rows": [], "_c": {"T": 27452.0, "M": 18252.0, "C": 9200.0, "XPL": 5650.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 8325.0, "labAmt": 0, "opd": 0, "cN": 7, "cO": 10, "cM": 0, "cP": 0, "cL": 0, "tot": 17}}, "2026-02-16": {"rows": [], "_c": {"T": 37915.0, "M": 22765.0, "C": 15150.0, "XPL": 10000.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 15141.0, "labAmt": 0, "opd": 0, "cN": 16, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 23}}, "2026-02-17": {"rows": [], "_c": {"T": 43699.0, "M": 22909.0, "C": 20790.0, "XPL": 14880.0, "Xr": 0, "PT": 0, "Lab": 2065.0, "gpay": 6532.0, "labAmt": 2065.0, "opd": 0, "cN": 12, "cO": 16, "cM": 0, "cP": 0, "cL": 0, "tot": 28}}, "2026-02-18": {"rows": [], "_c": {"T": 40256.0, "M": 22626.0, "C": 17630.0, "XPL": 12530.0, "Xr": 0, "PT": 0, "Lab": 2515.0, "gpay": 6292.0, "labAmt": 2515.0, "opd": 0, "cN": 14, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 21}}, "2026-02-19": {"rows": [], "_c": {"T": 61022.0, "M": 37292.0, "C": 23730.0, "XPL": 15480.0, "Xr": 0, "PT": 0, "Lab": 2890.0, "gpay": 27680.0, "labAmt": 2890.0, "opd": 0, "cN": 21, "cO": 16, "cM": 0, "cP": 0, "cL": 0, "tot": 37}}, "2026-02-20": {"rows": [], "_c": {"T": 57842.0, "M": 33102.0, "C": 24740.0, "XPL": 15990.0, "Xr": 0, "PT": 0, "Lab": 2170.0, "gpay": 10662.0, "labAmt": 2170.0, "opd": 0, "cN": 23, "cO": 12, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-02-21": {"rows": [], "_c": {"T": 71778.0, "M": 45598.0, "C": 26180.0, "XPL": 17430.0, "Xr": 0, "PT": 0, "Lab": 4215.0, "gpay": 22182.0, "labAmt": 4215.0, "opd": 0, "cN": 19, "cO": 16, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-02-22": {"rows": [], "_c": {"T": 29510.0, "M": 17260.0, "C": 12250.0, "XPL": 7000.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 14339.0, "labAmt": 0, "opd": 0, "cN": 10, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 17}}, "2026-02-23": {"rows": [], "_c": {"T": 91837.0, "M": 54557.0, "C": 37280.0, "XPL": 22180.0, "Xr": 0, "PT": 0, "Lab": 765.0, "gpay": 42871.0, "labAmt": 765.0, "opd": 0, "cN": 33, "cO": 22, "cM": 0, "cP": 0, "cL": 0, "tot": 55}}, "2026-02-24": {"rows": [], "_c": {"T": 36928.0, "M": 21678.0, "C": 15250.0, "XPL": 8700.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 11160.0, "labAmt": 0, "opd": 0, "cN": 14, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 21}}, "2026-02-25": {"rows": [], "_c": {"T": 42156.0, "M": 27346.0, "C": 14810.0, "XPL": 9000.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 15979.0, "labAmt": 0, "opd": 0, "cN": 16, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 23}}, "2026-02-26": {"rows": [], "_c": {"T": 41786.0, "M": 24716.0, "C": 17070.0, "XPL": 11470.0, "Xr": 0, "PT": 0, "Lab": 2585.0, "gpay": 12017.0, "labAmt": 2585.0, "opd": 0, "cN": 13, "cO": 10, "cM": 0, "cP": 0, "cL": 0, "tot": 23}}, "2026-02-27": {"rows": [], "_c": {"T": 44415.0, "M": 23065.0, "C": 21350.0, "XPL": 14200.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 14775.0, "labAmt": 0, "opd": 0, "cN": 15, "cO": 15, "cM": 0, "cP": 0, "cL": 0, "tot": 30}}, "2026-02-28": {"rows": [], "_c": {"T": 62763.0, "M": 37533.0, "C": 25230.0, "XPL": 16330.0, "Xr": 0, "PT": 0, "Lab": 3465.0, "gpay": 26011.0, "labAmt": 3465.0, "opd": 0, "cN": 28, "cO": 11, "cM": 0, "cP": 0, "cL": 0, "tot": 39}}, "2026-03-01": {"rows": [], "_c": {"T": 44931.0, "M": 27241.0, "C": 17690.0, "XPL": 12290.0, "Xr": 0, "PT": 0, "Lab": 1820.0, "gpay": 13974.0, "labAmt": 1820.0, "opd": 0, "cN": 14, "cO": 11, "cM": 0, "cP": 0, "cL": 0, "tot": 25}}, "2026-03-02": {"rows": [], "_c": {"T": 60240.0, "M": 34660.0, "C": 25580.0, "XPL": 16180.0, "Xr": 0, "PT": 0, "Lab": 1190.0, "gpay": 14146.0, "labAmt": 1190.0, "opd": 0, "cN": 20, "cO": 15, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-03-03": {"rows": [], "_c": {"T": 54944.0, "M": 23364.0, "C": 31580.0, "XPL": 0, "Xr": 0, "PT": 0, "Lab": 2615.0, "gpay": 19636.0, "labAmt": 2615.0, "opd": 0, "cN": 21, "cO": 10, "cM": 0, "cP": 0, "cL": 0, "tot": 32}}, "2026-03-04": {"rows": [], "_c": {"T": 44678.0, "M": 20528.0, "C": 24150.0, "XPL": 17450.0, "Xr": 0, "PT": 0, "Lab": 4050.0, "gpay": 5773.0, "labAmt": 4050.0, "opd": 0, "cN": 16, "cO": 15, "cM": 0, "cP": 0, "cL": 0, "tot": 31}}, "2026-03-05": {"rows": [], "_c": {"T": 48381.0, "M": 31301.0, "C": 17080.0, "XPL": 11780.0, "Xr": 0, "PT": 0, "Lab": 2465.0, "gpay": 13444.0, "labAmt": 2465.0, "opd": 0, "cN": 18, "cO": 12, "cM": 0, "cP": 0, "cL": 0, "tot": 30}}, "2026-03-06": {"rows": [], "_c": {"T": 48543.0, "M": 28363.0, "C": 20180.0, "XPL": 13080.0, "Xr": 0, "PT": 0, "Lab": 1415.0, "gpay": 11321.0, "labAmt": 1415.0, "opd": 0, "cN": 19, "cO": 8, "cM": 0, "cP": 0, "cL": 0, "tot": 27}}, "2026-03-07": {"rows": [], "_c": {"T": 45537.0, "M": 28127.0, "C": 17410.0, "XPL": 25760.0, "Xr": 0, "PT": 0, "Lab": 530.0, "gpay": 19820.0, "labAmt": 530.0, "opd": 0, "cN": 20, "cO": 10, "cM": 0, "cP": 0, "cL": 0, "tot": 30}}, "2026-03-08": {"rows": [], "_c": {"T": 26567.0, "M": 15417.0, "C": 11150.0, "XPL": 7050.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 10274.0, "labAmt": 0, "opd": 0, "cN": 11, "cO": 6, "cM": 0, "cP": 0, "cL": 0, "tot": 17}}, "2026-03-09": {"rows": [], "_c": {"T": 41276.0, "M": 27376.0, "C": 13900.0, "XPL": 7000.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 8620.0, "labAmt": 0, "opd": 0, "cN": 19, "cO": 12, "cM": 0, "cP": 0, "cL": 0, "tot": 31}}, "2026-03-10": {"rows": [], "_c": {"T": 37159.0, "M": 18309.0, "C": 18850.0, "XPL": 13450.0, "Xr": 0, "PT": 0, "Lab": 3350.0, "gpay": 13509.0, "labAmt": 3350.0, "opd": 0, "cN": 13, "cO": 9, "cM": 0, "cP": 0, "cL": 0, "tot": 22}}, "2026-03-11": {"rows": [], "_c": {"T": 64174.0, "M": 40974.0, "C": 23200.0, "XPL": 12625.0, "Xr": 0, "PT": 0, "Lab": 475.0, "gpay": 13272.0, "labAmt": 475.0, "opd": 0, "cN": 23, "cO": 18, "cM": 0, "cP": 0, "cL": 0, "tot": 41}}, "2026-03-12": {"rows": [], "_c": {"T": 57036.0, "M": 37576.0, "C": 19460.0, "XPL": 11110.0, "Xr": 0, "PT": 0, "Lab": 355.0, "gpay": 17553.0, "labAmt": 355.0, "opd": 0, "cN": 21, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 35}}, "2026-03-13": {"rows": [], "_c": {"T": 52748.0, "M": 29998.0, "C": 22750.0, "XPL": 14550.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 13917.0, "labAmt": 0, "opd": 0, "cN": 19, "cO": 9, "cM": 0, "cP": 0, "cL": 0, "tot": 28}}, "2026-03-14": {"rows": [], "_c": {"T": 63762.0, "M": 39562.0, "C": 24200.0, "XPL": 15000.0, "Xr": 0, "PT": 0, "Lab": 0, "gpay": 20199.0, "labAmt": 0, "opd": 0, "cN": 23, "cO": 14, "cM": 0, "cP": 0, "cL": 0, "tot": 37}}, "2026-03-15": {"rows": [], "_c": {"T": 50136.0, "M": 26446.0, "C": 23690.0, "XPL": 16090.0, "Xr": 0, "PT": 0, "Lab": 2220.0, "gpay": 17988.0, "labAmt": 2220.0, "opd": 0, "cN": 21, "cO": 7, "cM": 0, "cP": 0, "cL": 0, "tot": 28}}}, "pharma": {"2026-01": {"Senthil": [{"date": "2026-01-27", "amt": 2300.0}], "Karthikeya": [{"date": "2026-01-06", "amt": 3623.0}, {"date": "2026-01-09", "amt": 6178.0}, {"date": "2026-01-12", "amt": 15091.0}, {"date": "2026-01-15", "amt": 11292.0}, {"date": "2026-01-19", "amt": 2880.0}, {"date": "2026-01-20", "amt": 13939.0}, {"date": "2026-01-24", "amt": 4551.0}], "NH Surgical": [{"date": "2026-01-02", "amt": 4111.0}, {"date": "2026-01-05", "amt": 10969.0}, {"date": "2026-01-06", "amt": 4167.0}, {"date": "2026-01-07", "amt": 662.0}, {"date": "2026-01-09", "amt": 3376.0}, {"date": "2026-01-13", "amt": 5240.0}, {"date": "2026-01-14", "amt": 9163.0}, {"date": "2026-01-20", "amt": 4840.0}, {"date": "2026-01-21", "amt": 748.0}, {"date": "2026-01-24", "amt": 3885.0}, {"date": "2026-01-26", "amt": 3834.0}, {"date": "2026-01-27", "amt": 914.0}, {"date": "2026-01-29", "amt": 3903.0}, {"date": "2026-01-22", "amt": 7655.0}, {"date": "2026-01-29", "amt": 15667.0}], "HR Surgical": [{"date": "2026-01-02", "amt": 5124.0}, {"date": "2026-01-03", "amt": 1139.0}, {"date": "2026-01-08", "amt": 9890.0}, {"date": "2026-01-09", "amt": 347.0}, {"date": "2026-01-19", "amt": 9727.0}, {"date": "2026-01-21", "amt": 6402.0}, {"date": "2026-01-24", "amt": 1796.0}, {"date": "2026-01-26", "amt": 3802.0}, {"date": "2026-01-29", "amt": 4268.0}, {"date": "2026-01-04", "amt": 617.0}, {"date": "2026-01-27", "amt": 1005.0}], "Lakshmi": [{"date": "2026-01-01", "amt": 4113.0}, {"date": "2026-01-03", "amt": 10999.0}, {"date": "2026-01-06", "amt": 3830.0}, {"date": "2026-01-10", "amt": 3874.0}, {"date": "2026-01-14", "amt": 13748.0}, {"date": "2026-01-15", "amt": 2910.0}, {"date": "2026-01-19", "amt": 10130.0}, {"date": "2026-01-20", "amt": 2372.0}, {"date": "2026-01-21", "amt": 2205.0}, {"date": "2026-01-22", "amt": 6012.0}, {"date": "2026-01-26", "amt": 4743.0}, {"date": "2026-01-29", "amt": 1397.0}, {"date": "2026-01-30", "amt": 18769.0}], "Geetha Dharmapuri": [{"date": "2026-01-22", "amt": 2359.0}, {"date": "2026-01-26", "amt": 8189.0}], "Thamaraikani": [{"date": "2026-01-25", "amt": 10200.0}], "Senthil Balaji": [{"date": "2026-01-05", "amt": 3751.0}, {"date": "2026-01-08", "amt": 3805.0}, {"date": "2026-01-13", "amt": 1050.0}, {"date": "2026-01-14", "amt": 3725.0}, {"date": "2026-01-15", "amt": 2133.0}, {"date": "2026-01-24", "amt": 2133.0}, {"date": "2026-01-24", "amt": 5655.0}, {"date": "2026-01-29", "amt": 3200.0}, {"date": "2026-01-24", "amt": 1463.0}], "Kumaran": [{"date": "2026-01-02", "amt": 5514.0}, {"date": "2026-01-08", "amt": 17915.0}, {"date": "2026-01-13", "amt": 1901.0}, {"date": "2026-01-15", "amt": 19687.0}, {"date": "2026-01-24", "amt": 21508.0}, {"date": "2026-01-29", "amt": 9738.0}, {"date": "2026-01-20", "amt": 11309.0}], "Saravana": [{"date": "2026-01-01", "amt": 5319.0}, {"date": "2026-01-05", "amt": 12069.0}, {"date": "2026-01-08", "amt": 3912.0}, {"date": "2026-01-12", "amt": 9149.0}, {"date": "2026-01-13", "amt": 11441.0}, {"date": "2026-01-20", "amt": 12069.0}, {"date": "2026-01-23", "amt": 13061.0}, {"date": "2026-01-30", "amt": 9149.0}, {"date": "2026-01-02", "amt": 11292.0}, {"date": "2026-01-05", "amt": 8275.0}, {"date": "2026-01-12", "amt": 8275.0}, {"date": "2026-01-19", "amt": 8275.0}, {"date": "2026-01-22", "amt": 6620.0}, {"date": "2026-01-30", "amt": 8275.0}]}, "2026-02": {"Senthil": [{"date": "2026-02-10", "amt": 53.0}, {"date": "2026-02-28", "amt": 1611.0}], "Karthikeya": [{"date": "2026-02-05", "amt": 3623.0}, {"date": "2026-02-07", "amt": 1166.0}, {"date": "2026-02-11", "amt": 1463.0}, {"date": "2026-02-12", "amt": 13037.0}, {"date": "2026-02-16", "amt": 11309.0}, {"date": "2026-02-18", "amt": 1463.0}, {"date": "2026-02-21", "amt": 14189.0}, {"date": "2026-02-21", "amt": 13939.0}, {"date": "2026-02-23", "amt": 3623.0}, {"date": "2026-02-27", "amt": 11309.0}, {"date": "2026-02-28", "amt": 4343.0}], "NH Surgical": [{"date": "2026-02-02", "amt": 5763.0}, {"date": "2026-02-05", "amt": 3067.0}, {"date": "2026-02-07", "amt": 6918.0}, {"date": "2026-02-09", "amt": 9170.0}, {"date": "2026-02-11", "amt": 1688.0}, {"date": "2026-02-12", "amt": 4584.0}, {"date": "2026-02-14", "amt": 6671.0}, {"date": "2026-02-18", "amt": 4040.0}, {"date": "2026-02-20", "amt": 6996.0}, {"date": "2026-02-21", "amt": 2237.0}, {"date": "2026-02-23", "amt": 1323.0}, {"date": "2026-02-24", "amt": 5862.0}, {"date": "2026-02-27", "amt": 4317.0}, {"date": "2026-02-28", "amt": 6137.0}, {"date": "2026-02-02", "amt": 11781.0}], "HR Surgical": [{"date": "2026-02-02", "amt": 1197.0}, {"date": "2026-02-07", "amt": 6190.0}, {"date": "2026-02-09", "amt": 4174.0}, {"date": "2026-02-12", "amt": 947.0}, {"date": "2026-02-13", "amt": 673.0}, {"date": "2026-02-14", "amt": 2930.0}, {"date": "2026-02-19", "amt": 2990.0}, {"date": "2026-02-27", "amt": 6014.0}, {"date": "2026-02-28", "amt": 2756.0}, {"date": "2026-02-06", "amt": 7900.0}, {"date": "2026-02-12", "amt": 1052.0}], "Lakshmi": [{"date": "2026-02-03", "amt": 3363.0}, {"date": "2026-02-07", "amt": 16925.0}, {"date": "2026-02-09", "amt": 1328.0}, {"date": "2026-02-10", "amt": 3162.0}, {"date": "2026-02-14", "amt": 6299.0}, {"date": "2026-02-16", "amt": 4789.0}, {"date": "2026-02-20", "amt": 4743.0}, {"date": "2026-02-21", "amt": 8793.0}, {"date": "2026-02-23", "amt": 4743.0}, {"date": "2026-02-25", "amt": 2147.0}, {"date": "2026-02-26", "amt": 504.0}, {"date": "2026-02-28", "amt": 9245.0}, {"date": "2026-02-11", "amt": 1733.0}], "Thamaraikani": [{"date": "2026-02-17", "amt": 10200.0}, {"date": "2026-02-02", "amt": 17349.0}, {"date": "2026-02-07", "amt": 8189.0}, {"date": "2026-02-02", "amt": 8189.0}, {"date": "2026-02-16", "amt": 8189.0}, {"date": "2026-02-20", "amt": 9424.0}, {"date": "2026-02-21", "amt": 8189.0}, {"date": "2026-02-28", "amt": 8189.0}], "Senthil Balaji": [{"date": "2026-02-02", "amt": 1875.0}, {"date": "2026-02-09", "amt": 5884.0}, {"date": "2026-02-11", "amt": 6399.0}, {"date": "2026-02-20", "amt": 4801.0}, {"date": "2026-02-25", "amt": 4266.0}, {"date": "2026-02-19", "amt": 1226.0}], "Kumaran": [{"date": "2026-02-02", "amt": 21508.0}, {"date": "2026-02-07", "amt": 3544.0}, {"date": "2026-02-14", "amt": 25256.0}, {"date": "2026-02-21", "amt": 5514.0}, {"date": "2026-02-23", "amt": 1728.0}, {"date": "2026-02-26", "amt": 3938.0}], "Saravana": [{"date": "2026-02-02", "amt": 2815.0}, {"date": "2026-02-07", "amt": 12069.0}, {"date": "2026-02-14", "amt": 9149.0}, {"date": "2026-02-21", "amt": 12069.0}, {"date": "2026-02-23", "amt": 9149.0}, {"date": "2026-02-03", "amt": 1016.0}, {"date": "2026-02-07", "amt": 25248.0}, {"date": "2026-02-06", "amt": 3649.0}, {"date": "2026-02-03", "amt": 3465.0}, {"date": "2026-02-10", "amt": 3465.0}, {"date": "2026-02-17", "amt": 6930.0}]}, "2026-03": {"Senthil": [{"date": "2026-03-14", "amt": 11840.0}], "Karthikeya": [{"date": "2026-03-04", "amt": 11309.0}, {"date": "2026-03-07", "amt": 24692.0}, {"date": "2026-03-12", "amt": 10874.0}, {"date": "2026-03-14", "amt": 4343.0}, {"date": "2026-03-13", "amt": 7021.0}, {"date": "2026-03-14", "amt": 2932.0}], "NH Surgical": [{"date": "2026-03-03", "amt": 3940.0}, {"date": "2026-03-05", "amt": 3648.0}, {"date": "2026-03-07", "amt": 11501.0}, {"date": "2026-03-10", "amt": 1869.0}, {"date": "2026-03-11", "amt": 2125.0}, {"date": "2026-03-13", "amt": 7128.0}], "HR Surgical": [{"date": "2026-03-11", "amt": 1055.0}, {"date": "2026-03-13", "amt": 2258.0}], "Lakshmi": [{"date": "2026-03-02", "amt": 754.0}, {"date": "2026-03-04", "amt": 3385.0}, {"date": "2026-03-07", "amt": 554.0}, {"date": "2026-03-11", "amt": 4001.0}, {"date": "2026-03-14", "amt": 2511.0}], "Geetha Dharmapuri": [{"date": "2026-03-11", "amt": 1900.0}, {"date": "2026-03-12", "amt": 24717.0}], "Thamaraikani": [{"date": "2026-03-05", "amt": 10200.0}, {"date": "2026-03-10", "amt": 8189.0}, {"date": "2026-03-14", "amt": 8189.0}], "Senthil Balaji": [{"date": "2026-03-07", "amt": 4266.0}, {"date": "2026-03-10", "amt": 1217.0}], "Kumaran": [{"date": "2026-03-02", "amt": 11845.0}, {"date": "2026-03-04", "amt": 5514.0}, {"date": "2026-03-07", "amt": 3544.0}, {"date": "2026-03-13", "amt": 4525.0}], "Saravana": [{"date": "2026-03-07", "amt": 2815.0}, {"date": "2026-03-12", "amt": 3611.0}, {"date": "2026-03-05", "amt": 9292.0}]}}, "ip": [{"id": 1, "name": "Thangavel", "admitDate": "2026-01-02", "diagnosis": "Ankle MM", "ward": "", "bill": 25000.0, "med": 18000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 2, "name": "Kamatchi", "admitDate": "2026-01-04", "diagnosis": "Hysterectomy", "ward": "", "bill": 13800.0, "med": 0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 3, "name": "Ramesh", "admitDate": "2026-01-05", "diagnosis": "DER", "ward": "", "bill": 47500.0, "med": 27500.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 4, "name": "Deepa", "admitDate": "2026-01-14", "diagnosis": "Forearm", "ward": "", "bill": 36700.0, "med": 23500.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 5, "name": "Mahesh", "admitDate": "2026-01-16", "diagnosis": "Disc", "ward": "", "bill": 52000.0, "med": 28000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 6, "name": "Vignesh", "admitDate": "2026-01-21", "diagnosis": "DER", "ward": "", "bill": 32000.0, "med": 20000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 7, "name": "Chitra", "admitDate": "2026-01-22", "diagnosis": "Tendoachiles", "ward": "", "bill": 30000.0, "med": 18000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 8, "name": "Chinnasamy", "admitDate": "2026-01-29", "diagnosis": "Distal femur", "ward": "", "bill": 47000.0, "med": 30000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 9, "name": "Elango", "admitDate": "2026-02-06", "diagnosis": "SC humerus", "ward": "", "bill": 19200.0, "med": 16800.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 10, "name": "Anand", "admitDate": "2026-02-08", "diagnosis": "SOF", "ward": "", "bill": 110000.0, "med": 30000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 11, "name": "Madhu", "admitDate": "2026-02-09", "diagnosis": "Tendoachilles", "ward": "", "bill": 35000.0, "med": 23500.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 12, "name": "Jothi", "admitDate": "2026-02-10", "diagnosis": "Ankle LM", "ward": "", "bill": 41000.0, "med": 30000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 13, "name": "Sibi", "admitDate": "2026-02-13", "diagnosis": "SSG", "ward": "", "bill": 20000.0, "med": 15000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 14, "name": "Vijayakumar", "admitDate": "2026-02-19", "diagnosis": "LB Knee", "ward": "", "bill": 23000.0, "med": 22000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 15, "name": "Periannan", "admitDate": "2026-02-20", "diagnosis": "Spine", "ward": "", "bill": 94500.0, "med": 29000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 16, "name": "Dasarathan", "admitDate": "2026-02-21", "diagnosis": "BB Forearm", "ward": "", "bill": 40000.0, "med": 25000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 17, "name": "Sathya", "admitDate": "2026-02-23", "diagnosis": "TA", "ward": "", "bill": 29000.0, "med": 21000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 18, "name": "Karpagam", "admitDate": "2026-02-26", "diagnosis": "Ulna", "ward": "", "bill": 23000.0, "med": 17000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 19, "name": "Vijay", "admitDate": "2026-02-27", "diagnosis": "Radius + MC", "ward": "", "bill": 40000.0, "med": 21500.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 20, "name": "Sivasankar", "admitDate": "2026-03-01", "diagnosis": "ACL", "ward": "", "bill": 55000.0, "med": 26000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 21, "name": "Sampath", "admitDate": "2026-03-04", "diagnosis": "Perilumate", "ward": "", "bill": 25000.0, "med": 27000.0, "discharge": "", "status": "Discharged", "notes": ""}, {"id": 22, "name": "Dhanush", "admitDate": "2026-03-06", "diagnosis": "SC Humerus", "ward": "", "bill": 14000.0, "med": 7000.0, "discharge": "", "status": "Discharged", "notes": ""}], "agencies": ["Senthil", "Karthikeya", "NH Surgical", "HR Surgical", "Lakshmi", "Geetha Dharmapuri", "Thamaraikani", "Senthil Balaji", "Kumaran", "Saravana", "Cylinder", "Geetha Salem", "Sara", "Dhanalakshmi", "Senthil Murugan", "Vishnu", "Universal", "Lifeline", "Aanand", "Latha", "Salem", "Jayshree", "Ramesh G"], "staff": [{"name": "Bathroom", "amt": 2500.0}, {"name": "Chinnarasu", "amt": 14000.0}, {"name": "Cook", "amt": 6000.0}, {"name": "Flower & Milk", "amt": 2380.0}, {"name": "Housekeeping night", "amt": 9000.0}, {"name": "Iyer", "amt": 5000.0}, {"name": "Jayaprabhu", "amt": 19000.0}, {"name": "Kaja", "amt": 8000.0}, {"name": "Kanimozhi", "amt": 11000.0}, {"name": "Karthik", "amt": 18000.0}, {"name": "Kesavan", "amt": 17000.0}, {"name": "Parvathi", "amt": 8500.0}, {"name": "Rekha", "amt": 8000.0}, {"name": "Salammal", "amt": 8500.0}, {"name": "Sandhya", "amt": 9000.0}, {"name": "Sylvi", "amt": 6300.0}], "staffPaid": {"2026-01": {"Bathroom": true, "Chinnarasu": true, "Cook": true, "Flower & Milk": true, "Housekeeping night": true, "Iyer": true, "Jayaprabhu": true, "Kaja": true, "Kanimozhi": true, "Karthik": true, "Kesavan": true, "Parvathi": true, "Rekha": true, "Salammal": true, "Sandhya": true, "Sylvi": true}, "2026-02": {"Bathroom": true, "Chinnarasu": true, "Cook": true, "Flower & Milk": true, "Housekeeping night": true, "Iyer": true, "Jayaprabhu": true, "Kaja": true, "Kanimozhi": true, "Karthik": true, "Kesavan": true, "Parvathi": true, "Rekha": true, "Salammal": true, "Sandhya": true, "Sylvi": true}, "2026-03": {}}, "pnlExp": {"2026-01": {"imp": 0, "ana": 7500.0, "sco": 15000.0, "out": 21060.0, "gst": 0, "eb": 0, "xrf": 41570.0, "oth": 2200.0}, "2026-02": {"imp": 60000.0, "ana": 0, "sco": 15000.0, "out": 0, "gst": 0, "eb": 0, "xrf": 10200.0, "oth": 6000.0}, "2026-03": {"imp": 25000.0, "ana": 0, "sco": 0, "out": 0, "gst": 0, "eb": 0, "xrf": 40670.0, "oth": 0}}};
+
+</script>
+</body>
+</html>
