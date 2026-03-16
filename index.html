@@ -128,13 +128,15 @@ tbody tr:hover{background:var(--s2);}
 select.ci{cursor:pointer;font-size:12px;font-family:'Outfit',sans-serif;}
 .tN{background:var(--bbg);color:var(--bl);}
 .tO{background:var(--s3);color:var(--t2);}
+.tOGN{background:#FBEAF0;color:#993356;}
+.tOGO{background:#F3E8F8;color:#6B3494;}
 .tM{background:var(--pbg);color:var(--pu);}
 .tP{background:var(--tbg);color:var(--tl);}
 .tL{background:var(--abg);color:var(--am);}
 .mC{background:var(--gbg);color:var(--gn);}
 .mG{background:var(--bbg);color:var(--bl);}
 .mS{background:var(--abg);color:var(--am);}
-.ts2,.ms2{border:none;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;cursor:pointer;padding:3px;border-radius:5px;outline:none;width:100%;text-align:center;}
+.ts2,.ms2{border:none;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;cursor:pointer;padding:2px 1px;border-radius:5px;outline:none;width:100%;text-align:center;min-width:0;}
 .td-tot{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--gn);background:var(--gbg);}
 .del-btn{background:none;border:none;cursor:pointer;color:var(--t3);font-size:12px;padding:3px 6px;border-radius:4px;}
 .del-btn:hover{color:var(--rd);background:var(--rbg);}
@@ -369,10 +371,10 @@ select.ci{cursor:pointer;font-size:12px;font-family:'Outfit',sans-serif;}
     <div class="th2"><span class="ttl">Patient Register</span><button class="abtn" onclick="addRow()">+ Add Patient</button></div>
     <div class="tw"><div class="ts"><table style="min-width:810px">
       <thead><tr>
-        <th style="width:24px">#</th><th style="width:68px">MRN</th><th class="lft" style="min-width:108px">Name</th><th style="width:42px">Type</th>
+        <th style="width:24px">#</th><th style="width:68px">MRN</th><th class="lft" style="min-width:108px">Name</th><th style="width:58px">Type</th>
         <th style="width:52px">OPD</th><th style="width:52px">X-Ray</th><th style="width:52px">POP-D</th>
         <th style="width:48px">PT</th><th style="width:48px">Lab</th><th style="width:62px">Medicals</th>
-        <th style="width:68px">Total ₹</th><th style="width:42px">Mode</th>
+        <th style="width:68px">Total ₹</th><th style="width:56px">Mode</th>
         <th style="width:60px">Cash ₹</th><th style="width:60px">GPay ₹</th><th style="width:24px"></th>
       </tr></thead>
       <tbody id="tbody"></tbody>
@@ -704,9 +706,13 @@ function renderRow(r){
     <td><input class="ci" value="${esc(r.mrn||'')}" placeholder="MRN" style="font-family:'Outfit',sans-serif;font-size:12px;text-align:center" oninput="sv(${r.id},'mrn',this.value)"></td>
     <td><input class="ci nm" value="${esc(r.name)}" placeholder="Name" oninput="sv(${r.id},'name',this.value)"></td>
     <td><select class="ts2 t${r.type}" onchange="setType(${r.id},this)">
-      <option value="N" ${r.type==='N'?'selected':''}>N</option><option value="O" ${r.type==='O'?'selected':''}>O</option>
-      <option value="M" ${r.type==='M'?'selected':''}>M</option><option value="P" ${r.type==='P'?'selected':''}>P</option>
-      <option value="L" ${r.type==='L'?'selected':''}>L</option></select></td>
+      <option value="N"   ${r.type==='N'  ?'selected':''}>N</option>
+      <option value="O"   ${r.type==='O'  ?'selected':''}>O</option>
+      <option value="OGN" ${r.type==='OGN'?'selected':''}>OG-N</option>
+      <option value="OGO" ${r.type==='OGO'?'selected':''}>OG-O</option>
+      <option value="M"   ${r.type==='M'  ?'selected':''}>M</option>
+      <option value="P"   ${r.type==='P'  ?'selected':''}>P</option>
+      <option value="L"   ${r.type==='L'  ?'selected':''}>L</option></select></td>
     ${COLS.map(c=>`<td><input class="ci" type="number" min="0" value="${r[c]||''}" placeholder="—" oninput="sv(${r.id},'${c}',this.value)"></td>`).join('')}
     <td class="td-tot" id="tot-${r.id}">—</td>
     <td><select class="ms2 m${r.mode}" onchange="setMode(${r.id},this)">
@@ -727,7 +733,7 @@ function recalc(){
   const day=allData[curDate]||{rows:[]};
   const ft={opd:0,xray:0,pop:0,pt:0,lab:0,med:0};
   let T=0,M=0,C=0,XPL=0,Xr=0,PT=0,Lab=0,cash=0,gpay=0;
-  let cN=0,cO=0,cM=0,cP=0,cL=0,rN=0,rO=0;
+  let cN=0,cO=0,cOGN=0,cOGO=0,cM=0,cP=0,cL=0,rN=0,rO=0;
   day.rows.forEach(r=>{
     const vals={opd:n(r.opd),xray:n(r.xray),pop:n(r.pop),pt:n(r.pt),lab:n(r.lab),med:n(r.med)};
     const rt=vals.opd+vals.xray+vals.pop+vals.pt+vals.lab+vals.med;
@@ -737,13 +743,14 @@ function recalc(){
     if(r.type!=='M'&&r.type!=='P'&&r.type!=='L') C+=vals.opd+vals.xray+vals.pop+vals.pt+vals.lab;
     cash+=n(r.cash); gpay+=n(r.gpay);
     if(r.type==='N'){cN++;rN+=rt;}else if(r.type==='O'){cO++;rO+=rt;}
+    else if(r.type==='OGN'){cOGN++;rN+=rt;}else if(r.type==='OGO'){cOGO++;rO+=rt;}
     else if(r.type==='M')cM++; else if(r.type==='P')cP++; else if(r.type==='L')cL++;
   });
   COLS.forEach(c=>{const e=el('f-'+c);if(e)e.textContent=ft[c]>0?'₹'+fmt(ft[c]):'—';});
   setText('f-tot',T>0?'₹'+fmt(T):'—'); setText('f-cash',cash>0?'₹'+fmt(cash):'—'); setText('f-gpay',gpay>0?'₹'+fmt(gpay):'—');
   setText('sc-M','₹'+fmt(M)); setText('sc-T','₹'+fmt(T)); setText('sc-C','₹'+fmt(C)); setText('sc-XPL','₹'+fmt(XPL));
   setText('sc-xpl-sub',`X:₹${fmt(Xr)} P:₹${fmt(PT)} L:₹${fmt(Lab)}`);
-  setText('dc-pts',day.rows.length); setText('dc-types',`N:${cN} O:${cO} M:${cM} P:${cP} L:${cL}`);
+  setText('dc-pts',day.rows.length); setText('dc-types',`N:${cN} O:${cO} OGN:${cOGN} OGO:${cOGO} M:${cM} P:${cP} L:${cL}`);
   setText('dc-new',cN); setText('dc-nr','₹'+fmt(rN));
   setText('dc-old',cO); setText('dc-or','₹'+fmt(rO));
   setText('dc-m',cM); setText('dc-p',cP); setText('dc-l',cL);
@@ -835,7 +842,7 @@ function computeCache(rows){
     T+=rt;M+=v2.med;Xr+=v2.xray;PT+=v2.pt;Lab+=v2.lab;
     XPL+=v2.xray+v2.pt+v2.lab;labAmt+=v2.lab;gpay+=n(r.gpay);opd+=v2.opd;
     if(r.type!=='M'&&r.type!=='P'&&r.type!=='L') C+=v2.opd+v2.xray+v2.pop+v2.pt+v2.lab;
-    if(r.type==='N')cN++; else if(r.type==='O')cO++; else if(r.type==='M')cM++; else if(r.type==='P')cP++; else if(r.type==='L')cL++;
+    if(r.type==='N')cN++; else if(r.type==='O')cO++; else if(r.type==='OGN')cN++; else if(r.type==='OGO')cO++; else if(r.type==='M')cM++; else if(r.type==='P')cP++; else if(r.type==='L')cL++;
     tot++;
   });
   return{T,M,C,XPL,Xr,PT,Lab,gpay,labAmt,opd,cN,cO,cM,cP,cL,tot};
