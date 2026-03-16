@@ -826,7 +826,7 @@ function renderMonthly(){
       <td style="color:${ipCnt>0?'var(--rd)':'var(--t3)'}">${ipCnt||'—'}</td>
       <td class="mn">${c.Xr>0?'₹'+fmt(c.Xr):'—'}</td>
       <td class="mn">${c.PT>0?'₹'+fmt(c.PT):'—'}</td>
-      <td class="mn">${c.Lab>0?'₹'+fmt(c.Lab):'—'}</td>
+      <td class="mn">${c.Lab>0?'₹'+fmt(c.Lab/2):'—'}</td>
       <td class="mn" style="color:var(--tl);font-weight:600">${c.XPL>0?'₹'+fmt((c.Xr||0)+(c.PT||0)+(c.Lab||0)/2):'—'}</td>
       <td style="font-size:11px">${esc(ipNms)||'—'}</td>
       <td style="font-size:11px">${esc(ipDx)||'—'}</td>
@@ -840,7 +840,7 @@ function renderMonthly(){
     <td style="font-weight:700">${sums.N+sums.O+sums.OGN+sums.OGO}</td><td class="b">${sums.N}</td><td>${sums.O}</td><td style="color:#993356;font-weight:600">${sums.OGN}</td><td style="color:#6B3494;font-weight:600">${sums.OGO}</td>
     <td class="mn">₹${fmt(sums.lab/2)}</td><td style="color:var(--rd)">${sums.ip}</td>
     <td class="mn">₹${fmt(sums.Xr)}</td><td class="mn">₹${fmt(sums.PT)}</td>
-    <td class="mn">₹${fmt(sums.Lab)}</td><td class="tl mn" style="font-size:13px">₹${fmt(sums.XPL)}</td>
+    <td class="mn">₹${fmt(sums.Lab/2)}</td><td class="tl mn" style="font-size:13px">₹${fmt(sums.XPL)}</td>
     <td colspan="4"></td>`;
   el('mth-sumcards').innerHTML=[
     {l:'Month Total',v:'₹'+fmt(sums.T),c:'g'},{l:'GPay',v:'₹'+fmt(sums.gp),c:'b'},
