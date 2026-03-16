@@ -762,7 +762,7 @@ function recalc(){
   setText('f-tot',T>0?'₹'+fmt(T):'—'); setText('f-cash',cash>0?'₹'+fmt(cash):'—'); setText('f-gpay',gpay>0?'₹'+fmt(gpay):'—');
   setText('sc-M','₹'+fmt(M)); setText('sc-T','₹'+fmt(T)); setText('sc-C','₹'+fmt(C)); setText('sc-XPL','₹'+fmt(XPL));
   setText('sc-xpl-sub',`X:₹${fmt(Xr)} P:₹${fmt(PT)} L:₹${fmt(Lab)}`);
-  setText('dc-pts',day.rows.length); setText('dc-types',`N:${cN} O:${cO} OGN:${cOGN} OGO:${cOGO} M:${cM} P:${cP} L:${cL}`);
+  setText('dc-pts',day.rows.length); // show all pts in card setText('dc-types',`N:${cN} O:${cO} OGN:${cOGN} OGO:${cOGO} M:${cM} P:${cP} L:${cL}`);
   setText('dc-new',cN); setText('dc-nr','₹'+fmt(rN));
   setText('dc-old',cO); setText('dc-or','₹'+fmt(rO));
   setText('dc-m',cM); setText('dc-p',cP); setText('dc-l',cL);
@@ -774,7 +774,8 @@ function recalc(){
   const rc=el('dc-recon');
   if(T>0&&Math.abs(ua)>0.5){rc.className='card warn';setText('dc-rv','₹'+fmt(Math.abs(ua)));setText('dc-rs',ua>0?'not recorded':'over-recorded');}
   else{rc.className='card';setText('dc-rv','✓');setText('dc-rs','balanced');}
-  allData[curDate]._c={T,M,C,XPL,Xr,PT,Lab,cash,gpay,labAmt:ft.lab,opd:ft.opd,cN,cO,cM,cP,cL,tot:day.rows.length};
+  const censusTot=cN+cO+cOGN+cOGO;
+  allData[curDate]._c={T,M,C,XPL,Xr,PT,Lab,cash,gpay,labAmt:ft.lab,opd:ft.opd,cN,cO,cOGN,cOGO,cM,cP,cL,tot:censusTot,allPts:day.rows.length};
 }
 
 // ─── DAY IP ───
@@ -798,7 +799,7 @@ function renderMonthly(){
   const [yr,mo]=mth.split('-').map(Number);
   const days=new Date(yr,mo,0).getDate();
   const body=el('mth-body'),foot=el('mth-foot'); body.innerHTML=''; foot.innerHTML='';
-  let sums={gp:0,med:0,T:0,C:0,N:0,O:0,lab:0,ip:0,Xr:0,PT:0,Lab:0,XPL:0};
+  let sums={gp:0,med:0,T:0,C:0,N:0,O:0,lab:0,ip:0,Xr:0,PT:0,Lab:0,XPL:0,census:0};
   for(let d=1;d<=days;d++){
     const ds=`${yr}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const c=allData[ds]?._c||computeCache((allData[ds]||{rows:[]}).rows);
@@ -806,8 +807,9 @@ function renderMonthly(){
     const ipCnt=dayIPs.length, ipNms=dayIPs.map(x=>x.name).join(', '), ipDx=dayIPs.map(x=>x.diagnosis).join(', ');
     const ipB=dayIPs.reduce((s,x)=>s+n(x.bill),0), ipM=dayIPs.reduce((s,x)=>s+n(x.med),0);
     sums.gp+=c.gpay||0; sums.med+=c.M||0; sums.T+=c.T||0; sums.C+=c.C||0;
-    sums.N+=c.cN||0; sums.O+=c.cO||0; sums.lab+=c.labAmt||0; sums.ip+=ipCnt;
+    sums.N+=(c.cN||0)+(c.cOGN||0); sums.O+=(c.cO||0)+(c.cOGO||0); sums.lab+=c.labAmt||0; sums.ip+=ipCnt;
     sums.Xr+=c.Xr||0; sums.PT+=c.PT||0; sums.Lab+=c.Lab||0; sums.XPL+=c.XPL||0;
+    sums.census+=c.tot||0;
     const dow=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short'});
     const tr=document.createElement('tr');
     tr.innerHTML=`
@@ -816,14 +818,14 @@ function renderMonthly(){
       <td class="mn" style="color:var(--pu)">${c.M>0?'₹'+fmt(c.M):'—'}</td>
       <td class="mn" style="color:var(--gn);font-weight:600">${c.T>0?'₹'+fmt(c.T):'—'}</td>
       <td class="mn">${c.C>0?'₹'+fmt(c.C):'—'}</td>
-      <td style="font-weight:600">${c.tot||0}</td>
+      <td style="font-weight:600">${c.tot||0}</td>  <!-- census = N+O+OGN+OGO only -->
       <td style="color:var(--bl)">${c.cN||0}</td><td>${c.cO||0}</td>
-      <td class="mn">${c.labAmt>0?'₹'+fmt(c.labAmt):'—'}</td>
+      <td class="mn">${c.labAmt>0?'₹'+fmt(c.labAmt/2):'—'}</td>
       <td style="color:${ipCnt>0?'var(--rd)':'var(--t3)'}">${ipCnt||'—'}</td>
       <td class="mn">${c.Xr>0?'₹'+fmt(c.Xr):'—'}</td>
       <td class="mn">${c.PT>0?'₹'+fmt(c.PT):'—'}</td>
       <td class="mn">${c.Lab>0?'₹'+fmt(c.Lab):'—'}</td>
-      <td class="mn" style="color:var(--tl);font-weight:600">${c.XPL>0?'₹'+fmt(c.XPL):'—'}</td>
+      <td class="mn" style="color:var(--tl);font-weight:600">${c.XPL>0?'₹'+fmt((c.Xr||0)+(c.PT||0)+(c.Lab||0)/2):'—'}</td>
       <td style="font-size:11px">${esc(ipNms)||'—'}</td>
       <td style="font-size:11px">${esc(ipDx)||'—'}</td>
       <td class="mn">${ipB>0?'₹'+fmt(ipB):'—'}</td>
@@ -833,15 +835,15 @@ function renderMonthly(){
   foot.innerHTML=`<td class="lbl">Month Total</td>
     <td class="b mn">₹${fmt(sums.gp)}</td><td class="p mn">₹${fmt(sums.med)}</td>
     <td class="g mn" style="font-size:13px">₹${fmt(sums.T)}</td><td class="mn">₹${fmt(sums.C)}</td>
-    <td style="font-weight:700">${sums.N+sums.O}</td><td class="b">${sums.N}</td><td>${sums.O}</td>
-    <td class="mn">₹${fmt(sums.lab)}</td><td style="color:var(--rd)">${sums.ip}</td>
+    <td style="font-weight:700">${sums.census}</td><td class="b">${sums.N}</td><td>${sums.O}</td>
+    <td class="mn">₹${fmt(sums.lab/2)}</td><td style="color:var(--rd)">${sums.ip}</td>
     <td class="mn">₹${fmt(sums.Xr)}</td><td class="mn">₹${fmt(sums.PT)}</td>
     <td class="mn">₹${fmt(sums.Lab)}</td><td class="tl mn" style="font-size:13px">₹${fmt(sums.XPL)}</td>
     <td colspan="4"></td>`;
   el('mth-sumcards').innerHTML=[
     {l:'Month Total',v:'₹'+fmt(sums.T),c:'g'},{l:'GPay',v:'₹'+fmt(sums.gp),c:'b'},
     {l:'Medicals',v:'₹'+fmt(sums.med),c:'p'},{l:'Census',v:'₹'+fmt(sums.C),c:''},
-    {l:'XPL',v:'₹'+fmt(sums.XPL),c:'tl'},{l:'Patients',v:sums.N+sums.O,c:''},
+    {l:'XPL',v:'₹'+fmt(sums.Xr+sums.PT+sums.Lab/2),c:'tl'},{l:'Patients',v:sums.N+sums.O,c:''},
     {l:'New',v:sums.N,c:'b'},{l:'IP Count',v:sums.ip,c:'r'}
   ].map(x=>`<div class="card ${x.c}"><div class="cl">${x.l}</div><div class="cv">${x.v}</div></div>`).join('');
 }
