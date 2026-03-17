@@ -657,7 +657,6 @@ async function doSetup(){
   
   if(b){
     BIN_ID=b; setLs('h_bin',b);
-    hide('setupModal');
     await fetchBin();
   } else {
     await createBin();
@@ -713,33 +712,32 @@ async function createBin(){
 }
 async function fetchBin(){
   sync('spin','Syncing…');
+  const btn=document.querySelector('.mbp');
+  const resetBtn=()=>{if(btn){btn.disabled=false;btn.textContent='Connect & Sync';}};
   try{
-    const r=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`,{
+    const r=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID+'/latest',{
       headers:{'X-Master-Key':API_KEY}
     });
     if(!r.ok){
       let msg='';
       try{const e=await r.json();msg=e.message||'';}catch(e2){}
       const errText='Error '+r.status+(msg?' — '+msg:'');
-      // Show error in modal if still visible, else toast
       const errEl=el('setup-error');
-      if(errEl&&el('setupModal')?.style.display!=='none'){
-        errEl.textContent=errText+'. Check your Master Key and Bin ID.';
-        errEl.style.display='block';
-        const btn=document.querySelector('.mbp');
-        if(btn){btn.disabled=false;btn.textContent='Connect & Sync';}
-      } else {
-        toast(errText);
-      }
-      sync('err','Failed');
-      return;
+      if(errEl){errEl.textContent=errText+'. Check your Master Key and Bin ID.';errEl.style.display='block';}
+      else toast(errText);
+      sync('err','Failed'); resetBtn(); return;
     }
     const j=await r.json();
-    loadBundle(j.record||{}); sync('ok','Synced ✓');
+    hide('setupModal');
+    loadBundle(j.record||{});
+    sync('ok','Synced ✓');
+    resetBtn();
   }catch(e){
-    sync('err','Network error');
-    toast('Network error — check internet connection');
-    loadLocal();
+    const errEl=el('setup-error');
+    const msg='Network error: '+e.message+'. Check internet connection.';
+    if(errEl){errEl.textContent=msg;errEl.style.display='block';}
+    else toast(msg);
+    sync('err','Failed'); resetBtn();
   }
 }
 async function pushBin(){
