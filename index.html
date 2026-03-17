@@ -1539,6 +1539,104 @@ function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace
 function sched(){clearTimeout(saveTimer);saveTimer=setTimeout(pushBin,1500);}
 function sync(state,txt){el('sdot').className='sd'+(state==='spin'?' spin':state==='err'?' err':'');el('stext').textContent=txt;}
 function toast(msg){const t=el('toast');t.textContent=msg;t.classList.add('on');setTimeout(()=>t.classList.remove('on'),2800);}
+
+// ─── CLOSE DAY ───
+function renderDayStatus(){
+  const day=allData[curDate]||{rows:[]};
+  const closed=day._closed;
+  const actionDiv=el('day-action-btns');
+  const stampDiv=el('day-closed-stamp');
+  const inlineDiv=el('day-stamp-inline');
+  if(!actionDiv)return;
+
+  if(closed){
+    inlineDiv.innerHTML=`<span class="stamp-badge" style="font-size:12px;padding:5px 14px">✓ DAY CLOSED</span>
+      <span style="font-size:11px;color:var(--t3);margin-left:8px">Closed at ${closed.time} · ${closed.pts} patients</span>`;
+    actionDiv.innerHTML=`<button class="reopen-btn" onclick="reopenDay()">+ Add Late Patient</button>`;
+    const c=day._c||{};
+    stampDiv.innerHTML=`<div class="day-closed-stamp">
+      <div class="stamp-hdr">
+        <span class="stamp-badge">DAY SUMMARY</span>
+        <span class="stamp-time">${curDate} · Closed ${closed.time}</span>
+      </div>
+      <div class="stamp-grid">
+        <div class="stamp-item"><div class="stamp-lbl">M — Medicals</div><div class="stamp-val p">₹${fmt(c.M||0)}</div></div>
+        <div class="stamp-item"><div class="stamp-lbl">T — Total</div><div class="stamp-val g">₹${fmt(c.T||0)}</div></div>
+        <div class="stamp-item"><div class="stamp-lbl">C — Census</div><div class="stamp-val b">₹${fmt(c.C||0)}</div></div>
+        <div class="stamp-item"><div class="stamp-lbl">XPL</div><div class="stamp-val tl">₹${fmt(c.XPL||0)}</div></div>
+        <div class="stamp-item"><div class="stamp-lbl">Cash</div><div class="stamp-val g">₹${fmt((c.T||0)-(c.gpay||0))}</div></div>
+        <div class="stamp-item"><div class="stamp-lbl">GPay</div><div class="stamp-val b">₹${fmt(c.gpay||0)}</div></div>
+        <div class="stamp-item"><div class="stamp-lbl">Patients</div><div class="stamp-val">${c.tot||0}</div></div>
+        <div class="stamp-item"><div class="stamp-lbl">New / Old</div><div class="stamp-val">${c.cN||0} / ${c.cO||0}</div></div>
+      </div>
+    </div>`;
+    const addBtn=document.querySelector('.abtn');
+    if(addBtn)addBtn.style.display='none';
+  } else {
+    if(inlineDiv)inlineDiv.innerHTML='';
+    if(stampDiv)stampDiv.innerHTML='';
+    const pts=(allData[curDate]||{rows:[]}).rows.length;
+    actionDiv.innerHTML=pts>0
+      ?`<button class="close-day-btn" onclick="closeDay()">✓ Close Day</button>`
+      :`<span style="font-size:12px;color:var(--t3)">Add patients to close the day</span>`;
+    const addBtn=document.querySelector('.abtn');
+    if(addBtn)addBtn.style.display='';
+  }
+}
+
+function closeDay(){
+  const day=allData[curDate];
+  if(!day||!day.rows.length){toast('No patients to close');return;}
+  if(!confirm('Close today\'s register? You can still add late patients after closing.')){return;}
+  const now=new Date();
+  const timeStr=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+  day._closed={time:timeStr,pts:day.rows.length,closedAt:now.toISOString()};
+  sched(); renderDayStatus(); toast('Day closed at '+timeStr);
+}
+
+function reopenDay(){
+  const day=allData[curDate];
+  if(!day)return;
+  day._closed=null;
+  renderDayStatus(); addRow();
+  toast('Add the patient — day will stay open until you close again');
+}
+
+// ─── 9PM REMINDER ───
+function check9PMReminder(){
+  const now=new Date();
+  if(now.getHours()===21&&now.getMinutes()===0){
+    const day=allData[curDate]||{rows:[]};
+    if(!day._closed&&day.rows.length>0){
+      const t=el('toast');
+      t.textContent='⏰ 9 PM — tap Day Report to send WhatsApp summary';
+      t.style.background='#25D366';
+      t.classList.add('on');
+      setTimeout(()=>{t.classList.remove('on');t.style.background='';},6000);
+    }
+  }
+}
+setInterval(check9PMReminder,60000);
+
+
+// ─── WHATSAPP REPORT ───
+function sendWhatsApp(){
+  const day=allData[curDate]||{rows:[]};
+  const c=day._c||{};
+  const dt=new Date(curDate+'T00:00:00');
+  const dateStr=dt.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const T=c.T||0,M=c.M||0,C=c.C||0;
+  const cN=c.cN||0,cO=c.cO||0,cOGN=c.cOGN||0,cOGO=c.cOGO||0,tot=c.tot||0;
+  const gpay=c.gpay||0,cash=T-gpay;
+  const closed=day._closed;
+  const dayIPs=ipData.filter(x=>x.admitDate===curDate);
+  const ipLine=dayIPs.length>0?'\n🏥 IP: '+dayIPs.map(x=>x.name+(x.diagnosis?' ('+x.diagnosis+')':'')).join(', '):'';
+  const closedLine=closed?'\n🔒 Closed at '+closed.time:'';
+  const ogLine=(cOGN||cOGO)?'\n   OG New: '+cOGN+' | OG Old: '+cOGO:'';
+  const msg='🏥 *Dr. Ram\'s Hospital*\n📅 *'+dateStr+'*'+closedLine+'\n\n👥 *Patients: '+tot+'*\n   Ortho New: '+cN+' | Old: '+cO+ogLine+'\n\n💰 *M — Medicals:* ₹'+fmt(M)+'\n💰 *T — Total:*    ₹'+fmt(T)+'\n💰 *C — Census:*   ₹'+fmt(C)+'\n\n💵 Cash: ₹'+fmt(cash)+' | 📲 GPay: ₹'+fmt(gpay)+ipLine+'\n\n_Sent from Hospital Tracker_';
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+
 </script>
 </body>
 </html>
