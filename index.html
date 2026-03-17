@@ -1073,18 +1073,34 @@ window._PRELOAD = {"opd": {"2026-01-01": {"rows": [], "_c": {"T": 37583.0, "M": 
 
 function bundle(){return{opd:allData,pharma:pharmaData,ip:ipData,agencies:agencyList,staff:staffList,staffPaid,pnlExp:pnlExpenses};}
 function loadBundle(d){
-  allData=d.opd||{}; pharmaData=d.pharma||{}; ipData=d.ip||[];
-  agencyList=d.agencies||[...DEF_AGENCIES]; staffList=d.staff||[...DEF_STAFF];
-  staffPaid=d.staffPaid||{}; pnlExpenses=d.pnlExp||{};
+  // Always start with preloaded historical data as base
+  const base = window._PRELOAD || {};
+  const baseOpd = base.opd || {};
+  const incoming = d.opd || {};
+  
+  // Merge: preload provides the base, incoming data overwrites day by day
+  // This means today's live entries always win, but old preloaded days are never lost
+  const mergedOpd = Object.assign({}, baseOpd, incoming);
+  
+  allData=mergedOpd;
+  pharmaData=d.pharma||base.pharma||{}; 
+  ipData=d.ip||base.ip||[];
+  agencyList=d.agencies||base.agencies||[...DEF_AGENCIES]; 
+  staffList=d.staff||base.staff||[...DEF_STAFF];
+  staffPaid=d.staffPaid||base.staffPaid||{}; 
+  pnlExpenses=d.pnlExp||base.pnlExp||{};
   ipNid=ipData.length>0?Math.max(...ipData.map(x=>x.id||0))+1:1;
   renderDay(); renderIPTab(); renderPharma(); renderStaff();
 }
 function saveLocal(){setLs('h_data',JSON.stringify(bundle()));}
 function loadLocal(){
   const stored=ls('h_data');
-  if(!stored&&window._PRELOAD){loadBundle(window._PRELOAD);saveLocal();return;}
-  try{const d=JSON.parse(stored||'{}');loadBundle(Object.keys(d).length?d:(window._PRELOAD||{}));}
-  catch{loadBundle(window._PRELOAD||{});}
+  if(!stored){loadBundle(window._PRELOAD||{});saveLocal();return;}
+  try{
+    const d=JSON.parse(stored);
+    // Always merge stored data with preload base
+    loadBundle(Object.keys(d).length?d:(window._PRELOAD||{}));
+  }catch{loadBundle(window._PRELOAD||{});}
 }
 
 // ─── TABS ───
