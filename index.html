@@ -311,6 +311,30 @@ select.ci{cursor:pointer;font-size:12px;font-family:'Outfit',sans-serif;}
 .csv-btn:hover{opacity:.85;}
 .csv-btn.all{background:var(--ac2);font-size:14px;padding:12px;}
 
+
+/* MED CALCULATOR */
+.med-cell{display:flex;align-items:center;gap:2px;width:100%;}
+.med-add-btn{background:var(--ac);color:#fff;border:none;border-radius:3px;width:16px;height:16px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;line-height:1;padding:0;}
+.med-add-btn:hover{opacity:.8;}
+.med-popup{position:fixed;background:var(--sf);border:1px solid var(--bd2);border-radius:var(--r);box-shadow:0 4px 20px rgba(0,0,0,.15);padding:14px;z-index:500;width:220px;}
+.med-popup-title{font-size:11px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.med-popup-close{background:none;border:none;cursor:pointer;color:var(--t3);font-size:14px;padding:0;}
+.med-entries{margin-bottom:8px;max-height:120px;overflow-y:auto;}
+.med-entry-row{display:flex;align-items:center;gap:6px;padding:3px 0;border-bottom:1px solid var(--bd);}
+.med-entry-row:last-child{border-bottom:none;}
+.med-entry-num{font-size:11px;color:var(--t3);width:14px;}
+.med-entry-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:500;flex:1;color:var(--gn);}
+.med-entry-del{background:none;border:none;cursor:pointer;color:var(--t3);font-size:11px;padding:2px 4px;}
+.med-entry-del:hover{color:var(--rd);}
+.med-add-row{display:flex;gap:5px;margin-bottom:8px;}
+.med-add-inp{flex:1;border:1px solid var(--bd2);border-radius:var(--rs);padding:6px 8px;font-family:'JetBrains Mono',monospace;font-size:13px;outline:none;-moz-appearance:textfield;background:var(--sf);color:var(--tx);}
+.med-add-inp::-webkit-inner-spin-button,.med-add-inp::-webkit-outer-spin-button{-webkit-appearance:none;}
+.med-add-inp:focus{border-color:var(--ac);}
+.med-add-confirm{background:var(--ac);color:#fff;border:none;border-radius:var(--rs);padding:6px 10px;font-family:inherit;font-size:12px;cursor:pointer;white-space:nowrap;}
+.med-total-row{display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--bd);}
+.med-total-lbl{font-size:11px;font-weight:600;color:var(--t2);}
+.med-total-val{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--gn);}
+
 </style>
 </head>
 <body>
@@ -1158,7 +1182,12 @@ function renderRow(r){
       <option value="M"   ${r.type==='M'  ?'selected':''}>M</option>
       <option value="P"   ${r.type==='P'  ?'selected':''}>P</option>
       <option value="L"   ${r.type==='L'  ?'selected':''}>L</option></select></td>
-    ${COLS.map(c=>`<td><input class="ci" type="number" min="0" value="${r[c]||''}" placeholder="—" oninput="sv(${r.id},'${c}',this.value)"></td>`).join('')}
+    ${COLS.map(c=>c==='med'?`
+    <td><div class="med-cell">
+      <input class="ci" type="number" id="med-inp-${r.id}" value="${r[c]||''}" placeholder="—" oninput="sv(${r.id},'med',this.value)" style="min-width:0">
+      <button class="med-add-btn" onclick="openMedCalc(${r.id},event)" title="Add another medicine amount">+</button>
+    </div></td>`
+    :`<td><input class="ci" type="number" min="0" value="${r[c]||''}" placeholder="—" oninput="sv(${r.id},'${c}',this.value)"></td>`).join('')}
     <td class="td-tot" id="tot-${r.id}">—</td>
     <td><select class="ms2 m${r.mode}" onchange="setMode(${r.id},this)">
       <option value="C" ${r.mode==='C'?'selected':''}>C</option><option value="G" ${r.mode==='G'?'selected':''}>G</option>
@@ -1677,6 +1706,137 @@ function sendWhatsApp(){
   const ogLine=(cOGN||cOGO)?'\n   OG New: '+cOGN+' | OG Old: '+cOGO:'';
   const msg='🏥 *Dr. Ram\'s Hospital*\n📅 *'+dateStr+'*'+closedLine+'\n\n👥 *Patients: '+tot+'*\n   Ortho New: '+cN+' | Old: '+cO+ogLine+'\n\n💰 *M — Medicals:* ₹'+fmt(M)+'\n💰 *T — Total:*    ₹'+fmt(T)+'\n💰 *C — Census:*   ₹'+fmt(C)+'\n\n💵 Cash: ₹'+fmt(cash)+' | 📲 GPay: ₹'+fmt(gpay)+ipLine+'\n\n_Sent from Hospital Tracker_';
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+
+
+// ─── MEDICINE CALCULATOR ───
+let medCalcOpen = null;
+
+function openMedCalc(rowId, evt){
+  evt.stopPropagation();
+  // Close any existing popup
+  closeMedCalc();
+  
+  const r = allData[curDate].rows.find(x=>x.id===rowId);
+  if(!r) return;
+  if(!r._medEntries) r._medEntries = [];
+  
+  // If no entries yet and there's a current value, seed it as first entry
+  if(r._medEntries.length===0 && parseFloat(r.med)){
+    r._medEntries = [parseFloat(r.med)];
+  }
+  
+  // Position popup near the button
+  const btn = evt.target;
+  const rect = btn.getBoundingClientRect();
+  
+  const popup = document.createElement('div');
+  popup.className = 'med-popup';
+  popup.id = 'med-popup';
+  popup.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+  popup.style.left = Math.min(rect.left, window.innerWidth - 230) + 'px';
+  
+  popup.innerHTML = `
+    <div class="med-popup-title">
+      <span>💊 Medicine Amounts</span>
+      <button class="med-popup-close" onclick="closeMedCalc()">✕</button>
+    </div>
+    <div class="med-entries" id="med-entries-${rowId}"></div>
+    <div class="med-add-row">
+      <input class="med-add-inp" type="number" min="0" id="med-new-amt" placeholder="Enter amount" 
+        onkeydown="if(event.key==='Enter')addMedEntry(${rowId})">
+      <button class="med-add-confirm" onclick="addMedEntry(${rowId})">Add</button>
+    </div>
+    <div class="med-total-row">
+      <span class="med-total-lbl">Total Medicals</span>
+      <span class="med-total-val" id="med-calc-total">₹0</span>
+    </div>`;
+  
+  document.body.appendChild(popup);
+  medCalcOpen = rowId;
+  renderMedEntries(rowId);
+  
+  // Focus the input
+  setTimeout(()=>{const i=el('med-new-amt');if(i)i.focus();}, 50);
+  
+  // Close on outside click
+  setTimeout(()=>document.addEventListener('click', outsideMedClick), 10);
+}
+
+function outsideMedClick(e){
+  const popup = el('med-popup');
+  if(popup && !popup.contains(e.target)){
+    closeMedCalc();
+  }
+}
+
+function closeMedCalc(){
+  const popup = el('med-popup');
+  if(popup) popup.remove();
+  document.removeEventListener('click', outsideMedClick);
+  medCalcOpen = null;
+}
+
+function renderMedEntries(rowId){
+  const r = allData[curDate].rows.find(x=>x.id===rowId);
+  if(!r) return;
+  const entries = r._medEntries || [];
+  const container = el('med-entries-'+rowId);
+  if(!container) return;
+  
+  if(!entries.length){
+    container.innerHTML = '<div style="font-size:11px;color:var(--t3);padding:4px 0">No entries yet</div>';
+  } else {
+    container.innerHTML = entries.map((amt,i)=>`
+      <div class="med-entry-row">
+        <span class="med-entry-num">${i+1}</span>
+        <span class="med-entry-val">₹${fmt(amt)}</span>
+        <button class="med-entry-del" onclick="delMedEntry(${rowId},${i})">✕</button>
+      </div>`).join('');
+  }
+  
+  const total = entries.reduce((s,a)=>s+a, 0);
+  const totEl = el('med-calc-total');
+  if(totEl) totEl.textContent = '₹'+fmt(total);
+}
+
+function addMedEntry(rowId){
+  const inp = el('med-new-amt');
+  const amt = parseFloat(inp?.value);
+  if(!amt) return;
+  
+  const r = allData[curDate].rows.find(x=>x.id===rowId);
+  if(!r) return;
+  if(!r._medEntries) r._medEntries = [];
+  r._medEntries.push(amt);
+  
+  // Update the med field with total
+  const total = r._medEntries.reduce((s,a)=>s+a, 0);
+  r.med = total;
+  
+  // Update the input field in the row
+  const medInp = el('med-inp-'+rowId);
+  if(medInp) medInp.value = total;
+  
+  inp.value = '';
+  inp.focus();
+  renderMedEntries(rowId);
+  recalc(); sched();
+}
+
+function delMedEntry(rowId, idx){
+  const r = allData[curDate].rows.find(x=>x.id===rowId);
+  if(!r||!r._medEntries) return;
+  r._medEntries.splice(idx, 1);
+  
+  const total = r._medEntries.reduce((s,a)=>s+a, 0);
+  r.med = total || '';
+  
+  const medInp = el('med-inp-'+rowId);
+  if(medInp) medInp.value = total || '';
+  
+  renderMedEntries(rowId);
+  recalc(); sched();
 }
 
 </script>
