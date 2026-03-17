@@ -1168,7 +1168,33 @@ function renderRow(r){
     <td><button class="del-btn" onclick="delRow(${r.id})">✕</button></td>`;
   el('tbody').appendChild(tr);
 }
-function sv(id,key,val){const r=allData[curDate].rows.find(x=>x.id===id);if(r)r[key]=val;recalc();sched();}
+function sv(id,key,val){
+  const r=allData[curDate].rows.find(x=>x.id===id);
+  if(!r)return;
+  r[key]=val;
+  // Auto-handle negative medicals (medicine return)
+  if(key==='med'||key==='opd'||key==='xray'||key==='pop'||key==='pt'||key==='lab'){
+    const vals=['opd','xray','pop','pt','lab','med'].reduce((s,c)=>s+(parseFloat(r[c])||0),0);
+    if(vals<0){
+      // Negative total — auto-set payment to match
+      if(r.mode==='C'||r.mode==='S'){
+        r.cash=vals; r.gpay='';
+        // Update input fields
+        const cashEl=document.querySelector('#row-'+r.id+' input[oninput*="cash"]');
+        if(cashEl)cashEl.value=vals;
+        const gpayEl=document.querySelector('#row-'+r.id+' input[oninput*="gpay"]');
+        if(gpayEl)gpayEl.value='';
+      } else if(r.mode==='G'){
+        r.gpay=vals; r.cash='';
+        const gpayEl=document.querySelector('#row-'+r.id+' input[oninput*="gpay"]');
+        if(gpayEl)gpayEl.value=vals;
+        const cashEl=document.querySelector('#row-'+r.id+' input[oninput*="cash"]');
+        if(cashEl)cashEl.value='';
+      }
+    }
+  }
+  recalc();sched();
+}
 function setType(id,sel){sel.className='ts2 t'+sel.value;sv(id,'type',sel.value);}
 function setMode(id,sel){sel.className='ms2 m'+sel.value;sv(id,'mode',sel.value);}
 function delRow(id){allData[curDate].rows=allData[curDate].rows.filter(x=>x.id!==id);el('row-'+id)?.remove();renumber();recalc();sched();renderDayStatus();}
