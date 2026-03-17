@@ -339,6 +339,7 @@ select.ci{cursor:pointer;font-size:12px;font-family:'Outfit',sans-serif;}
       <b>Other devices:</b> Same Master Key + Bin ID shown after first connect.
     </div>
     <a class="ha" href="https://jsonbin.io" target="_blank">→ jsonbin.io — free account</a>
+    <div id="setup-error" style="display:none;background:#FAD8D8;border-radius:var(--rs);padding:9px 12px;font-size:12px;color:#8B2020;margin-bottom:8px;"></div>
     <div class="mbtns">
       <button class="mbs" onclick="goOffline()">Offline only</button>
       <button class="mbp" onclick="doSetup()">Connect & Sync</button>
@@ -633,14 +634,27 @@ window.onload=()=>{
 
 // ─── SETUP ───
 async function doSetup(){
-  const rawKey=el('inp-key').value||'';
-  const k=rawKey.replace(/\s+/g,'').trim();
-  const b=(el('inp-bin').value||'').trim();
-  if(!k){toast('Enter your API key'); return;}
+  // Aggressively clean key — remove ALL whitespace, newlines, spaces
+  const rawKey=(el('inp-key').value||'');
+  const k=rawKey.replace(/[\s\r\n\t]+/g,'').trim();
+  const b=(el('inp-bin').value||'').replace(/[\s\r\n\t]+/g,'').trim();
+  
+  const errEl=el('setup-error');
+  if(errEl) errEl.style.display='none';
+  
+  if(!k){
+    if(errEl){errEl.textContent='Please paste your Master Key above.';errEl.style.display='block';}
+    return;
+  }
+  if(k.length<40){
+    if(errEl){errEl.textContent='Key looks too short ('+k.length+' chars). Re-copy from jsonbin.io → API Keys.';errEl.style.display='block';}
+    return;
+  }
+  
   API_KEY=k; setLs('h_key',k);
-  // Disable button to prevent double-tap
   const btn=document.querySelector('.mbp');
   if(btn){btn.disabled=true; btn.textContent='Connecting…';}
+  
   if(b){
     BIN_ID=b; setLs('h_bin',b);
     hide('setupModal');
@@ -703,10 +717,30 @@ async function fetchBin(){
     const r=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`,{
       headers:{'X-Master-Key':API_KEY}
     });
-    if(!r.ok){const e=await r.json().catch(()=>({}));toast('Fetch error: '+(e.message||r.status));sync('err','Error');return;}
+    if(!r.ok){
+      let msg='';
+      try{const e=await r.json();msg=e.message||'';}catch(e2){}
+      const errText='Error '+r.status+(msg?' — '+msg:'');
+      // Show error in modal if still visible, else toast
+      const errEl=el('setup-error');
+      if(errEl&&el('setupModal')?.style.display!=='none'){
+        errEl.textContent=errText+'. Check your Master Key and Bin ID.';
+        errEl.style.display='block';
+        const btn=document.querySelector('.mbp');
+        if(btn){btn.disabled=false;btn.textContent='Connect & Sync';}
+      } else {
+        toast(errText);
+      }
+      sync('err','Failed');
+      return;
+    }
     const j=await r.json();
     loadBundle(j.record||{}); sync('ok','Synced ✓');
-  }catch(e){sync('err','Sync failed');loadLocal();toast('Offline — using local data');}
+  }catch(e){
+    sync('err','Network error');
+    toast('Network error — check internet connection');
+    loadLocal();
+  }
 }
 async function pushBin(){
   saveLocal();
