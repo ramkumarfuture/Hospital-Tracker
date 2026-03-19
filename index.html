@@ -2076,7 +2076,6 @@ function delOthExp(idx){
 
 // ─── PERSONAL EXPENSES ───
 // personalData = { '2026-03': [{id, date, cat, desc, amt}, ...] }
-let personalData = {};
 let perNid = 1;
 
 const CAT_ICONS = {
@@ -2161,84 +2160,6 @@ function delPersonalExp(mth, id){
 }
 
 
-// ─── PERSONAL EXPENSES ───
-const PER_CATS = ['Groceries','Medical','Vehicle','Entertainment','Other'];
-const PER_ICONS = {Groceries:'🛒',Medical:'💊',Vehicle:'🚗',Entertainment:'🍽',Other:'📦'};
-const PER_COLORS = {Groceries:'var(--gn)',Medical:'var(--pu)',Vehicle:'var(--bl)',Entertainment:'var(--am)',Other:'var(--t2)'};
-
-function initPersonalTab(){
-  const s=el('per-mth');
-  if(s){
-    const src=el('mth-sel');
-    if(src)s.innerHTML=src.innerHTML;
-    const cm=curDate.substring(0,7);
-    for(let o of s.options){if(o.value===cm){o.selected=true;break;}}
-  }
-  const pd=el('per-date');
-  if(pd)pd.value=curDate;
-  renderPersonal();
-}
-
-function renderPersonal(){
-  const mth=el('per-mth')?.value||curDate.substring(0,7);
-  const entries=(personalData[mth]||[]).slice().sort((a,b)=>a.date>b.date?-1:1);
-  
-  // Summary cards per category
-  const totByCat={};
-  let grandTotal=0;
-  PER_CATS.forEach(c=>totByCat[c]=0);
-  entries.forEach(e=>{totByCat[e.cat]=(totByCat[e.cat]||0)+e.amt; grandTotal+=e.amt;});
-  
-  el('per-summary-cards').innerHTML = [
-    {l:'Month Total',v:'₹'+fmt(grandTotal),c:'r'},
-    ...PER_CATS.map(c=>({l:PER_ICONS[c]+' '+c,v:'₹'+fmt(totByCat[c]),c:''}))
-  ].map(x=>`<div class="card ${x.c}"><div class="cl">${x.l}</div><div class="cv" style="${x.c==='r'?'color:var(--rd)':''}">${x.v}</div></div>`).join('');
-
-  // Table
-  const tbody=el('per-tbody');
-  tbody.innerHTML='';
-  if(!entries.length){
-    tbody.innerHTML='<tr><td colspan="5" style="color:var(--t3);font-size:12px;padding:16px;text-align:center">No entries this month</td></tr>';
-  } else {
-    entries.forEach((e,i)=>{
-      const tr=document.createElement('tr');
-      tr.innerHTML=`
-        <td style="font-size:12px;color:var(--t2)">${e.date}</td>
-        <td><span style="font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--s2);color:${PER_COLORS[e.cat]||'var(--t2)'}">${PER_ICONS[e.cat]||''} ${e.cat}</span></td>
-        <td style="font-size:13px;color:var(--tx)">${esc(e.desc||'—')}</td>
-        <td style="font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--rd);text-align:center">₹${fmt(e.amt)}</td>
-        <td><button class="del-btn" onclick="delPersonalExp('${mth}',${i})">✕</button></td>`;
-      tbody.appendChild(tr);
-    });
-  }
-  setText('per-total','₹'+fmt(grandTotal));
-}
-
-function addPersonalExp(){
-  const mth=el('per-mth')?.value||curDate.substring(0,7);
-  const date=el('per-date')?.value||curDate;
-  const cat=el('per-cat')?.value||'Other';
-  const desc=(el('per-desc')?.value||'').trim();
-  const amt=parseFloat(el('per-amt')?.value);
-  if(!amt){toast('Enter an amount');return;}
-  if(!personalData[mth])personalData[mth]=[];
-  personalData[mth].push({date,cat,desc,amt});
-  el('per-desc').value='';
-  el('per-amt').value='';
-  el('per-desc').focus();
-  sched(); renderPersonal();
-  toast('Added ✓');
-}
-
-function delPersonalExp(mth,idx){
-  // idx is based on sorted order — need to find actual entry
-  const entries=(personalData[mth]||[]).slice().sort((a,b)=>a.date>b.date?-1:1);
-  const entry=entries[idx];
-  if(!entry)return;
-  const realIdx=personalData[mth].findIndex(e=>e===entry);
-  if(realIdx>-1)personalData[mth].splice(realIdx,1);
-  sched(); renderPersonal();
-}
 
 </script>
 </body>
