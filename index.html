@@ -4,7 +4,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Hospital Tracker">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="OPD Tracker">
+<meta name="theme-color" content="#084D33">
+<meta name="description" content="Daily hospital OPD and income tracker">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
 <title>Hospital Tracker — Dr. Ram</title>
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1839,6 +1844,16 @@ function delMedEntry(rowId, idx){
   recalc(); sched();
 }
 
+</script>
+
+<script>
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('/Hospital-Tracker/sw.js')
+      .then(reg=>console.log('SW registered:', reg.scope))
+      .catch(err=>console.log('SW failed:', err));
+  });
+}
 </script>
 </body>
 </html>
