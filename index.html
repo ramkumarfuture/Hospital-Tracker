@@ -319,7 +319,7 @@ select.ci{cursor:pointer;font-size:12px;font-family:'Outfit',sans-serif;}
 
 /* MED CALCULATOR */
 .med-cell{display:flex;align-items:center;gap:2px;width:100%;}
-.med-add-btn{background:var(--ac);color:#fff;border:none;border-radius:4px;height:22px;font-size:11px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0 6px;white-space:nowrap;font-family:'Outfit',sans-serif;}
+.med-add-btn{background:var(--ac);color:#fff;border:none;border-radius:3px;width:18px;height:18px;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:0;line-height:1;}
 .med-add-btn:hover{opacity:.8;}
 .med-popup-inline{background:var(--gbg);border-top:2px solid var(--ac);border-bottom:2px solid var(--ac);padding:10px 14px;}
 .med-popup-title{font-size:11px;font-weight:700;color:var(--gn);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
@@ -389,7 +389,6 @@ select.ci{cursor:pointer;font-size:12px;font-family:'Outfit',sans-serif;}
       <button class="tab"     onclick="showTab('pnl',this)">📊 P&amp;L</button>
       <button class="tab"     onclick="showTab('trends',this)">📈 Trends</button>
       <button class="tab"     onclick="showTab('export',this)">📤 Export</button>
-      <button class="tab"     onclick="showTab('personal',this)">🏠 Personal</button>
       <button class="tab"     onclick="showTab('personal',this)">🏠 Personal</button>
     </div>
     <div class="nav-r">
@@ -1340,7 +1339,7 @@ function renderRow(r){
     ${COLS.map(c=>c==='med'?`
     <td><div class="med-cell">
       <input class="ci" type="number" id="med-inp-${r.id}" value="${r[c]||''}" placeholder="—" oninput="sv(${r.id},'med',this.value)" style="min-width:0">
-      <button class="med-add-btn" onclick="openMedCalc(${r.id},event)" title="Add another medicine amount">+Add</button>
+      <button class="med-add-btn" onclick="openMedCalc(${r.id},event)" title="Add another medicine amount">+</button>
     </div></td>`
     :`<td><input class="ci" type="number" min="0" value="${r[c]||''}" placeholder="—" oninput="sv(${r.id},'${c}',this.value)"></td>`).join('')}
     <td class="td-tot" id="tot-${r.id}">—</td>
@@ -2015,6 +2014,7 @@ if('serviceWorker' in navigator){
 
 // ─── OTHER HOSPITAL EXPENSES ───
 function renderOthExp(mth){
+  if(!mth) mth = el('pnl-mth')?.value || curDate.substring(0,7);
   const exp = pnlExpenses[mth]||{};
   const entries = exp.othList || [];
   const container = el('pe-oth-entries');
@@ -2041,20 +2041,27 @@ function renderOthExp(mth){
 }
 
 function addOthExp(){
-  const mth = el('pnl-mth')?.value || curDate.substring(0,7);
-  const desc = (el('pe-oth-desc')?.value||'').trim();
-  const amt = parseFloat(el('pe-oth-amt')?.value);
-  if(!desc){toast('Enter a description');return;}
-  if(!amt){toast('Enter an amount');return;}
+  const mthEl = el('pnl-mth');
+  const mth = mthEl ? mthEl.value : curDate.substring(0,7);
+  const descEl = el('pe-oth-desc');
+  const amtEl = el('pe-oth-amt');
+  const desc = (descEl?.value||'').trim();
+  const amt = parseFloat(amtEl?.value);
+  if(!desc){toast('Enter a description for the expense');return;}
+  if(!amt||amt<=0){toast('Enter a valid amount');return;}
   if(!pnlExpenses[mth]) pnlExpenses[mth]={};
   if(!pnlExpenses[mth].othList) pnlExpenses[mth].othList=[];
   pnlExpenses[mth].othList.push({desc, amt});
-  el('pe-oth-desc').value='';
-  el('pe-oth-amt').value='';
-  el('pe-oth-desc').focus();
+  pnlExpenses[mth].oth = pnlExpenses[mth].othList.reduce((s,e)=>s+e.amt,0);
+  if(descEl) descEl.value='';
+  if(amtEl) amtEl.value='';
+  if(descEl) descEl.focus();
+  sched();
   renderOthExp(mth);
-  savePnLExp();
-  renderPnL();
+  // Update net income without full re-render to avoid form reset
+  const totEl = el('pe-oth-total');
+  if(totEl) totEl.textContent = '₹'+fmt(pnlExpenses[mth].oth);
+  toast('Added: '+desc+' ₹'+fmt(amt));
 }
 
 function delOthExp(idx){
