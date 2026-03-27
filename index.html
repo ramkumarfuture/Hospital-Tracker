@@ -2027,6 +2027,97 @@ function delMedEntry(rowId, idx){
   recalc(); sched();
 }
 
+
+// ─── GOOGLE SHEETS BACKUP ───
+let BACKUP_URL = localStorage.getItem('h_backup_url') || '';
+
+function setBackupURL(url){
+  BACKUP_URL = url.trim();
+  localStorage.setItem('h_backup_url', BACKUP_URL);
+  toast('Backup URL saved ✓');
+}
+
+async function backupToSheets(){
+  if(!BACKUP_URL){ toast('No backup URL — paste in ⚙ settings'); return; }
+  toast('Backing up to Google Sheets…');
+  try{
+    const payload = {
+      action: 'backup',
+      payload: {
+        opd: allData, pharma: pharmaData, ip: ipData,
+        agencies: agencyList, pnlExp: pnlExpenses, personal: personalData
+      }
+    };
+    const r = await fetch(BACKUP_URL, {method:'POST', body:JSON.stringify(payload)});
+    const j = await r.json();
+    if(j.status==='ok'){
+      localStorage.setItem('h_last_backup', new Date().toISOString());
+      toast('✓ Backed up to Google Sheets!');
+    } else { toast('Backup error: '+j.message); }
+  } catch(e){ toast('Backup failed: '+e.message); }
+}
+
+function getLastBackupTime(){
+  const t = localStorage.getItem('h_last_backup');
+  if(!t) return 'Never';
+  const d = new Date(t);
+  return d.toLocaleDateString('en-IN')+' '+d.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'});
+}
+
+// ─── CLOSE DAY WITH AUTO BACKUP ───
+function closeDay(){
+  const day=allData[curDate];
+  if(!day||!day.rows.length){toast('No patients to close');return;}
+  if(!confirm('Close today\'s register? You can still add late patients after closing.')){return;}
+  const now=new Date();
+  const timeStr=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+  day._closed={time:timeStr,pts:day.rows.length,closedAt:now.toISOString()};
+  sched(); renderDayStatus(); toast('Day closed at '+timeStr);
+  if(BACKUP_URL){ setTimeout(backupToSheets, 2000); }
+}
+
+function reopenDay(){
+  const day=allData[curDate];
+  if(!day)return;
+  day._closed=null;
+  renderDayStatus(); addRow();
+  toast('Add the patient — day will stay open until you close again');
+}
+
+// ─── 9PM REMINDER ───
+function check9PMReminder(){
+  const now=new Date();
+  if(now.getHours()===21&&now.getMinutes()===0){
+    const day=allData[curDate]||{rows:[]};
+    if(!day._closed&&day.rows.length>0){
+      const t=el('toast');
+      t.textContent='⏰ 9 PM — tap Day Report to send WhatsApp summary';
+      t.style.background='#25D366';
+      t.classList.add('on');
+      setTimeout(()=>{t.classList.remove('on');t.style.background='';},6000);
+    }
+  }
+}
+setInterval(check9PMReminder,60000);
+
+// ─── WHATSAPP REPORT ───
+function sendWhatsApp(){
+  const day=allData[curDate]||{rows:[]};
+  const c=day._c||{};
+  const dt=new Date(curDate+'T00:00:00');
+  const dateStr=dt.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const T=c.T||0,M=c.M||0,C=c.C||0;
+  const cN=c.cN||0,cO=c.cO||0,cOGN=c.cOGN||0,cOGO=c.cOGO||0,tot=c.tot||0;
+  const gpay=c.gpay||0,cash=T-gpay;
+  const closed=day._closed;
+  const dayIPs=ipData.filter(x=>x.admitDate===curDate);
+  const ipLine=dayIPs.length>0?'\n🏥 IP: '+dayIPs.map(x=>x.name+(x.diagnosis?' ('+x.diagnosis+')':'')).join(', '):'';
+  const closedLine=closed?'\n🔒 Closed at '+closed.time:'';
+  const ogLine=(cOGN||cOGO)?'\n   OG New: '+cOGN+' | OG Old: '+cOGO:'';
+  const msg='🏥 *Dr. Ram\'s Hospital*\n📅 *'+dateStr+'*'+closedLine+'\n\n👥 *Patients: '+tot+'*\n   Ortho New: '+cN+' | Old: '+cO+ogLine+'\n\n💰 *M — Medicals:* ₹'+fmt(M)+'\n💰 *T — Total:*    ₹'+fmt(T)+'\n💰 *C — Census:*   ₹'+fmt(C)+'\n\n💵 Cash: ₹'+fmt(cash)+' | 📲 GPay: ₹'+fmt(gpay)+ipLine+'\n\n_Sent from Hospital Tracker_';
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+
 </script>
 
 <!-- Service Worker disabled -->
