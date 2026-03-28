@@ -255,7 +255,8 @@ tfoot tr:hover td{background:var(--s2);}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* ── PHARMA ── */
-.pharma-agency{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;}
+.pharma-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:12px;}
+.pharma-agency{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;}
 .pharma-agency-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
 .pharma-agency-name{font-size:13px;font-weight:600;color:var(--tx);}
 .pharma-outstanding{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;}
@@ -617,6 +618,17 @@ thead .monthly-table th:nth-child(2),
   <div class="msel" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
     <select id="pharma-mth-sel" onchange="renderPharma()"></select>
     <span style="font-size:12px;color:var(--t3)" id="pharma-total-lbl"></span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+      <!-- Add-agency inline form -->
+      <div id="pharma-add-agency-form" style="display:none;align-items:center;gap:6px;">
+        <input type="text" id="new-agency-input" placeholder="Agency name"
+          style="font-family:'Outfit',sans-serif;font-size:13px;border:1px solid var(--bd2);border-radius:var(--rs);padding:7px 10px;background:var(--sf);color:var(--tx);outline:none;width:180px;"
+          onkeydown="if(event.key==='Enter')confirmAddAgency();if(event.key==='Escape')hideAddAgencyForm();">
+        <button class="abtn" style="padding:7px 14px;font-size:12px" onclick="confirmAddAgency()">Add</button>
+        <button class="reopen-btn" onclick="hideAddAgencyForm()">Cancel</button>
+      </div>
+      <button class="abtn" id="show-add-agency-btn" onclick="showAddAgencyForm()">+ New Agency</button>
+    </div>
   </div>
   <div id="pharma-list"></div>
 </div>
@@ -1221,7 +1233,7 @@ function renderPharma(){
   if(!pharmaData[mth])pharmaData[mth]={};
   const list=el('pharma-list');if(!list)return;
   let grandTotal=0,grandPaid=0;
-  list.innerHTML=agencyList.map(ag=>{
+  list.innerHTML='<div class="pharma-grid">'+agencyList.map(ag=>{
     const entries=(pharmaData[mth][ag])||[];
     const total=entries.reduce((s,e)=>s+n(e.amt),0);
     const paid=n(pharmaData[mth][ag+'_paid']);
@@ -1253,7 +1265,7 @@ function renderPharma(){
         </div>
       </div>
     </div>`;
-  }).join('');
+  }).join('')+'</div>';
   const totEl=el('pharma-total-lbl');
   if(totEl)totEl.textContent=`Total: ₹${fmt(grandTotal)} · Paid: ₹${fmt(grandPaid)} · Due: ₹${fmt(grandTotal-grandPaid)}`;
 }
@@ -1266,8 +1278,29 @@ function addPharmaEntry(mth,ag){
   if(!pharmaData[mth])pharmaData[mth]={};
   if(!pharmaData[mth][ag])pharmaData[mth][ag]=[];
   pharmaData[mth][ag].push({date,amt});
+  // Sort entries chronologically after adding
+  pharmaData[mth][ag].sort((a,b)=>a.date.localeCompare(b.date));
   const ainp=el('ph-amt-'+safe);if(ainp)ainp.value='';
   sched();renderPharma();
+}
+function showAddAgencyForm(){
+  el('pharma-add-agency-form').style.display='flex';
+  el('show-add-agency-btn').style.display='none';
+  setTimeout(()=>el('new-agency-input')?.focus(),50);
+}
+function hideAddAgencyForm(){
+  el('pharma-add-agency-form').style.display='none';
+  el('show-add-agency-btn').style.display='';
+  const inp=el('new-agency-input');if(inp)inp.value='';
+}
+function confirmAddAgency(){
+  const name=el('new-agency-input')?.value.trim();
+  if(!name){toast('Enter agency name');return;}
+  if(agencyList.includes(name)){toast('Agency already exists');return;}
+  agencyList.push(name);
+  hideAddAgencyForm();
+  sched();renderPharma();
+  toast(`✓ Added "${name}"`);
 }
 function delPharmaEntry(mth,ag,idx){
   pharmaData[mth][ag].splice(idx,1);
