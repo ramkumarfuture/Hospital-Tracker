@@ -881,7 +881,7 @@ function renderRow(r){
     <td><input class="ci" type="number" value="${r.pt||''}" placeholder="—" oninput="sv(${r.id},'pt',this.value)"></td>
     <td><input class="ci" type="number" value="${r.lab||''}" placeholder="—" oninput="sv(${r.id},'lab',this.value)"></td>
     <td><div class="med-cell"><input class="ci" type="number" id="med-inp-${r.id}" value="${r.med||''}" placeholder="—" oninput="sv(${r.id},'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(${r.id},event)" title="Add amount">+</button></div></td>
-    <td class="g" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹${fmt(rowTotal)}</td>
+    <td class="g" id="rt-${r.id}" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹${fmt(rowTotal)}</td>
     <td><select class="ci" style="font-family:'Outfit',sans-serif;font-size:12px" onchange="sv(${r.id},'mode',this.value)">${modeOpts}</select></td>
     <td><input class="ci" type="number" value="${r.cash||''}" placeholder="—" oninput="sv(${r.id},'cash',this.value)"></td>
     <td><input class="ci" type="number" value="${r.gpay||''}" placeholder="—" oninput="sv(${r.id},'gpay',this.value)"></td>
@@ -916,6 +916,14 @@ function recalc(){
   const day=allData[curDate]||{rows:[]};
   const c=computeCache(day.rows);
   day._c=c;
+  // ── Update per-row total cells live ──
+  day.rows.forEach(r=>{
+    const rt=el('rt-'+r.id);
+    if(rt){
+      const rowTot=['opd','xray','pop','pt','lab','med'].reduce((s,k)=>s+n(r[k]),0);
+      rt.textContent=rowTot?'₹'+fmt(rowTot):'—';
+    }
+  });
   // Summary cards
   setText('c-M','₹'+fmt(c.M));
   setText('c-T','₹'+fmt(c.T));
