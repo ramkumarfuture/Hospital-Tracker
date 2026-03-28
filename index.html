@@ -50,8 +50,8 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);min-he
 .nav::-webkit-scrollbar{display:none;}
 .nav-brand{color:#fff;font-size:14px;font-weight:700;padding:0 16px;white-space:nowrap;letter-spacing:-0.3px;flex-shrink:0;}
 .nav-brand span{opacity:.6;font-weight:400;}
-.tab{background:none;border:none;color:rgba(255,255,255,.6);font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;padding:10px 13px;cursor:pointer;white-space:nowrap;transition:all .18s;border-bottom:3px solid transparent;flex-shrink:0;border-radius:0;}
-.tab:hover{color:rgba(255,255,255,.9);}
+.tab{background:none;border:none;color:rgba(255,255,255,.85);font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;padding:12px 13px;cursor:pointer;white-space:nowrap;transition:all .18s;border-bottom:3px solid transparent;flex-shrink:0;border-radius:0;}
+.tab:hover{color:#fff;}
 .tab.on{font-weight:700;border-bottom-color:transparent;}
 /* Solid colour chips per tab when active */
 .tab-day.on        {background:#27AE60;color:#fff;}
@@ -66,7 +66,9 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);min-he
 /* Type & Mode colour selects */
 .type-sel{font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;border:none;background:transparent;outline:none;cursor:pointer;padding:2px 2px;border-radius:4px;}
 .mode-sel{font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;border:none;background:transparent;outline:none;cursor:pointer;padding:2px 2px;border-radius:4px;}
-.nav-r{margin-left:auto;display:flex;align-items:center;gap:8px;padding-right:12px;flex-shrink:0;}
+/* Fade hint that nav scrolls horizontally */
+.nav::before{content:'';position:sticky;right:0;top:0;bottom:0;width:32px;min-width:32px;background:linear-gradient(to right,transparent,var(--ac2));pointer-events:none;flex-shrink:0;order:99;}
+.nav-r{margin-left:auto;display:flex;align-items:center;gap:8px;padding-right:12px;flex-shrink:0;order:100;position:relative;z-index:1;background:var(--ac2);}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:#4CAF82;flex-shrink:0;}
 .sync-dot.spin{animation:spin 1s linear infinite;background:transparent;border:2px solid #fff;border-top-color:transparent;}
 .sync-dot.err{background:#E74C3C;}
@@ -186,9 +188,10 @@ tfoot tr:hover td{background:var(--s2);}
 .ttl{font-size:13px;font-weight:700;padding:12px 14px;border-bottom:1px solid var(--bd);color:var(--t2);}
 
 /* ── INPUTS ── */
-.ci{width:100%;border:none;background:transparent;font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;padding:3px 4px;color:var(--tx);outline:none;-moz-appearance:textfield;}
+.ci{width:100%;border:none;border-bottom:1px solid var(--bd);background:transparent;font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;padding:3px 4px;color:var(--tx);outline:none;-moz-appearance:textfield;transition:border-color .15s,background .15s;}
 .ci::-webkit-inner-spin-button,.ci::-webkit-outer-spin-button{-webkit-appearance:none;}
-.ci:focus{background:var(--gbg);border-radius:4px;}
+.ci:hover{border-bottom-color:var(--bd2);}
+.ci:focus{background:var(--gbg);border-radius:4px;border-bottom-color:var(--ac);}
 .ci.name-inp{text-align:left;font-family:'Outfit',sans-serif;font-size:13px;}
 
 /* ── BUTTONS ── */
@@ -282,6 +285,25 @@ tfoot tr:hover td{background:var(--s2);}
 /* ── MONTHLY TABLE ── */
 .monthly-table th,.monthly-table td{font-size:11px;padding:6px 8px;}
 .monthly-table th{font-size:10px;}
+/* Sticky first two columns (Date + Day) */
+.monthly-table th:nth-child(1),.monthly-table td:nth-child(1){
+  position:sticky;left:0;z-index:2;min-width:56px;
+}
+.monthly-table th:nth-child(2),.monthly-table td:nth-child(2){
+  position:sticky;left:56px;z-index:2;min-width:40px;
+  border-right:1px solid var(--bd2);
+}
+/* Opaque backgrounds so content doesn't bleed through */
+thead .monthly-table th:nth-child(1),
+thead .monthly-table th:nth-child(2),
+.monthly-table thead th:nth-child(1),
+.monthly-table thead th:nth-child(2){background:var(--ac2);}
+.monthly-table tbody td:nth-child(1),
+.monthly-table tbody td:nth-child(2){background:var(--sf);}
+.monthly-table tfoot td:nth-child(1),
+.monthly-table tfoot td:nth-child(2){background:var(--s2);}
+.monthly-table tbody tr:hover td:nth-child(1),
+.monthly-table tbody tr:hover td:nth-child(2){background:var(--s2);}
 
 /* ── PERSONAL ── */
 .per-cat-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--s2);}
@@ -309,15 +331,15 @@ tfoot tr:hover td{background:var(--s2);}
 <!-- NAV -->
 <nav class="nav">
   <div class="nav-brand">VH Tracker <span>· Dr. Ram</span></div>
-  <button class="tab tab-day on" onclick="showTab('day',this)">📋 Day</button>
-  <button class="tab tab-monthly" onclick="showTab('monthly',this)">📅 Monthly</button>
-  <button class="tab tab-ip" onclick="showTab('ip',this)">🏥 IP</button>
-  <button class="tab tab-pharma" onclick="showTab('pharma',this)">💊 Pharma</button>
-  <button class="tab tab-staff" onclick="showTab('staff',this)">👥 Staff</button>
-  <button class="tab tab-pnl" onclick="showTab('pnl',this)">📊 P&L</button>
-  <button class="tab tab-trends" onclick="showTab('trends',this)">📈 Trends</button>
-  <button class="tab tab-export" onclick="showTab('export',this)">📤 Export</button>
-  <button class="tab tab-personal" onclick="showTab('personal',this)">🏠 Personal</button>
+  <button class="tab tab-day on" onclick="showTab('day',this)" aria-label="Day" aria-selected="true">📋 Day</button>
+  <button class="tab tab-monthly" onclick="showTab('monthly',this)" aria-label="Monthly" aria-selected="false">📅 Monthly</button>
+  <button class="tab tab-ip" onclick="showTab('ip',this)" aria-label="Inpatient" aria-selected="false">🏥 IP</button>
+  <button class="tab tab-pharma" onclick="showTab('pharma',this)" aria-label="Pharma" aria-selected="false">💊 Pharma</button>
+  <button class="tab tab-staff" onclick="showTab('staff',this)" aria-label="Staff" aria-selected="false">👥 Staff</button>
+  <button class="tab tab-pnl" onclick="showTab('pnl',this)" aria-label="Profit and Loss" aria-selected="false">📊 P&L</button>
+  <button class="tab tab-trends" onclick="showTab('trends',this)" aria-label="Trends" aria-selected="false">📈 Trends</button>
+  <button class="tab tab-export" onclick="showTab('export',this)" aria-label="Export" aria-selected="false">📤 Export</button>
+  <button class="tab tab-personal" onclick="showTab('personal',this)" aria-label="Personal" aria-selected="false">🏠 Personal</button>
   <div class="nav-r">
     <div class="sync-dot" id="sync-dot"></div>
     <span class="sync-lbl" id="sync-lbl">Ready</span>
