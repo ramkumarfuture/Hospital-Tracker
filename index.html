@@ -10,6 +10,20 @@
 <title>VH Hospital Tracker — Dr. Ram</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+<style>
+/* Flatpickr theme overrides to match app style */
+.flatpickr-calendar{font-family:'Outfit',sans-serif;font-size:12px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);border:1px solid rgba(90,70,40,.15);}
+.flatpickr-day.selected,.flatpickr-day.selected:hover{background:#0A6644;border-color:#0A6644;}
+.flatpickr-day:hover{background:#EAF4EE;}
+.flatpickr-months .flatpickr-month{background:#084D33;color:#fff;border-radius:10px 10px 0 0;}
+.flatpickr-current-month .flatpickr-monthDropdown-months,.flatpickr-current-month input.cur-year{color:#fff;}
+.flatpickr-weekday{color:rgba(255,255,255,.7);background:#084D33;}
+.flatpickr-weekdays{background:#084D33;}
+.flatpickr-prev-month,.flatpickr-next-month{color:#fff!important;fill:#fff!important;}
+/* Make the text input look like the rest of the add-row inputs */
+.fp-date-input{flex:0 0 auto;min-width:110px;font-family:'Outfit',sans-serif;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 7px;background:var(--sf);color:var(--tx);outline:none;cursor:pointer;}
+</style>
 <style>
 :root{
   --bg:#F0F4F8;
@@ -266,7 +280,7 @@ tfoot tr:hover td{background:var(--s2);}
 .pharma-entry{display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--s2);border-radius:var(--rs);}
 .pharma-entry-date{font-size:11px;color:var(--t3);width:80px;flex-shrink:0;}
 .pharma-entry-amt{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--rd);flex:1;text-align:right;}
-.pharma-add-row{display:flex;gap:6px;align-items:center;}
+/* .pharma-add-row replaced by inline two-row layout */
 
 /* ── PNL ── */
 .pnl-section{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:10px;}
@@ -1255,13 +1269,21 @@ function renderPharma(){
           <button class="del-btn" onclick="delPharmaEntry('${mth}','${ag}',${i})">✕</button>
         </div>`).join('')}
       </div>
-      <div class="pharma-add-row">
-        <input type="date" id="ph-date-${ag.replace(/\s/g,'_')}" value="${curDate}" style="font-family:inherit;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 8px;background:var(--sf);color:var(--tx);outline:none;">
-        <input type="number" min="0" id="ph-amt-${ag.replace(/\s/g,'_')}" placeholder="Amount" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 8px;background:var(--sf);color:var(--tx);outline:none;" onkeydown="if(event.key==='Enter')addPharmaEntry('${mth}','${ag}')">
-        <button class="abtn" style="padding:5px 12px;font-size:12px" onclick="addPharmaEntry('${mth}','${ag}')">+ Add</button>
-        <div style="display:flex;align-items:center;gap:5px;margin-left:8px;">
-          <span style="font-size:11px;color:var(--t3)">Paid:</span>
-          <input type="number" min="0" value="${paid||''}" placeholder="0" id="ph-paid-${ag.replace(/\s/g,'_')}" style="width:80px;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 8px;background:var(--sf);color:var(--tx);outline:none;" oninput="savePharmaPayment('${mth}','${ag}',this.value)">
+      <div style="display:flex;flex-direction:column;gap:5px;padding-top:4px;border-top:1px solid var(--bd);">
+        <!-- Row 1: Date + Amount + Add -->
+        <div style="display:flex;gap:5px;align-items:center;">
+          <input type="text" id="ph-date-${ag.replace(/\s/g,'_')}" class="fp-date-input" data-fp placeholder="Date" readonly>
+          <input type="number" min="0" id="ph-amt-${ag.replace(/\s/g,'_')}" placeholder="₹ Amount"
+            style="flex:1;min-width:60px;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 7px;background:var(--sf);color:var(--tx);outline:none;"
+            onkeydown="if(event.key==='Enter')addPharmaEntry('${mth}','${ag}')">
+          <button class="abtn" style="padding:5px 10px;font-size:12px;flex-shrink:0;" onclick="addPharmaEntry('${mth}','${ag}')">+ Add</button>
+        </div>
+        <!-- Row 2: Paid -->
+        <div style="display:flex;align-items:center;gap:5px;">
+          <span style="font-size:11px;color:var(--t3);flex-shrink:0;">Paid ₹</span>
+          <input type="number" min="0" value="${paid||''}" placeholder="0" id="ph-paid-${ag.replace(/\s/g,'_')}"
+            style="flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 7px;background:var(--sf);color:var(--tx);outline:none;"
+            oninput="savePharmaPayment('${mth}','${ag}',this.value)">
         </div>
       </div>
     </div>`;
@@ -1952,6 +1974,35 @@ window.onload=()=>{
     sync('','Ready — configure ⚙ Settings');
   }
 };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+<script>
+// Initialise Flatpickr on every pharma date input after renderPharma runs
+function initPharmaDates(){
+  if(typeof flatpickr==='undefined') return; // not yet loaded
+  document.querySelectorAll('[data-fp]').forEach(inp=>{
+    if(inp._flatpickr) return; // already initialised
+    const fp=flatpickr(inp,{
+      dateFormat:'Y-m-d',
+      defaultDate: curDate,
+      position:'auto',        // auto-flips above when near bottom of viewport
+      disableMobile:true,     // use custom picker on mobile too
+    });
+    if(!inp.value) fp.setDate(curDate,false);
+  });
+}
+// Patch renderPharma to init pickers after each render
+(function(){
+  const orig=window.renderPharma;
+  if(typeof orig==='function'){
+    window.renderPharma=function(){
+      orig.apply(this,arguments);
+      setTimeout(initPharmaDates,0);
+    };
+  }
+})();
+// Init any inputs already in DOM when this script runs
+setTimeout(initPharmaDates,0);
 </script>
 </body>
 </html>
