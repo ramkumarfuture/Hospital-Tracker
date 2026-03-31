@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -9,7 +7,7 @@
 <meta name="theme-color" content="#0A3D2E">
 <title>VH Hospital Tracker — Dr. Ram</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
 <style>
 /* Flatpickr theme overrides to match app style */
@@ -377,8 +375,29 @@ thead .monthly-table th:nth-child(2),
   .denom-grid{grid-template-columns:repeat(2,1fr);}
 }
 </style>
-</head>
-<body>
+<style id="claude-agent-animation-styles">
+      @keyframes claude-pulse {
+        0% {
+          box-shadow: 
+            inset 0 0 10px rgba(217, 119, 87, 0.5),
+            inset 0 0 20px rgba(217, 119, 87, 0.3),
+            inset 0 0 30px rgba(217, 119, 87, 0.1);
+        }
+        50% {
+          box-shadow: 
+            inset 0 0 15px rgba(217, 119, 87, 0.7),
+            inset 0 0 25px rgba(217, 119, 87, 0.5),
+            inset 0 0 35px rgba(217, 119, 87, 0.2);
+        }
+        100% {
+          box-shadow: 
+            inset 0 0 10px rgba(217, 119, 87, 0.5),
+            inset 0 0 20px rgba(217, 119, 87, 0.3),
+            inset 0 0 30px rgba(217, 119, 87, 0.1);
+        }
+      }
+    </style></head>
+<body class="tab-day">
 
 <!-- NAV -->
 <nav class="nav">
@@ -388,14 +407,14 @@ thead .monthly-table th:nth-child(2),
   <button class="tab tab-ip" onclick="showTab('ip',this)" aria-label="Inpatient" aria-selected="false">🏥 IP</button>
   <button class="tab tab-pharma" onclick="showTab('pharma',this)" aria-label="Pharma" aria-selected="false">💊 Pharma</button>
   <button class="tab tab-staff" onclick="showTab('staff',this)" aria-label="Staff" aria-selected="false">👥 Staff</button>
-  <button class="tab tab-pnl" onclick="showTab('pnl',this)" aria-label="Profit and Loss" aria-selected="false">📊 P&L</button>
+  <button class="tab tab-pnl" onclick="showTab('pnl',this)" aria-label="Profit and Loss" aria-selected="false">📊 P&amp;L</button>
   <button class="tab tab-trends" onclick="showTab('trends',this)" aria-label="Trends" aria-selected="false">📈 Trends</button>
   <button class="tab tab-export" onclick="showTab('export',this)" aria-label="Export" aria-selected="false">📤 Export</button>
   <button class="tab tab-personal" onclick="showTab('personal',this)" aria-label="Personal" aria-selected="false">🏠 Personal</button>
   <button class="tab tab-stmt" onclick="showTab('stmt',this)" aria-label="Statement" aria-selected="false">📑 Statement</button>
   <div class="nav-r">
     <div class="sync-dot" id="sync-dot"></div>
-    <span class="sync-lbl" id="sync-lbl">Ready</span>
+    <span class="sync-lbl" id="sync-lbl">Ready — configure ⚙ Settings</span>
     <button class="settings-btn" onclick="openSettings()" title="Settings">⚙</button>
   </div>
 </nav>
@@ -411,7 +430,7 @@ thead .monthly-table th:nth-child(2),
       <input type="text" id="inp-gscript" placeholder="https://script.google.com/macros/s/.../exec" spellcheck="false">
     </div>
     <div style="display:flex;gap:8px;margin-bottom:16px;">
-      <button class="btn-primary" onclick="saveSettings()">Save & Connect</button>
+      <button class="btn-primary" onclick="saveSettings()">Save &amp; Connect</button>
       <button class="btn-secondary" onclick="testBackup()">Test Backup</button>
     </div>
     <div id="last-sync-info" style="font-size:11px;color:var(--t3);margin-bottom:16px;"></div>
@@ -421,7 +440,7 @@ thead .monthly-table th:nth-child(2),
       1. Create a new Google Sheet named "VH Hospital Tracker"<br>
       2. Extensions → Apps Script → paste the script<br>
       3. Deploy → Web App → Anyone → Copy URL<br>
-      4. Paste URL above → Save & Connect
+      4. Paste URL above → Save &amp; Connect
     </div>
     <div class="modal-btns" style="margin-top:16px;">
       <button class="btn-secondary" onclick="closeSettings()">Close</button>
@@ -435,8 +454,8 @@ thead .monthly-table th:nth-child(2),
   <div class="date-nav">
     <button class="nav-btn" onclick="prevDay()">‹ Prev</button>
     <div class="date-nav-center">
-      <div class="date-big" id="date-display">--</div>
-      <div class="date-day" id="date-dow">--</div>
+      <div class="date-big" id="date-display">31 March 2026</div>
+      <div class="date-day" id="date-dow">Tuesday</div>
     </div>
     <div style="display:flex;gap:6px;align-items:center;">
       <input type="date" id="date-picker" onchange="setDate(this.value)">
@@ -452,7 +471,7 @@ thead .monthly-table th:nth-child(2),
       <button class="denom-toggle" onclick="toggleDenom()" id="denom-toggle">Hide</button>
     </div>
     <div id="denom-body">
-      <div class="denom-grid" id="denom-grid"></div>
+      <div class="denom-grid" id="denom-grid"><div class="denom-item"><span class="denom-lbl">₹500</span><span style="font-size:11px;color:var(--t3)">×</span><input class="denom-inp" type="number" min="0" id="dn-500" placeholder="0" oninput="recalcDenom()"><span class="denom-amt" id="da-500">₹0</span></div><div class="denom-item"><span class="denom-lbl">₹200</span><span style="font-size:11px;color:var(--t3)">×</span><input class="denom-inp" type="number" min="0" id="dn-200" placeholder="0" oninput="recalcDenom()"><span class="denom-amt" id="da-200">₹0</span></div><div class="denom-item"><span class="denom-lbl">₹100</span><span style="font-size:11px;color:var(--t3)">×</span><input class="denom-inp" type="number" min="0" id="dn-100" placeholder="0" oninput="recalcDenom()"><span class="denom-amt" id="da-100">₹0</span></div><div class="denom-item"><span class="denom-lbl">₹50</span><span style="font-size:11px;color:var(--t3)">×</span><input class="denom-inp" type="number" min="0" id="dn-50" placeholder="0" oninput="recalcDenom()"><span class="denom-amt" id="da-50">₹0</span></div><div class="denom-item"><span class="denom-lbl">₹20</span><span style="font-size:11px;color:var(--t3)">×</span><input class="denom-inp" type="number" min="0" id="dn-20" placeholder="0" oninput="recalcDenom()"><span class="denom-amt" id="da-20">₹0</span></div><div class="denom-item"><span class="denom-lbl">₹10</span><span style="font-size:11px;color:var(--t3)">×</span><input class="denom-inp" type="number" min="0" id="dn-10" placeholder="0" oninput="recalcDenom()"><span class="denom-amt" id="da-10">₹0</span></div><div class="denom-item"><span class="denom-lbl">₹5</span><span style="font-size:11px;color:var(--t3)">×</span><input class="denom-inp" type="number" min="0" id="dn-5" placeholder="0" oninput="recalcDenom()"><span class="denom-amt" id="da-5">₹0</span></div><div class="denom-item"><span class="denom-lbl">₹2</span><span style="font-size:11px;color:var(--t3)">×</span><input class="denom-inp" type="number" min="0" id="dn-2" placeholder="0" oninput="recalcDenom()"><span class="denom-amt" id="da-2">₹0</span></div><div class="denom-item"><span class="denom-lbl">₹1</span><span style="font-size:11px;color:var(--t3)">×</span><input class="denom-inp" type="number" min="0" id="dn-1" placeholder="0" oninput="recalcDenom()"><span class="denom-amt" id="da-1">₹0</span></div><div style="grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; padding: 8px 0px; border-top: 1px solid var(--bd); margin-top: 4px;"><span style="font-size:12px;font-weight:600;color:var(--t2)">Extra Change Added:</span><input class="denom-inp" type="number" min="0" id="dn-extra" placeholder="0" style="width:100px" oninput="recalcDenom()"><span style="font-size:11px;color:var(--t3)">(topped up during day)</span></div></div>
       <div class="denom-totals">
         <div class="denom-total"><div class="dl">Opening</div><div class="dv" id="denom-opening" style="color:var(--gn)">₹0</div></div>
         <div class="denom-total"><div class="dl">Extra Change</div><div class="dv" id="denom-extra" style="color:var(--bl)">₹0</div></div>
@@ -464,29 +483,36 @@ thead .monthly-table th:nth-child(2),
   <!-- Closing Bar -->
   <div class="closing-bar">
     <div class="cb-item"><div class="cb-lbl">Opening</div><div class="cb-val" id="cb-open">₹0</div></div>
-    <div class="cb-item"><div class="cb-lbl">+ Cash Collected</div><div class="cb-val" id="cb-cash">₹0</div></div>
-    <div class="cb-item"><div class="cb-lbl">= Closing Balance</div><div class="cb-val" id="cb-close">₹0</div></div>
+    <div class="cb-item"><div class="cb-lbl">+ Cash Collected</div><div class="cb-val" id="cb-cash">₹24,424</div></div>
+    <div class="cb-item"><div class="cb-lbl">= Closing Balance</div><div class="cb-val" id="cb-close">₹24,424</div></div>
   </div>
 
   <!-- Summary Cards -->
   <div class="cards">
-    <div class="card g"><div class="cl">M — Medicals</div><div class="cv" id="c-M">₹0</div><div class="cs">Pharmacy</div></div>
-    <div class="card b"><div class="cl">T — Total</div><div class="cv" id="c-T">₹0</div><div class="cs">All inclusive</div></div>
-    <div class="card p"><div class="cl">C — Census</div><div class="cv" id="c-C">₹0</div><div class="cs">excl. M/P/L</div></div>
-    <div class="card a"><div class="cl">XPL</div><div class="cv" id="c-XPL">₹0</div><div class="cs" id="c-XPL-sub">X:₹0 P:₹0 L:₹0</div></div>
+    <div class="card g"><div class="cl">M — Medicals</div><div class="cv" id="c-M">₹14,558</div><div class="cs">Pharmacy</div></div>
+    <div class="card b"><div class="cl">T — Total</div><div class="cv" id="c-T">₹26,238</div><div class="cs">All inclusive</div></div>
+    <div class="card p"><div class="cl">C — Census</div><div class="cv" id="c-C">₹24,667</div><div class="cs">excl. M/P/L</div></div>
+    <div class="card a"><div class="cl">XPL</div><div class="cv" id="c-XPL">₹6,415</div><div class="cs" id="c-XPL-sub">X:₹3,800 P:₹750 L:₹1,865</div></div>
   </div>
 
   <!-- Stats Row -->
-  <div class="statsrow" id="stats-row"></div>
+  <div class="statsrow" id="stats-row">
+    <div class="stat"><div class="sl">Patients</div><div class="sv">15</div></div>
+    <div class="stat"><div class="sl">New</div><div class="sv" style="color:var(--gn)">8</div><div class="ss">₹3,200</div></div>
+    <div class="stat"><div class="sl">Old</div><div class="sv" style="color:var(--bl)">6</div></div>
+    <div class="stat"><div class="sl">Med-Only</div><div class="sv" style="color:var(--t2)">1</div><div class="ss">walk-in</div></div>
+    <div class="stat"><div class="sl">PT-Only</div><div class="sv" style="color:var(--tl)">0</div><div class="ss">physio</div></div>
+    <div class="stat"><div class="sl">Lab-Only</div><div class="sv" style="color:var(--am)">0</div><div class="ss">lab</div></div>
+    <div class="stat recon-ok"><div class="sl">Recon</div><div class="sv">✓</div><div class="ss">balanced</div></div></div>
 
   <!-- Cash/GPay bar -->
   <div class="card" style="margin-bottom:12px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-      <div><div class="cl">Cash</div><div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--gn)" id="c-cash">₹0</div></div>
-      <div style="text-align:center"><div class="cl" id="c-ratio">Cash 0% · GPay 0%</div></div>
-      <div style="text-align:right"><div class="cl">GPay</div><div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--bl)" id="c-gpay">₹0</div></div>
+      <div><div class="cl">Cash</div><div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--gn)" id="c-cash">₹24,424</div></div>
+      <div style="text-align:center"><div class="cl" id="c-ratio">Cash 93% · GPay 7%</div></div>
+      <div style="text-align:right"><div class="cl">GPay</div><div style="font-size:18px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--bl)" id="c-gpay">₹1,814</div></div>
     </div>
-    <div class="prog-bar"><div class="prog-fill cash" id="prog-cash" style="width:0%"></div></div>
+    <div class="prog-bar"><div class="prog-fill cash" id="prog-cash" style="width: 93%;"></div></div>
     <div style="display:flex;justify-content:space-between;margin-top:6px;">
       <div><div class="cl">Unaccounted</div><div style="font-size:14px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--am)" id="c-unaccounted">₹0</div></div>
     </div>
@@ -500,7 +526,7 @@ thead .monthly-table th:nth-child(2),
     <div class="action-bar-left">
       <button class="wa-btn" onclick="sendWhatsApp()">📱 Day Report</button>
     </div>
-    <div class="action-bar-right" id="day-action-btns"></div>
+    <div class="action-bar-right" id="day-action-btns"><button class="close-day-btn" onclick="closeDay()">✓ Close Day</button></div>
   </div>
 
   <!-- Patient Table -->
@@ -528,19 +554,244 @@ thead .monthly-table th:nth-child(2),
           <th style="width:70px">GPay ₹</th>
           <th style="width:20px"></th>
         </tr></thead>
-        <tbody id="pt-tbody"></tbody>
+        <tbody id="pt-tbody"><tr id="row-101">
+    <td class="lft" style="color:var(--t3);font-size:11px">1</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(101,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Selvi" placeholder="Patient name" oninput="sv(101,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-101" style="color:var(--gn)" onchange="sv(101,'type',this.value);applyTypeColor(101,this.value)"><option value="N" selected="">N</option><option value="O">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="250" placeholder="—" oninput="sv(101,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(101,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(101,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(101,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(101,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-101" value="1579" placeholder="—" oninput="sv(101,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(101,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-101" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹1,829</td>
+    <td><select class="mode-sel" id="ms-101" style="color:var(--gn)" onchange="sv(101,'mode',this.value);applyModeColor(101,this.value)"><option value="C" selected="">C</option><option value="G">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="1829" placeholder="—" oninput="sv(101,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(101,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(101)">✕</button></td></tr><tr id="row-102">
+    <td class="lft" style="color:var(--t3);font-size:11px">2</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(102,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Ovadhasri" placeholder="Patient name" oninput="sv(102,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-102" style="color:var(--bl)" onchange="sv(102,'type',this.value);applyTypeColor(102,this.value)"><option value="N">N</option><option value="O" selected="">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="200" placeholder="—" oninput="sv(102,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(102,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(102,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(102,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(102,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-102" value="631" placeholder="—" oninput="sv(102,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(102,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-102" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹831</td>
+    <td><select class="mode-sel" id="ms-102" style="color:var(--gn)" onchange="sv(102,'mode',this.value);applyModeColor(102,this.value)"><option value="C" selected="">C</option><option value="G">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="831" placeholder="—" oninput="sv(102,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(102,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(102)">✕</button></td></tr><tr id="row-103">
+    <td class="lft" style="color:var(--t3);font-size:11px">3</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(103,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Kuppusamy" placeholder="Patient name" oninput="sv(103,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-103" style="color:var(--gn)" onchange="sv(103,'type',this.value);applyTypeColor(103,this.value)"><option value="N" selected="">N</option><option value="O">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="250" placeholder="—" oninput="sv(103,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(103,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(103,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(103,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(103,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-103" value="860" placeholder="—" oninput="sv(103,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(103,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-103" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹1,110</td>
+    <td><select class="mode-sel" id="ms-103" style="color:var(--gn)" onchange="sv(103,'mode',this.value);applyModeColor(103,this.value)"><option value="C" selected="">C</option><option value="G">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="1110" placeholder="—" oninput="sv(103,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(103,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(103)">✕</button></td></tr><tr id="row-104">
+    <td class="lft" style="color:var(--t3);font-size:11px">4</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(104,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Karpagam" placeholder="Patient name" oninput="sv(104,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-104" style="color:var(--bl)" onchange="sv(104,'type',this.value);applyTypeColor(104,this.value)"><option value="N">N</option><option value="O" selected="">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="200" placeholder="—" oninput="sv(104,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="800" placeholder="—" oninput="sv(104,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(104,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(104,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(104,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-104" value="338" placeholder="—" oninput="sv(104,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(104,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-104" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹1,338</td>
+    <td><select class="mode-sel" id="ms-104" style="color:var(--gn)" onchange="sv(104,'mode',this.value);applyModeColor(104,this.value)"><option value="C" selected="">C</option><option value="G">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="1338" placeholder="—" oninput="sv(104,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(104,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(104)">✕</button></td></tr><tr id="row-105">
+    <td class="lft" style="color:var(--t3);font-size:11px">5</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(105,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Kalyani" placeholder="Patient name" oninput="sv(105,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-105" style="color:var(--gn)" onchange="sv(105,'type',this.value);applyTypeColor(105,this.value)"><option value="N" selected="">N</option><option value="O">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="250" placeholder="—" oninput="sv(105,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="500" placeholder="—" oninput="sv(105,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(105,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(105,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(105,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-105" value="1383" placeholder="—" oninput="sv(105,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(105,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-105" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹2,133</td>
+    <td><select class="mode-sel" id="ms-105" style="color:var(--gn)" onchange="sv(105,'mode',this.value);applyModeColor(105,this.value)"><option value="C" selected="">C</option><option value="G">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="2133" placeholder="—" oninput="sv(105,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(105,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(105)">✕</button></td></tr><tr id="row-106">
+    <td class="lft" style="color:var(--t3);font-size:11px">6</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(106,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Chinnamani" placeholder="Patient name" oninput="sv(106,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-106" style="color:var(--t2)" onchange="sv(106,'type',this.value);applyTypeColor(106,this.value)"><option value="N">N</option><option value="O">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M" selected="">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(106,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(106,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(106,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(106,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(106,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-106" value="1571" placeholder="—" oninput="sv(106,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(106,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-106" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹1,571</td>
+    <td><select class="mode-sel" id="ms-106" style="color:var(--gn)" onchange="sv(106,'mode',this.value);applyModeColor(106,this.value)"><option value="C" selected="">C</option><option value="G">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="1571" placeholder="—" oninput="sv(106,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(106,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(106)">✕</button></td></tr><tr id="row-107">
+    <td class="lft" style="color:var(--t3);font-size:11px">7</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(107,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Parveen" placeholder="Patient name" oninput="sv(107,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-107" style="color:var(--gn)" onchange="sv(107,'type',this.value);applyTypeColor(107,this.value)"><option value="N" selected="">N</option><option value="O">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(107,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="1000" placeholder="—" oninput="sv(107,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(107,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(107,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(107,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-107" value="814" placeholder="—" oninput="sv(107,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(107,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-107" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹1,814</td>
+    <td><select class="mode-sel" id="ms-107" style="color:var(--bl)" onchange="sv(107,'mode',this.value);applyModeColor(107,this.value)"><option value="C">C</option><option value="G" selected="">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(107,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="1814" placeholder="—" oninput="sv(107,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(107)">✕</button></td></tr><tr id="row-108">
+    <td class="lft" style="color:var(--t3);font-size:11px">8</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(108,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Maniammal" placeholder="Patient name" oninput="sv(108,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-108" style="color:var(--gn)" onchange="sv(108,'type',this.value);applyTypeColor(108,this.value)"><option value="N" selected="">N</option><option value="O">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="250" placeholder="—" oninput="sv(108,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="1000" placeholder="—" oninput="sv(108,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(108,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(108,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(108,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-108" value="" placeholder="—" oninput="sv(108,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(108,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-108" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹1,250</td>
+    <td><select class="mode-sel" id="ms-108" style="color:var(--gn)" onchange="sv(108,'mode',this.value);applyModeColor(108,this.value)"><option value="C" selected="">C</option><option value="G">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="1250" placeholder="—" oninput="sv(108,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(108,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(108)">✕</button></td></tr><tr id="row-109">
+    <td class="lft" style="color:var(--t3);font-size:11px">9</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(109,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Sithammal" placeholder="Patient name" oninput="sv(109,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-109" style="color:var(--bl)" onchange="sv(109,'type',this.value);applyTypeColor(109,this.value)"><option value="N">N</option><option value="O" selected="">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="200" placeholder="—" oninput="sv(109,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(109,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(109,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(109,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(109,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-109" value="1053" placeholder="—" oninput="sv(109,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(109,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-109" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹1,253</td>
+    <td><select class="mode-sel" id="ms-109" style="color:var(--gn)" onchange="sv(109,'mode',this.value);applyModeColor(109,this.value)"><option value="C" selected="">C</option><option value="G">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="1253" placeholder="—" oninput="sv(109,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(109,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(109)">✕</button></td></tr><tr id="row-110">
+    <td class="lft" style="color:var(--t3);font-size:11px">10</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(110,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Manju" placeholder="Patient name" oninput="sv(110,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-110" style="color:var(--gn)" onchange="sv(110,'type',this.value);applyTypeColor(110,this.value)"><option value="N" selected="">N</option><option value="O">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="500" placeholder="—" oninput="sv(110,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="500" placeholder="—" oninput="sv(110,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(110,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="250" placeholder="—" oninput="sv(110,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="3730" placeholder="—" oninput="sv(110,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-110" value="1040" placeholder="—" oninput="sv(110,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(110,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-110" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹6,020</td>
+    <td><select class="mode-sel" id="ms-110" style="color:var(--gn)" onchange="sv(110,'mode',this.value);applyModeColor(110,this.value)"><option value="C" selected="">C</option><option value="G">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="6020" placeholder="—" oninput="sv(110,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(110,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(110)">✕</button></td></tr><tr id="row-111">
+    <td class="lft" style="color:var(--t3);font-size:11px">11</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(111,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Parthiban" placeholder="Patient name" oninput="sv(111,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-111" style="color:var(--bl)" onchange="sv(111,'type',this.value);applyTypeColor(111,this.value)"><option value="N">N</option><option value="O" selected="">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="200" placeholder="—" oninput="sv(111,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(111,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="200" placeholder="—" oninput="sv(111,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(111,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(111,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-111" value="681" placeholder="—" oninput="sv(111,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(111,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-111" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹1,081</td>
+    <td><select class="mode-sel" id="ms-111" style="color:var(--gn)" onchange="sv(111,'mode',this.value);applyModeColor(111,this.value)"><option value="C" selected="">C</option><option value="G">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="1081" placeholder="—" oninput="sv(111,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(111,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(111)">✕</button></td></tr><tr id="row-112">
+    <td class="lft" style="color:var(--t3);font-size:11px">12</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(112,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Sakthi" placeholder="Patient name" oninput="sv(112,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-112" style="color:var(--gn)" onchange="sv(112,'type',this.value);applyTypeColor(112,this.value)"><option value="N" selected="">N</option><option value="O">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="250" placeholder="—" oninput="sv(112,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(112,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(112,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="250" placeholder="—" oninput="sv(112,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(112,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-112" value="1040" placeholder="—" oninput="sv(112,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(112,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-112" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹1,540</td>
+    <td><select class="mode-sel" id="ms-112" style="color:var(--gn)" onchange="sv(112,'mode',this.value);applyModeColor(112,this.value)"><option value="C" selected="">C</option><option value="G">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="1540" placeholder="—" oninput="sv(112,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(112,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(112)">✕</button></td></tr><tr id="row-113">
+    <td class="lft" style="color:var(--t3);font-size:11px">13</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(113,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Sumathi" placeholder="Patient name" oninput="sv(113,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-113" style="color:var(--bl)" onchange="sv(113,'type',this.value);applyTypeColor(113,this.value)"><option value="N">N</option><option value="O" selected="">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="200" placeholder="—" oninput="sv(113,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(113,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(113,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(113,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(113,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-113" value="1106" placeholder="—" oninput="sv(113,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(113,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-113" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹1,306</td>
+    <td><select class="mode-sel" id="ms-113" style="color:var(--gn)" onchange="sv(113,'mode',this.value);applyModeColor(113,this.value)"><option value="C" selected="">C</option><option value="G">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="1306" placeholder="—" oninput="sv(113,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(113,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(113)">✕</button></td></tr><tr id="row-114">
+    <td class="lft" style="color:var(--t3);font-size:11px">14</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(114,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Lalitha" placeholder="Patient name" oninput="sv(114,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-114" style="color:var(--gn)" onchange="sv(114,'type',this.value);applyTypeColor(114,this.value)"><option value="N" selected="">N</option><option value="O">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="250" placeholder="—" oninput="sv(114,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(114,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(114,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="250" placeholder="—" oninput="sv(114,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(114,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-114" value="1790" placeholder="—" oninput="sv(114,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(114,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-114" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹2,290</td>
+    <td><select class="mode-sel" id="ms-114" style="color:var(--gn)" onchange="sv(114,'mode',this.value);applyModeColor(114,this.value)"><option value="C" selected="">C</option><option value="G">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="2290" placeholder="—" oninput="sv(114,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(114,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(114)">✕</button></td></tr><tr id="row-115">
+    <td class="lft" style="color:var(--t3);font-size:11px">15</td>
+    <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="" placeholder="MRN" oninput="sv(115,'mrn',this.value)"></td>
+    <td><input class="ci name-inp" value="Malliga" placeholder="Patient name" oninput="sv(115,'name',this.value)"></td>
+    <td><select class="type-sel" id="ts-115" style="color:var(--bl)" onchange="sv(115,'type',this.value);applyTypeColor(115,this.value)"><option value="N">N</option><option value="O" selected="">O</option><option value="OG-N">OG-N</option><option value="OG-O">OG-O</option><option value="M">M</option><option value="P">P</option><option value="L">L</option></select></td>
+    <td><input class="ci" type="number" value="200" placeholder="—" oninput="sv(115,'opd',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(115,'xray',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(115,'pop',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(115,'pt',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(115,'lab',this.value)"></td>
+    <td><div class="med-cell"><input class="ci" type="number" id="med-inp-115" value="672" placeholder="—" oninput="sv(115,'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(115,event)" title="Add amount">+</button></div></td>
+    <td class="g" id="rt-115" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹872</td>
+    <td><select class="mode-sel" id="ms-115" style="color:var(--gn)" onchange="sv(115,'mode',this.value);applyModeColor(115,this.value)"><option value="C" selected="">C</option><option value="G">G</option><option value="S">S</option></select></td>
+    <td><input class="ci" type="number" value="872" placeholder="—" oninput="sv(115,'cash',this.value)"></td>
+    <td><input class="ci" type="number" value="" placeholder="—" oninput="sv(115,'gpay',this.value)"></td>
+    <td><button class="del-btn" onclick="delRow(115)">✕</button></td></tr></tbody>
         <tfoot><tr>
           <td colspan="4" class="lbl lft">Day Total</td>
-          <td id="ft-opd">—</td>
-          <td id="ft-xray">—</td>
-          <td id="ft-pop">—</td>
-          <td id="ft-pt">—</td>
-          <td id="ft-lab">—</td>
-          <td id="ft-med">—</td>
-          <td id="ft-total" class="g">—</td>
+          <td id="ft-opd">₹3,200</td>
+          <td id="ft-xray">₹3,800</td>
+          <td id="ft-pop">₹200</td>
+          <td id="ft-pt">₹750</td>
+          <td id="ft-lab">₹3,730</td>
+          <td id="ft-med">₹14,558</td>
+          <td id="ft-total" class="g">₹26,238</td>
           <td></td>
-          <td id="ft-cash" class="g">—</td>
-          <td id="ft-gpay" class="b">—</td>
+          <td id="ft-cash" class="g">₹24,424</td>
+          <td id="ft-gpay" class="b">₹1,814</td>
           <td></td>
         </tr></tfoot>
       </table>
@@ -553,14 +804,14 @@ thead .monthly-table th:nth-child(2),
       <span>Today's IP Admissions</span>
       <button class="abtn" onclick="openIPModal()">+ Admit Patient</button>
     </div>
-    <div id="ip-today-list" style="padding:12px 14px;font-size:12px;color:var(--t3)">No IP admissions today</div>
+    <div id="ip-today-list" style="padding:12px 14px;font-size:12px;color:var(--t3)"><div style="font-size:12px;color:var(--t3);padding:4px 0">No IP admissions today</div></div>
   </div>
 </div>
 
 <!-- MONTHLY PAGE -->
 <div id="page-monthly" class="pg">
   <div class="msel" style="display:flex;align-items:center;gap:10px;">
-    <select id="mth-sel" onchange="renderMonthly()"></select>
+    <select id="mth-sel" onchange="renderMonthly()"><option value="2026-01">January 2026</option><option value="2026-02">February 2026</option><option value="2026-03" selected="">March 2026</option><option value="2026-04">April 2026</option><option value="2026-05">May 2026</option><option value="2026-06">June 2026</option><option value="2026-07">July 2026</option><option value="2026-08">August 2026</option><option value="2026-09">September 2026</option><option value="2026-10">October 2026</option><option value="2026-11">November 2026</option><option value="2026-12">December 2026</option><option value="2027-01">January 2027</option><option value="2027-02">February 2027</option><option value="2027-03">March 2027</option><option value="2027-04">April 2027</option><option value="2027-05">May 2027</option><option value="2027-06">June 2027</option><option value="2027-07">July 2027</option><option value="2027-08">August 2027</option><option value="2027-09">September 2027</option><option value="2027-10">October 2027</option><option value="2027-11">November 2027</option><option value="2027-12">December 2027</option></select>
     <span style="font-size:12px;color:var(--t3)">Auto-calculated from daily entries</span>
   </div>
   <div class="cards" id="monthly-cards"></div>
@@ -613,7 +864,7 @@ thead .monthly-table th:nth-child(2),
 <!-- IP PAGE -->
 <div id="page-ip" class="pg">
   <div class="msel" style="display:flex;align-items:center;gap:10px;">
-    <select id="ip-mth-sel" onchange="renderIPTab()"></select>
+    <select id="ip-mth-sel" onchange="renderIPTab()"><option value="2026-01">January 2026</option><option value="2026-02">February 2026</option><option value="2026-03" selected="">March 2026</option><option value="2026-04">April 2026</option><option value="2026-05">May 2026</option><option value="2026-06">June 2026</option><option value="2026-07">July 2026</option><option value="2026-08">August 2026</option><option value="2026-09">September 2026</option><option value="2026-10">October 2026</option><option value="2026-11">November 2026</option><option value="2026-12">December 2026</option><option value="2027-01">January 2027</option><option value="2027-02">February 2027</option><option value="2027-03">March 2027</option><option value="2027-04">April 2027</option><option value="2027-05">May 2027</option><option value="2027-06">June 2027</option><option value="2027-07">July 2027</option><option value="2027-08">August 2027</option><option value="2027-09">September 2027</option><option value="2027-10">October 2027</option><option value="2027-11">November 2027</option><option value="2027-12">December 2027</option></select>
     <button class="abtn" onclick="openIPModal()">+ Admit Patient</button>
   </div>
   <div class="tw">
@@ -668,14 +919,12 @@ thead .monthly-table th:nth-child(2),
 <!-- PHARMA PAGE -->
 <div id="page-pharma" class="pg">
   <div class="msel" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-    <select id="pharma-mth-sel" onchange="renderPharma()"></select>
+    <select id="pharma-mth-sel" onchange="renderPharma()"><option value="2026-01">January 2026</option><option value="2026-02">February 2026</option><option value="2026-03" selected="">March 2026</option><option value="2026-04">April 2026</option><option value="2026-05">May 2026</option><option value="2026-06">June 2026</option><option value="2026-07">July 2026</option><option value="2026-08">August 2026</option><option value="2026-09">September 2026</option><option value="2026-10">October 2026</option><option value="2026-11">November 2026</option><option value="2026-12">December 2026</option><option value="2027-01">January 2027</option><option value="2027-02">February 2027</option><option value="2027-03">March 2027</option><option value="2027-04">April 2027</option><option value="2027-05">May 2027</option><option value="2027-06">June 2027</option><option value="2027-07">July 2027</option><option value="2027-08">August 2027</option><option value="2027-09">September 2027</option><option value="2027-10">October 2027</option><option value="2027-11">November 2027</option><option value="2027-12">December 2027</option></select>
     <span style="font-size:12px;color:var(--t3)" id="pharma-total-lbl"></span>
     <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
       <!-- Add-agency inline form -->
       <div id="pharma-add-agency-form" style="display:none;align-items:center;gap:6px;">
-        <input type="text" id="new-agency-input" placeholder="Agency name"
-          style="font-family:'Outfit',sans-serif;font-size:13px;border:1px solid var(--bd2);border-radius:var(--rs);padding:7px 10px;background:var(--sf);color:var(--tx);outline:none;width:180px;"
-          onkeydown="if(event.key==='Enter')confirmAddAgency();if(event.key==='Escape')hideAddAgencyForm();">
+        <input type="text" id="new-agency-input" placeholder="Agency name" style="font-family:'Outfit',sans-serif;font-size:13px;border:1px solid var(--bd2);border-radius:var(--rs);padding:7px 10px;background:var(--sf);color:var(--tx);outline:none;width:180px;" onkeydown="if(event.key==='Enter')confirmAddAgency();if(event.key==='Escape')hideAddAgencyForm();">
         <button class="abtn" style="padding:7px 14px;font-size:12px" onclick="confirmAddAgency()">Add</button>
         <button class="reopen-btn" onclick="hideAddAgencyForm()">Cancel</button>
       </div>
@@ -687,7 +936,7 @@ thead .monthly-table th:nth-child(2),
 
 <!-- STAFF PAGE -->
 <div id="page-staff" class="pg">
-  <div class="msel"><select id="staff-mth-sel" onchange="renderStaff()"></select></div>
+  <div class="msel"><select id="staff-mth-sel" onchange="renderStaff()"><option value="2026-01">January 2026</option><option value="2026-02">February 2026</option><option value="2026-03" selected="">March 2026</option><option value="2026-04">April 2026</option><option value="2026-05">May 2026</option><option value="2026-06">June 2026</option><option value="2026-07">July 2026</option><option value="2026-08">August 2026</option><option value="2026-09">September 2026</option><option value="2026-10">October 2026</option><option value="2026-11">November 2026</option><option value="2026-12">December 2026</option><option value="2027-01">January 2027</option><option value="2027-02">February 2027</option><option value="2027-03">March 2027</option><option value="2027-04">April 2027</option><option value="2027-05">May 2027</option><option value="2027-06">June 2027</option><option value="2027-07">July 2027</option><option value="2027-08">August 2027</option><option value="2027-09">September 2027</option><option value="2027-10">October 2027</option><option value="2027-11">November 2027</option><option value="2027-12">December 2027</option></select></div>
   <div class="tw">
     <div class="ttl" style="display:flex;align-items:center;justify-content:space-between;">
       <span>Staff Salaries</span>
@@ -708,7 +957,7 @@ thead .monthly-table th:nth-child(2),
 
 <!-- P&L PAGE -->
 <div id="page-pnl" class="pg">
-  <div class="msel"><select id="pnl-mth-sel" onchange="renderPnL()"></select></div>
+  <div class="msel"><select id="pnl-mth-sel" onchange="renderPnL()"><option value="2026-01">January 2026</option><option value="2026-02">February 2026</option><option value="2026-03" selected="">March 2026</option><option value="2026-04">April 2026</option><option value="2026-05">May 2026</option><option value="2026-06">June 2026</option><option value="2026-07">July 2026</option><option value="2026-08">August 2026</option><option value="2026-09">September 2026</option><option value="2026-10">October 2026</option><option value="2026-11">November 2026</option><option value="2026-12">December 2026</option><option value="2027-01">January 2027</option><option value="2027-02">February 2027</option><option value="2027-03">March 2027</option><option value="2027-04">April 2027</option><option value="2027-05">May 2027</option><option value="2027-06">June 2027</option><option value="2027-07">July 2027</option><option value="2027-08">August 2027</option><option value="2027-09">September 2027</option><option value="2027-10">October 2027</option><option value="2027-11">November 2027</option><option value="2027-12">December 2027</option></select></div>
   <div class="pnl-total-bar">
     <span class="pnl-total-lbl">Net Hospital Income</span>
     <span class="pnl-total-val" id="pnl-net">₹0</span>
@@ -727,7 +976,7 @@ thead .monthly-table th:nth-child(2),
 
 <!-- TRENDS PAGE -->
 <div id="page-trends" class="pg">
-  <div class="msel"><select id="trends-mth-sel" onchange="renderTrends()"></select></div>
+  <div class="msel"><select id="trends-mth-sel" onchange="renderTrends()"><option value="2026-01">January 2026</option><option value="2026-02">February 2026</option><option value="2026-03" selected="">March 2026</option><option value="2026-04">April 2026</option><option value="2026-05">May 2026</option><option value="2026-06">June 2026</option><option value="2026-07">July 2026</option><option value="2026-08">August 2026</option><option value="2026-09">September 2026</option><option value="2026-10">October 2026</option><option value="2026-11">November 2026</option><option value="2026-12">December 2026</option><option value="2027-01">January 2027</option><option value="2027-02">February 2027</option><option value="2027-03">March 2027</option><option value="2027-04">April 2027</option><option value="2027-05">May 2027</option><option value="2027-06">June 2027</option><option value="2027-07">July 2027</option><option value="2027-08">August 2027</option><option value="2027-09">September 2027</option><option value="2027-10">October 2027</option><option value="2027-11">November 2027</option><option value="2027-12">December 2027</option></select></div>
   <div class="tw" style="padding:16px;margin-bottom:12px;"><canvas id="chart-income" height="80"></canvas></div>
   <div class="tw" style="padding:16px;margin-bottom:12px;"><canvas id="chart-patients" height="80"></canvas></div>
   <div class="tw" style="padding:16px;margin-bottom:12px;"><canvas id="chart-census" height="80"></canvas></div>
@@ -736,7 +985,7 @@ thead .monthly-table th:nth-child(2),
 
 <!-- EXPORT PAGE -->
 <div id="page-export" class="pg">
-  <div class="msel"><select id="export-mth-sel"></select></div>
+  <div class="msel"><select id="export-mth-sel"><option value="2026-01">January 2026</option><option value="2026-02">February 2026</option><option value="2026-03" selected="">March 2026</option><option value="2026-04">April 2026</option><option value="2026-05">May 2026</option><option value="2026-06">June 2026</option><option value="2026-07">July 2026</option><option value="2026-08">August 2026</option><option value="2026-09">September 2026</option><option value="2026-10">October 2026</option><option value="2026-11">November 2026</option><option value="2026-12">December 2026</option><option value="2027-01">January 2027</option><option value="2027-02">February 2027</option><option value="2027-03">March 2027</option><option value="2027-04">April 2027</option><option value="2027-05">May 2027</option><option value="2027-06">June 2027</option><option value="2027-07">July 2027</option><option value="2027-08">August 2027</option><option value="2027-09">September 2027</option><option value="2027-10">October 2027</option><option value="2027-11">November 2027</option><option value="2027-12">December 2027</option></select></div>
   <div class="csv-grid">
     <div class="csv-card">
       <div class="csv-card-title">📋 Day Register</div>
@@ -755,9 +1004,9 @@ thead .monthly-table th:nth-child(2),
       <button class="csv-dl-btn" onclick="exportPharmaCSV()">Download Pharma CSV</button>
     </div>
     <div class="csv-card">
-      <div class="csv-card-title">📊 P&L Summary</div>
-      <div class="csv-card-desc">Full P&L for selected month</div>
-      <button class="csv-dl-btn" onclick="exportPnLCSV()">Download P&L CSV</button>
+      <div class="csv-card-title">📊 P&amp;L Summary</div>
+      <div class="csv-card-desc">Full P&amp;L for selected month</div>
+      <button class="csv-dl-btn" onclick="exportPnLCSV()">Download P&amp;L CSV</button>
     </div>
   </div>
   <button class="csv-all-btn" onclick="exportAllCSV()">⬇ Download All as Combined CSV</button>
@@ -770,7 +1019,7 @@ thead .monthly-table th:nth-child(2),
 
 <!-- PERSONAL PAGE -->
 <div id="page-personal" class="pg">
-  <div class="msel"><select id="per-mth-sel" onchange="renderPersonal()"></select></div>
+  <div class="msel"><select id="per-mth-sel" onchange="renderPersonal()"><option value="2026-01">January 2026</option><option value="2026-02">February 2026</option><option value="2026-03" selected="">March 2026</option><option value="2026-04">April 2026</option><option value="2026-05">May 2026</option><option value="2026-06">June 2026</option><option value="2026-07">July 2026</option><option value="2026-08">August 2026</option><option value="2026-09">September 2026</option><option value="2026-10">October 2026</option><option value="2026-11">November 2026</option><option value="2026-12">December 2026</option><option value="2027-01">January 2027</option><option value="2027-02">February 2027</option><option value="2027-03">March 2027</option><option value="2027-04">April 2027</option><option value="2027-05">May 2027</option><option value="2027-06">June 2027</option><option value="2027-07">July 2027</option><option value="2027-08">August 2027</option><option value="2027-09">September 2027</option><option value="2027-10">October 2027</option><option value="2027-11">November 2027</option><option value="2027-12">December 2027</option></select></div>
   <div class="cards" id="per-summary-cards"></div>
   <div class="tw" style="margin-bottom:12px;">
     <div class="ttl">Add Expense</div>
@@ -817,7 +1066,7 @@ thead .monthly-table th:nth-child(2),
 <div id="page-stmt" class="pg">
   <div class="stmt-controls action-bar" style="max-width:860px;margin:0 auto 16px;">
     <div style="display:flex;align-items:center;gap:10px;">
-      <select id="stmt-mth-sel" onchange="renderStatement()"></select>
+      <select id="stmt-mth-sel" onchange="renderStatement()"><option value="2026-01">January 2026</option><option value="2026-02">February 2026</option><option value="2026-03" selected="">March 2026</option><option value="2026-04">April 2026</option><option value="2026-05">May 2026</option><option value="2026-06">June 2026</option><option value="2026-07">July 2026</option><option value="2026-08">August 2026</option><option value="2026-09">September 2026</option><option value="2026-10">October 2026</option><option value="2026-11">November 2026</option><option value="2026-12">December 2026</option><option value="2027-01">January 2027</option><option value="2027-02">February 2027</option><option value="2027-03">March 2027</option><option value="2027-04">April 2027</option><option value="2027-05">May 2027</option><option value="2027-06">June 2027</option><option value="2027-07">July 2027</option><option value="2027-08">August 2027</option><option value="2027-09">September 2027</option><option value="2027-10">October 2027</option><option value="2027-11">November 2027</option><option value="2027-12">December 2027</option></select>
       <span style="font-size:12px;color:var(--t3)">Monthly Financial Statement</span>
     </div>
     <button class="abtn" onclick="printStatement()" style="display:flex;align-items:center;gap:6px;">🖨 Print</button>
@@ -2249,5 +2498,6 @@ function initPharmaDates(){
 // Init any inputs already in DOM when this script runs
 setTimeout(initPharmaDates,0);
 </script>
-</body>
-</html>
+
+
+<div id="claude-agent-glow-border" style="position: fixed; inset: 0px; pointer-events: none; z-index: 2147483646; opacity: 0; transition: opacity 0.3s ease-in-out; animation: 2s ease-in-out 0s infinite normal none running claude-pulse; box-shadow: rgba(217, 119, 87, 0.5) 0px 0px 10px inset, rgba(217, 119, 87, 0.3) 0px 0px 20px inset, rgba(217, 119, 87, 0.1) 0px 0px 30px inset;"></div></body></html>
