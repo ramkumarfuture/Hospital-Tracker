@@ -10,6 +10,20 @@
 <title>VH Hospital Tracker — Dr. Ram</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.css">
+<style>
+/* Flatpickr theme overrides to match app style */
+.flatpickr-calendar{font-family:'Outfit',sans-serif;font-size:12px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.15);border:1px solid rgba(90,70,40,.15);}
+.flatpickr-day.selected,.flatpickr-day.selected:hover{background:#0A6644;border-color:#0A6644;}
+.flatpickr-day:hover{background:#EAF4EE;}
+.flatpickr-months .flatpickr-month{background:#084D33;color:#fff;border-radius:10px 10px 0 0;}
+.flatpickr-current-month .flatpickr-monthDropdown-months,.flatpickr-current-month input.cur-year{color:#fff;}
+.flatpickr-weekday{color:rgba(255,255,255,.7);background:#084D33;}
+.flatpickr-weekdays{background:#084D33;}
+.flatpickr-prev-month,.flatpickr-next-month{color:#fff!important;fill:#fff!important;}
+/* Make the text input look like the rest of the add-row inputs */
+.fp-date-input{flex:0 0 auto;min-width:110px;font-family:'Outfit',sans-serif;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 7px;background:var(--sf);color:var(--tx);outline:none;cursor:pointer;}
+</style>
 <style>
 :root{
   --bg:#F0F4F8;
@@ -25,6 +39,7 @@
   --pg-trends:#FEF3E8;
   --pg-export:#EAF3FB;
   --pg-personal:#EDF9F0;
+  --pg-stmt:#FDF8EE;
   --tx:#1A1208;
   --t2:#5C5040;
   --t3:#9C8E7E;
@@ -50,8 +65,8 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);min-he
 .nav::-webkit-scrollbar{display:none;}
 .nav-brand{color:#fff;font-size:14px;font-weight:700;padding:0 16px;white-space:nowrap;letter-spacing:-0.3px;flex-shrink:0;}
 .nav-brand span{opacity:.6;font-weight:400;}
-.tab{background:none;border:none;color:rgba(255,255,255,.6);font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;padding:10px 13px;cursor:pointer;white-space:nowrap;transition:all .18s;border-bottom:3px solid transparent;flex-shrink:0;border-radius:0;}
-.tab:hover{color:rgba(255,255,255,.9);}
+.tab{background:none;border:none;color:rgba(255,255,255,.85);font-family:'Outfit',sans-serif;font-size:12px;font-weight:500;padding:12px 13px;cursor:pointer;white-space:nowrap;transition:all .18s;border-bottom:3px solid transparent;flex-shrink:0;border-radius:0;}
+.tab:hover{color:#fff;}
 .tab.on{font-weight:700;border-bottom-color:transparent;}
 /* Solid colour chips per tab when active */
 .tab-day.on        {background:#27AE60;color:#fff;}
@@ -63,10 +78,13 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);min-he
 .tab-trends.on     {background:#CA6F1E;color:#fff;}
 .tab-export.on     {background:#2471A3;color:#fff;}
 .tab-personal.on   {background:#1E8449;color:#fff;}
+.tab-stmt.on       {background:#2C3E50;color:#fff;}
 /* Type & Mode colour selects */
 .type-sel{font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;border:none;background:transparent;outline:none;cursor:pointer;padding:2px 2px;border-radius:4px;}
 .mode-sel{font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;border:none;background:transparent;outline:none;cursor:pointer;padding:2px 2px;border-radius:4px;}
-.nav-r{margin-left:auto;display:flex;align-items:center;gap:8px;padding-right:12px;flex-shrink:0;}
+/* Fade hint that nav scrolls horizontally */
+.nav::before{content:'';position:sticky;right:0;top:0;bottom:0;width:32px;min-width:32px;background:linear-gradient(to right,transparent,var(--ac2));pointer-events:none;flex-shrink:0;order:99;}
+.nav-r{margin-left:auto;display:flex;align-items:center;gap:8px;padding-right:12px;flex-shrink:0;order:100;position:relative;z-index:1;background:var(--ac2);}
 .sync-dot{width:8px;height:8px;border-radius:50%;background:#4CAF82;flex-shrink:0;}
 .sync-dot.spin{animation:spin 1s linear infinite;background:transparent;border:2px solid #fff;border-top-color:transparent;}
 .sync-dot.err{background:#E74C3C;}
@@ -85,6 +103,7 @@ body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--tx);min-he
 #page-trends  {background:var(--pg-trends);}
 #page-export  {background:var(--pg-export);}
 #page-personal{background:var(--pg-personal);}
+#page-stmt    {background:var(--pg-stmt);}
 /* Make body background shift to match active page */
 body.tab-day      {background:var(--pg-day);}
 body.tab-monthly  {background:var(--pg-monthly);}
@@ -95,6 +114,7 @@ body.tab-pnl      {background:var(--pg-pnl);}
 body.tab-trends   {background:var(--pg-trends);}
 body.tab-export   {background:var(--pg-export);}
 body.tab-personal {background:var(--pg-personal);}
+body.tab-stmt     {background:var(--pg-stmt);}
 /* ── PAGES ── */
 .pg{display:none;padding:16px;max-width:1400px;margin:0 auto;min-height:calc(100vh - 50px);}
 .pg.on{display:block;}
@@ -186,9 +206,10 @@ tfoot tr:hover td{background:var(--s2);}
 .ttl{font-size:13px;font-weight:700;padding:12px 14px;border-bottom:1px solid var(--bd);color:var(--t2);}
 
 /* ── INPUTS ── */
-.ci{width:100%;border:none;background:transparent;font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;padding:3px 4px;color:var(--tx);outline:none;-moz-appearance:textfield;}
+.ci{width:100%;border:none;border-bottom:1px solid var(--bd);background:transparent;font-family:'JetBrains Mono',monospace;font-size:12px;text-align:right;padding:3px 4px;color:var(--tx);outline:none;-moz-appearance:textfield;transition:border-color .15s,background .15s;}
 .ci::-webkit-inner-spin-button,.ci::-webkit-outer-spin-button{-webkit-appearance:none;}
-.ci:focus{background:var(--gbg);border-radius:4px;}
+.ci:hover{border-bottom-color:var(--bd2);}
+.ci:focus{background:var(--gbg);border-radius:4px;border-bottom-color:var(--ac);}
 .ci.name-inp{text-align:left;font-family:'Outfit',sans-serif;font-size:13px;}
 
 /* ── BUTTONS ── */
@@ -252,7 +273,8 @@ tfoot tr:hover td{background:var(--s2);}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* ── PHARMA ── */
-.pharma-agency{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;}
+.pharma-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;margin-bottom:12px;}
+.pharma-agency{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;}
 .pharma-agency-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
 .pharma-agency-name{font-size:13px;font-weight:600;color:var(--tx);}
 .pharma-outstanding{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;}
@@ -262,7 +284,7 @@ tfoot tr:hover td{background:var(--s2);}
 .pharma-entry{display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--s2);border-radius:var(--rs);}
 .pharma-entry-date{font-size:11px;color:var(--t3);width:80px;flex-shrink:0;}
 .pharma-entry-amt{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--rd);flex:1;text-align:right;}
-.pharma-add-row{display:flex;gap:6px;align-items:center;}
+/* .pharma-add-row replaced by inline two-row layout */
 
 /* ── PNL ── */
 .pnl-section{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:10px;}
@@ -282,6 +304,25 @@ tfoot tr:hover td{background:var(--s2);}
 /* ── MONTHLY TABLE ── */
 .monthly-table th,.monthly-table td{font-size:11px;padding:6px 8px;}
 .monthly-table th{font-size:10px;}
+/* Sticky first two columns (Date + Day) */
+.monthly-table th:nth-child(1),.monthly-table td:nth-child(1){
+  position:sticky;left:0;z-index:2;min-width:56px;
+}
+.monthly-table th:nth-child(2),.monthly-table td:nth-child(2){
+  position:sticky;left:56px;z-index:2;min-width:40px;
+  border-right:1px solid var(--bd2);
+}
+/* Opaque backgrounds so content doesn't bleed through */
+thead .monthly-table th:nth-child(1),
+thead .monthly-table th:nth-child(2),
+.monthly-table thead th:nth-child(1),
+.monthly-table thead th:nth-child(2){background:var(--ac2);}
+.monthly-table tbody td:nth-child(1),
+.monthly-table tbody td:nth-child(2){background:var(--sf);}
+.monthly-table tfoot td:nth-child(1),
+.monthly-table tfoot td:nth-child(2){background:var(--s2);}
+.monthly-table tbody tr:hover td:nth-child(1),
+.monthly-table tbody tr:hover td:nth-child(2){background:var(--s2);}
 
 /* ── PERSONAL ── */
 .per-cat-badge{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--s2);}
@@ -295,6 +336,39 @@ tfoot tr:hover td{background:var(--s2);}
 .csv-dl-btn:hover{background:var(--ac2);}
 .csv-all-btn{background:var(--ac2);color:#fff;border:none;border-radius:var(--rs);padding:11px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;width:100%;}
 
+/* ── STATEMENT PAGE ── */
+.stmt-paper{background:#fff;border:1px solid var(--bd);border-radius:var(--r);padding:32px 36px;margin-bottom:16px;max-width:860px;margin-left:auto;margin-right:auto;}
+.stmt-header{text-align:center;border-bottom:3px double var(--tx);padding-bottom:16px;margin-bottom:24px;}
+.stmt-hosp{font-size:20px;font-weight:700;letter-spacing:.04em;color:var(--tx);text-transform:uppercase;}
+.stmt-title{font-size:13px;font-weight:600;color:var(--t2);margin-top:4px;text-transform:uppercase;letter-spacing:.08em;}
+.stmt-period{font-size:12px;color:var(--t3);margin-top:2px;}
+.stmt-section-hdr{font-size:10px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.1em;margin:20px 0 6px;border-bottom:1px solid var(--bd2);padding-bottom:4px;}
+.stmt-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px dotted var(--bd);}
+.stmt-row:last-child{border-bottom:none;}
+.stmt-row.indent{padding-left:18px;}
+.stmt-row.subtotal{border-top:1px solid var(--bd2);border-bottom:1px solid var(--bd2);padding:6px 0;margin-top:2px;font-weight:600;}
+.stmt-row.total{border-top:3px double var(--tx);border-bottom:none;padding:8px 0;margin-top:4px;}
+.stmt-lbl{font-size:13px;color:var(--tx);}
+.stmt-lbl.bold{font-weight:700;}
+.stmt-val{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--tx);}
+.stmt-val.income{color:var(--gn);}
+.stmt-val.expense{color:var(--rd);}
+.stmt-val.net-pos{color:var(--gn);font-size:18px;font-weight:700;}
+.stmt-val.net-neg{color:var(--rd);font-size:18px;font-weight:700;}
+.stmt-net-bar{background:var(--ac2);border-radius:var(--r);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;margin:20px 0 0;color:#fff;}
+.stmt-net-lbl{font-size:13px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;opacity:.85;}
+.stmt-net-val{font-family:'JetBrains Mono',monospace;font-size:24px;font-weight:700;}
+.stmt-kpi-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;max-width:860px;margin:0 auto 16px;}
+.stmt-divider{border:none;border-top:1px dashed var(--bd2);max-width:860px;margin:0 auto 16px;}
+.stmt-ip-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:10px;}
+/* Print */
+@media print{
+  .nav,.settings-btn,.tab,.action-bar,.stmt-controls{display:none!important;}
+  body{background:#fff!important;}
+  .stmt-paper{border:none;box-shadow:none;padding:20px 0;margin:0;}
+  .pg{padding:0;}
+  .stmt-kpi-grid .card,.stmt-ip-grid .card{break-inside:avoid;}
+}
 /* ── RESPONSIVE ── */
 @media(max-width:600px){
   .pg{padding:10px;}
@@ -309,15 +383,16 @@ tfoot tr:hover td{background:var(--s2);}
 <!-- NAV -->
 <nav class="nav">
   <div class="nav-brand">VH Tracker <span>· Dr. Ram</span></div>
-  <button class="tab tab-day on" onclick="showTab('day',this)">📋 Day</button>
-  <button class="tab tab-monthly" onclick="showTab('monthly',this)">📅 Monthly</button>
-  <button class="tab tab-ip" onclick="showTab('ip',this)">🏥 IP</button>
-  <button class="tab tab-pharma" onclick="showTab('pharma',this)">💊 Pharma</button>
-  <button class="tab tab-staff" onclick="showTab('staff',this)">👥 Staff</button>
-  <button class="tab tab-pnl" onclick="showTab('pnl',this)">📊 P&L</button>
-  <button class="tab tab-trends" onclick="showTab('trends',this)">📈 Trends</button>
-  <button class="tab tab-export" onclick="showTab('export',this)">📤 Export</button>
-  <button class="tab tab-personal" onclick="showTab('personal',this)">🏠 Personal</button>
+  <button class="tab tab-day on" onclick="showTab('day',this)" aria-label="Day" aria-selected="true">📋 Day</button>
+  <button class="tab tab-monthly" onclick="showTab('monthly',this)" aria-label="Monthly" aria-selected="false">📅 Monthly</button>
+  <button class="tab tab-ip" onclick="showTab('ip',this)" aria-label="Inpatient" aria-selected="false">🏥 IP</button>
+  <button class="tab tab-pharma" onclick="showTab('pharma',this)" aria-label="Pharma" aria-selected="false">💊 Pharma</button>
+  <button class="tab tab-staff" onclick="showTab('staff',this)" aria-label="Staff" aria-selected="false">👥 Staff</button>
+  <button class="tab tab-pnl" onclick="showTab('pnl',this)" aria-label="Profit and Loss" aria-selected="false">📊 P&L</button>
+  <button class="tab tab-trends" onclick="showTab('trends',this)" aria-label="Trends" aria-selected="false">📈 Trends</button>
+  <button class="tab tab-export" onclick="showTab('export',this)" aria-label="Export" aria-selected="false">📤 Export</button>
+  <button class="tab tab-personal" onclick="showTab('personal',this)" aria-label="Personal" aria-selected="false">🏠 Personal</button>
+  <button class="tab tab-stmt" onclick="showTab('stmt',this)" aria-label="Statement" aria-selected="false">📑 Statement</button>
   <div class="nav-r">
     <div class="sync-dot" id="sync-dot"></div>
     <span class="sync-lbl" id="sync-lbl">Ready</span>
@@ -337,8 +412,7 @@ tfoot tr:hover td{background:var(--s2);}
     </div>
     <div style="display:flex;gap:8px;margin-bottom:16px;">
       <button class="btn-primary" onclick="saveSettings()">Save & Connect</button>
-      <button class="btn-secondary" onclick="backupToSheets()">Push to Sheets</button>
-      <button class="btn-secondary" onclick="pullFromSheets()">Pull from Sheets</button>
+      <button class="btn-secondary" onclick="testBackup()">Test Backup</button>
     </div>
     <div id="last-sync-info" style="font-size:11px;color:var(--t3);margin-bottom:16px;"></div>
     <hr style="border:none;border-top:1px solid var(--bd);margin-bottom:16px;">
@@ -351,6 +425,7 @@ tfoot tr:hover td{background:var(--s2);}
     </div>
     <div class="modal-btns" style="margin-top:16px;">
       <button class="btn-secondary" onclick="closeSettings()">Close</button>
+      <button class="btn-primary" onclick="manualSync()">Sync Now</button>
     </div>
   </div>
 </div>
@@ -595,6 +670,17 @@ tfoot tr:hover td{background:var(--s2);}
   <div class="msel" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
     <select id="pharma-mth-sel" onchange="renderPharma()"></select>
     <span style="font-size:12px;color:var(--t3)" id="pharma-total-lbl"></span>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:8px;">
+      <!-- Add-agency inline form -->
+      <div id="pharma-add-agency-form" style="display:none;align-items:center;gap:6px;">
+        <input type="text" id="new-agency-input" placeholder="Agency name"
+          style="font-family:'Outfit',sans-serif;font-size:13px;border:1px solid var(--bd2);border-radius:var(--rs);padding:7px 10px;background:var(--sf);color:var(--tx);outline:none;width:180px;"
+          onkeydown="if(event.key==='Enter')confirmAddAgency();if(event.key==='Escape')hideAddAgencyForm();">
+        <button class="abtn" style="padding:7px 14px;font-size:12px" onclick="confirmAddAgency()">Add</button>
+        <button class="reopen-btn" onclick="hideAddAgencyForm()">Cancel</button>
+      </div>
+      <button class="abtn" id="show-add-agency-btn" onclick="showAddAgencyForm()">+ New Agency</button>
+    </div>
   </div>
   <div id="pharma-list"></div>
 </div>
@@ -727,6 +813,18 @@ tfoot tr:hover td{background:var(--s2);}
   </div>
 </div>
 
+<!-- STATEMENT PAGE -->
+<div id="page-stmt" class="pg">
+  <div class="stmt-controls action-bar" style="max-width:860px;margin:0 auto 16px;">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <select id="stmt-mth-sel" onchange="renderStatement()"></select>
+      <span style="font-size:12px;color:var(--t3)">Monthly Financial Statement</span>
+    </div>
+    <button class="abtn" onclick="printStatement()" style="display:flex;align-items:center;gap:6px;">🖨 Print</button>
+  </div>
+  <div id="stmt-content"></div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -843,6 +941,7 @@ function showTab(name,btn){
   if(name==='trends')renderTrends();
   if(name==='export')initExportTab();
   if(name==='personal')initPersonalTab();
+  if(name==='stmt')renderStatement();
 }
 
 // ─── MONTH SELECTS ───
@@ -856,7 +955,7 @@ function populateMonthSelects(){
     }
   }
   const cm=curDate.substring(0,7);
-  const ids=['mth-sel','ip-mth-sel','pharma-mth-sel','staff-mth-sel','pnl-mth-sel','trends-mth-sel','export-mth-sel','per-mth-sel'];
+  const ids=['mth-sel','ip-mth-sel','pharma-mth-sel','staff-mth-sel','pnl-mth-sel','trends-mth-sel','export-mth-sel','per-mth-sel','stmt-mth-sel'];
   ids.forEach(id=>{
     const s=el(id);
     if(!s)return;
@@ -1199,7 +1298,7 @@ function renderPharma(){
   if(!pharmaData[mth])pharmaData[mth]={};
   const list=el('pharma-list');if(!list)return;
   let grandTotal=0,grandPaid=0;
-  list.innerHTML=agencyList.map(ag=>{
+  list.innerHTML='<div class="pharma-grid">'+agencyList.map(ag=>{
     const entries=(pharmaData[mth][ag])||[];
     const total=entries.reduce((s,e)=>s+n(e.amt),0);
     const paid=n(pharmaData[mth][ag+'_paid']);
@@ -1221,17 +1320,25 @@ function renderPharma(){
           <button class="del-btn" onclick="delPharmaEntry('${mth}','${ag}',${i})">✕</button>
         </div>`).join('')}
       </div>
-      <div class="pharma-add-row">
-        <input type="date" id="ph-date-${ag.replace(/\s/g,'_')}" value="${curDate}" style="font-family:inherit;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 8px;background:var(--sf);color:var(--tx);outline:none;">
-        <input type="number" min="0" id="ph-amt-${ag.replace(/\s/g,'_')}" placeholder="Amount" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 8px;background:var(--sf);color:var(--tx);outline:none;" onkeydown="if(event.key==='Enter')addPharmaEntry('${mth}','${ag}')">
-        <button class="abtn" style="padding:5px 12px;font-size:12px" onclick="addPharmaEntry('${mth}','${ag}')">+ Add</button>
-        <div style="display:flex;align-items:center;gap:5px;margin-left:8px;">
-          <span style="font-size:11px;color:var(--t3)">Paid:</span>
-          <input type="number" min="0" value="${paid||''}" placeholder="0" id="ph-paid-${ag.replace(/\s/g,'_')}" style="width:80px;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 8px;background:var(--sf);color:var(--tx);outline:none;" oninput="savePharmaPayment('${mth}','${ag}',this.value)">
+      <div style="display:flex;flex-direction:column;gap:5px;padding-top:4px;border-top:1px solid var(--bd);">
+        <!-- Row 1: Date + Amount + Add -->
+        <div style="display:flex;gap:5px;align-items:center;">
+          <input type="text" id="ph-date-${ag.replace(/\s/g,'_')}" class="fp-date-input" data-fp placeholder="Date" readonly>
+          <input type="number" min="0" id="ph-amt-${ag.replace(/\s/g,'_')}" placeholder="₹ Amount"
+            style="flex:1;min-width:60px;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 7px;background:var(--sf);color:var(--tx);outline:none;"
+            onkeydown="if(event.key==='Enter')addPharmaEntry('${mth}','${ag}')">
+          <button class="abtn" style="padding:5px 10px;font-size:12px;flex-shrink:0;" onclick="addPharmaEntry('${mth}','${ag}')">+ Add</button>
+        </div>
+        <!-- Row 2: Paid -->
+        <div style="display:flex;align-items:center;gap:5px;">
+          <span style="font-size:11px;color:var(--t3);flex-shrink:0;">Paid ₹</span>
+          <input type="number" min="0" value="${paid||''}" placeholder="0" id="ph-paid-${ag.replace(/\s/g,'_')}"
+            style="flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 7px;background:var(--sf);color:var(--tx);outline:none;"
+            oninput="savePharmaPayment('${mth}','${ag}',this.value)">
         </div>
       </div>
     </div>`;
-  }).join('');
+  }).join('')+'</div>';
   const totEl=el('pharma-total-lbl');
   if(totEl)totEl.textContent=`Total: ₹${fmt(grandTotal)} · Paid: ₹${fmt(grandPaid)} · Due: ₹${fmt(grandTotal-grandPaid)}`;
 }
@@ -1244,8 +1351,29 @@ function addPharmaEntry(mth,ag){
   if(!pharmaData[mth])pharmaData[mth]={};
   if(!pharmaData[mth][ag])pharmaData[mth][ag]=[];
   pharmaData[mth][ag].push({date,amt});
+  // Sort entries chronologically after adding
+  pharmaData[mth][ag].sort((a,b)=>a.date.localeCompare(b.date));
   const ainp=el('ph-amt-'+safe);if(ainp)ainp.value='';
   sched();renderPharma();
+}
+function showAddAgencyForm(){
+  el('pharma-add-agency-form').style.display='flex';
+  el('show-add-agency-btn').style.display='none';
+  setTimeout(()=>el('new-agency-input')?.focus(),50);
+}
+function hideAddAgencyForm(){
+  el('pharma-add-agency-form').style.display='none';
+  el('show-add-agency-btn').style.display='';
+  const inp=el('new-agency-input');if(inp)inp.value='';
+}
+function confirmAddAgency(){
+  const name=el('new-agency-input')?.value.trim();
+  if(!name){toast('Enter agency name');return;}
+  if(agencyList.includes(name)){toast('Agency already exists');return;}
+  agencyList.push(name);
+  hideAddAgencyForm();
+  sched();renderPharma();
+  toast(`✓ Added "${name}"`);
 }
 function delPharmaEntry(mth,ag,idx){
   pharmaData[mth][ag].splice(idx,1);
@@ -1458,6 +1586,200 @@ function renderMonthly(){
     <div class="card"><div class="cl">Patients</div><div class="cv">${totN+totO+totOGN+totOGO}</div></div>
     <div class="card"><div class="cl">New</div><div class="cv" style="color:var(--gn)">${totN}</div></div>
     <div class="card r"><div class="cl">IP Count</div><div class="cv">${totIP}</div></div>`;
+}
+
+// ─── STATEMENT ───
+function renderStatement(){
+  const mth=el('stmt-mth-sel')?.value||curDate.substring(0,7);
+  const [yr,mo]=mth.split('-').map(Number);
+  const days=new Date(yr,mo,0).getDate();
+  const mthLabel=new Date(yr,mo-1,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+
+  // ── Aggregate daily data ──
+  let totT=0,totM=0,totGP=0,totC=0,totXr=0,totPT=0,totLab=0,totXPL=0;
+  let totCash=0,totN=0,totO=0,totOGN=0,totOGO=0,totPts=0;
+  const dayRows=[];
+  for(let d=1;d<=days;d++){
+    const ds=`${yr}-${String(mo).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const c=(allData[ds]||{})._c||computeCache((allData[ds]||{rows:[]}).rows);
+    const dow=new Date(ds+'T00:00:00').toLocaleDateString('en-IN',{weekday:'short'});
+    const labH=(c.Lab||0)/2;
+    const xpl=(c.Xr||0)+(c.PT||0)+labH;
+    totT+=c.T||0; totM+=c.M||0; totGP+=c.gpay||0;
+    totC+=c.C||0; totXr+=c.Xr||0; totPT+=c.PT||0; totLab+=labH; totXPL+=xpl;
+    totCash+=(c.T||0)-(c.gpay||0);
+    totN+=c.cN||0; totO+=c.cO||0; totOGN+=c.cOGN||0; totOGO+=c.cOGO||0;
+    totPts+=(c.cN||0)+(c.cO||0)+(c.cOGN||0)+(c.cOGO||0);
+    if(c.T>0||c.tot>0) dayRows.push({ds,dow,c,xpl,labH});
+  }
+
+  // ── IP summary ──
+  const mthIPs=ipData.filter(x=>x.admitDate?.startsWith(mth));
+  const totIPB=mthIPs.reduce((s,x)=>s+n(x.bill),0);
+  const totIPM=mthIPs.reduce((s,x)=>s+n(x.med),0);
+  const ipAdmit=mthIPs.length;
+  const ipDisch=mthIPs.filter(x=>x.status==='Discharged').length;
+  const ipLAMA=mthIPs.filter(x=>x.status==='LAMA').length;
+  const ipActive=mthIPs.filter(x=>x.status==='Admitted').length;
+
+  // ── Expenses from P&L ──
+  const exp=pnlExpenses[mth]||{};
+  const othTotal=(exp.othList||[]).reduce((s,e)=>s+e.amt,0);
+  const pharmaTotal=agencyList.reduce((s,ag)=>s+((pharmaData[mth]?.[ag])||[]).reduce((a,e)=>a+n(e.amt),0),0);
+  const salaryTotal=staffList.reduce((s,x)=>s+x.amt,0);
+  const manualExp={
+    imp:n(exp.imp),ana:n(exp.ana),sco:n(exp.sco),
+    out:n(exp.out),gst:n(exp.gst),eb:n(exp.eb),xrf:n(exp.xrf),oth:othTotal
+  };
+  const totExpOther=Object.values(manualExp).reduce((s,v)=>s+v,0);
+  const totExp=pharmaTotal+salaryTotal+totExpOther;
+  const grossRev=totT+totIPB+totIPM;
+  const netIncome=grossRev-totExp;
+
+  // ── Helper ──
+  const R=(lbl,val,cls='',indent=false,bold=false)=>
+    `<div class="stmt-row${indent?' indent':''}">
+       <span class="stmt-lbl${bold?' bold':''}">${lbl}</span>
+       <span class="stmt-val${cls?' '+cls:''}">${val===null?'—':'₹'+fmt(val)}</span>
+     </div>`;
+  const Sub=(lbl,val,cls='')=>
+    `<div class="stmt-row subtotal"><span class="stmt-lbl bold">${lbl}</span><span class="stmt-val${cls?' '+cls:''}">${'₹'+fmt(val)}</span></div>`;
+  const Hdr=t=>`<div class="stmt-section-hdr">${t}</div>`;
+
+  // ── Day-by-day table ──
+  const dayTable=`
+  <table style="width:100%;border-collapse:collapse;font-size:11px;margin-top:10px;">
+    <thead style="background:var(--ac2);">
+      <tr>
+        <th style="color:rgba(255,255,255,.8);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.04em;padding:7px 8px;text-align:left;">Date</th>
+        <th style="color:rgba(255,255,255,.8);font-weight:600;font-size:10px;text-transform:uppercase;padding:7px 8px;text-align:left;">Day</th>
+        <th style="color:rgba(255,255,255,.8);font-weight:600;font-size:10px;text-transform:uppercase;padding:7px 8px;text-align:right;">Total ₹</th>
+        <th style="color:rgba(255,255,255,.8);font-weight:600;font-size:10px;text-transform:uppercase;padding:7px 8px;text-align:right;">GPay</th>
+        <th style="color:rgba(255,255,255,.8);font-weight:600;font-size:10px;text-transform:uppercase;padding:7px 8px;text-align:right;">Cash</th>
+        <th style="color:rgba(255,255,255,.8);font-weight:600;font-size:10px;text-transform:uppercase;padding:7px 8px;text-align:right;">Medicals</th>
+        <th style="color:rgba(255,255,255,.8);font-weight:600;font-size:10px;text-transform:uppercase;padding:7px 8px;text-align:right;">Census</th>
+        <th style="color:rgba(255,255,255,.8);font-weight:600;font-size:10px;text-transform:uppercase;padding:7px 8px;text-align:right;">XPL</th>
+        <th style="color:rgba(255,255,255,.8);font-weight:600;font-size:10px;text-transform:uppercase;padding:7px 8px;text-align:right;">Pts</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${dayRows.map((r,i)=>`<tr style="background:${i%2?'var(--s2)':'#fff'}">
+        <td style="padding:5px 8px;font-size:11px;color:var(--t3);border-bottom:1px solid var(--bd)">${r.ds}</td>
+        <td style="padding:5px 8px;font-size:11px;color:var(--t3);border-bottom:1px solid var(--bd)">${r.dow}</td>
+        <td style="padding:5px 8px;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gn);text-align:right;border-bottom:1px solid var(--bd)">₹${fmt(r.c.T)}</td>
+        <td style="padding:5px 8px;font-family:'JetBrains Mono',monospace;color:var(--bl);text-align:right;border-bottom:1px solid var(--bd)">₹${fmt(r.c.gpay||0)}</td>
+        <td style="padding:5px 8px;font-family:'JetBrains Mono',monospace;text-align:right;border-bottom:1px solid var(--bd)">₹${fmt((r.c.T||0)-(r.c.gpay||0))}</td>
+        <td style="padding:5px 8px;font-family:'JetBrains Mono',monospace;text-align:right;border-bottom:1px solid var(--bd)">₹${fmt(r.c.M||0)}</td>
+        <td style="padding:5px 8px;font-family:'JetBrains Mono',monospace;text-align:right;border-bottom:1px solid var(--bd)">₹${fmt(r.c.C||0)}</td>
+        <td style="padding:5px 8px;font-family:'JetBrains Mono',monospace;text-align:right;border-bottom:1px solid var(--bd)">₹${fmt(r.xpl)}</td>
+        <td style="padding:5px 8px;text-align:right;font-weight:600;border-bottom:1px solid var(--bd)">${(r.c.cN||0)+(r.c.cO||0)+(r.c.cOGN||0)+(r.c.cOGO||0)}</td>
+      </tr>`).join('')}
+    </tbody>
+    <tfoot>
+      <tr style="background:var(--s2);font-weight:700;">
+        <td colspan="2" style="padding:7px 8px;font-size:11px;color:var(--t2);border-top:2px solid var(--bd2)">Month Total</td>
+        <td style="padding:7px 8px;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gn);text-align:right;border-top:2px solid var(--bd2)">₹${fmt(totT)}</td>
+        <td style="padding:7px 8px;font-family:'JetBrains Mono',monospace;color:var(--bl);text-align:right;border-top:2px solid var(--bd2)">₹${fmt(totGP)}</td>
+        <td style="padding:7px 8px;font-family:'JetBrains Mono',monospace;text-align:right;border-top:2px solid var(--bd2)">₹${fmt(totCash)}</td>
+        <td style="padding:7px 8px;font-family:'JetBrains Mono',monospace;text-align:right;border-top:2px solid var(--bd2)">₹${fmt(totM)}</td>
+        <td style="padding:7px 8px;font-family:'JetBrains Mono',monospace;text-align:right;border-top:2px solid var(--bd2)">₹${fmt(totC)}</td>
+        <td style="padding:7px 8px;font-family:'JetBrains Mono',monospace;text-align:right;border-top:2px solid var(--bd2)">₹${fmt(totXPL)}</td>
+        <td style="padding:7px 8px;text-align:right;font-weight:700;border-top:2px solid var(--bd2)">${totPts}</td>
+      </tr>
+    </tfoot>
+  </table>`;
+
+  // ── Build the full HTML ──
+  el('stmt-content').innerHTML=`
+  <!-- KPI Cards -->
+  <div class="stmt-kpi-grid">
+    <div class="card g"><div class="cl">Gross Revenue</div><div class="cv">₹${fmt(grossRev)}</div><div class="cs">OP + IP</div></div>
+    <div class="card b"><div class="cl">GPay</div><div class="cv">₹${fmt(totGP)}</div><div class="cs">${totT?Math.round(totGP/totT*100):0}% of OP</div></div>
+    <div class="card"><div class="cl">Cash</div><div class="cv">₹${fmt(totCash)}</div><div class="cs">${totT?Math.round(totCash/totT*100):0}% of OP</div></div>
+    <div class="card r"><div class="cl">Total Expenses</div><div class="cv">₹${fmt(totExp)}</div></div>
+    <div class="card ${netIncome>=0?'g':'r'}"><div class="cl">Net Income</div><div class="cv">₹${fmt(Math.abs(netIncome))}</div><div class="cs">${netIncome>=0?'Profit':'Loss'}</div></div>
+    <div class="card"><div class="cl">Total Patients</div><div class="cv">${totPts}</div><div class="cs">New: ${totN}</div></div>
+    <div class="card p"><div class="cl">IP Admissions</div><div class="cv">${ipAdmit}</div><div class="cs">Disch: ${ipDisch}</div></div>
+    <div class="card a"><div class="cl">IP Revenue</div><div class="cv">₹${fmt(totIPB+totIPM)}</div><div class="cs">Bill+Med</div></div>
+  </div>
+
+  <hr class="stmt-divider">
+
+  <!-- Formal Income Statement -->
+  <div class="stmt-paper">
+    <div class="stmt-header">
+      <div class="stmt-hosp">VH Hospital</div>
+      <div class="stmt-title">Monthly Financial Statement</div>
+      <div class="stmt-period">${mthLabel} &nbsp;|&nbsp; Prepared on ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}</div>
+    </div>
+
+    ${Hdr('A. Income')}
+    ${Hdr('OPD Revenue')}
+    ${R('Census Revenue (N / O / OG)',totC,'income',true)}
+    ${R('Medical Sales (Pharmacy)',totM,'income',true)}
+    ${R('X-Ray / PT / Lab (XPL)',totXPL,'income',true)}
+    ${Sub('Total OPD Revenue',totT,'income')}
+
+    ${Hdr('IP Revenue')}
+    ${R('IP Billing',totIPB,'income',true)}
+    ${R('IP Medicines',totIPM,'income',true)}
+    ${Sub('Total IP Revenue',totIPB+totIPM,'income')}
+
+    <div class="stmt-row total">
+      <span class="stmt-lbl bold" style="font-size:14px;text-transform:uppercase;letter-spacing:.04em;">Gross Revenue</span>
+      <span class="stmt-val income" style="font-size:16px;">₹${fmt(grossRev)}</span>
+    </div>
+
+    ${Hdr('B. Expenditure')}
+    ${R('Medical Purchases (Pharma)',pharmaTotal,'expense',true)}
+    ${R('Staff Salaries',salaryTotal,'expense',true)}
+    ${manualExp.imp?R('Implant Expenses',manualExp.imp,'expense',true):''}
+    ${manualExp.ana?R('Anaesthetist Fees',manualExp.ana,'expense',true):''}
+    ${manualExp.sco?R('Scopy / Spine',manualExp.sco,'expense',true):''}
+    ${manualExp.out?R('Outside Staff',manualExp.out,'expense',true):''}
+    ${manualExp.gst?R('GST',manualExp.gst,'expense',true):''}
+    ${manualExp.eb?R('EB Bill',manualExp.eb,'expense',true):''}
+    ${manualExp.xrf?R('X-Ray Films',manualExp.xrf,'expense',true):''}
+    ${manualExp.oth?R('Other Expenses',manualExp.oth,'expense',true):''}
+    ${Sub('Total Expenditure',totExp,'expense')}
+
+    <div class="stmt-net-bar">
+      <span class="stmt-net-lbl">${netIncome>=0?'Net Income (Profit)':'Net Loss'}</span>
+      <span class="stmt-net-val">₹${fmt(Math.abs(netIncome))}</span>
+    </div>
+
+    ${Hdr('C. Payment Mode Split')}
+    ${R('Cash Collected',totCash,'income')}
+    ${R('GPay Received',totGP,'income')}
+    ${R('Cash %',null)}
+    <div class="stmt-row indent" style="align-items:center;">
+      <div style="flex:1;height:8px;background:var(--bd);border-radius:4px;overflow:hidden;margin-right:12px;">
+        <div style="width:${totT?Math.round(totCash/totT*100):0}%;height:100%;background:var(--gn);border-radius:4px;"></div>
+      </div>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--gn)">${totT?Math.round(totCash/totT*100):0}% Cash</span>
+      <span style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--bl);margin-left:10px">${totT?Math.round(totGP/totT*100):0}% GPay</span>
+    </div>
+
+    ${Hdr('D. IP Admissions Summary')}
+    <div class="stmt-ip-grid">
+      <div class="card p"><div class="cl">Admitted</div><div class="cv">${ipAdmit}</div></div>
+      <div class="card g"><div class="cl">Discharged</div><div class="cv">${ipDisch}</div></div>
+      <div class="card r"><div class="cl">LAMA</div><div class="cv">${ipLAMA}</div></div>
+      <div class="card a"><div class="cl">Active / Pending</div><div class="cv">${ipActive}</div></div>
+      <div class="card g"><div class="cl">IP Bill Total</div><div class="cv" style="font-size:16px">₹${fmt(totIPB)}</div></div>
+      <div class="card b"><div class="cl">IP Med Total</div><div class="cv" style="font-size:16px">₹${fmt(totIPM)}</div></div>
+    </div>
+  </div>
+
+  <!-- Day-by-Day Table -->
+  <div class="stmt-paper">
+    <div class="stmt-section-hdr" style="margin-top:0">E. Daily Operational Summary — ${mthLabel}</div>
+    <div style="overflow-x:auto;">${dayTable}</div>
+  </div>`;
+}
+
+function printStatement(){
+  window.print();
 }
 
 // ─── TRENDS ───
@@ -1758,29 +2080,6 @@ function testBackup(){
   if(!SCRIPT_URL){showSettingsError('Enter URL first');return;}
   backupToSheets();
 }
-async function pullFromSheets(){
-  if(!SCRIPT_URL){showSettingsError('Enter URL first');return;}
-  if(!confirm('⚠️ This will REPLACE all local data with Google Sheets data.\nOnly do this to restore data on a new device.\n\nAre you sure?'))return;
-  sync('spin','Loading from Sheets…');
-  try{
-    const r=await fetch(SCRIPT_URL+'?action=load');
-    const j=await r.json();
-    if(j.status==='ok'&&j.data){
-      loadBundle(j.data);
-      saveLocal();
-      sync('','Loaded ✓');
-      setDate(curDate);
-      closeSettings();
-      toast('✓ Data restored from Google Sheets');
-    }else{
-      showSettingsError('No data in Sheets yet');
-      sync('','Ready');
-    }
-  }catch(e){
-    showSettingsError('Connection failed: '+e.message);
-    sync('err','Error');
-  }
-}
 async function backupToSheets(){
   if(!SCRIPT_URL){toast('No backup URL — configure in ⚙ Settings');return;}
   toast('Backing up to Google Sheets…');
@@ -1872,41 +2171,14 @@ async function manualSync(){
       sync('','Synced ✓');
       toast('Data loaded from Google Sheets ✓');
     }else{
+      // No data yet — use local
       sync('','Ready');
       toast('Ready — no cloud data yet');
     }
   }catch(e){
     sync('','Local only');
+    loadLocal();
     toast('Working offline — data saved locally');
-  }
-}
-
-// ─── BOOT SYNC: only pull from Sheets if localStorage is empty ───
-async function bootSync(){
-  if(!SCRIPT_URL)return;
-  const hasLocal=!!localStorage.getItem('vh_data');
-  if(hasLocal){
-    // Local data exists — push to Sheets to keep it updated, never overwrite
-    sync('','Local ✓');
-    setTimeout(()=>saveToSheets(),2000);
-    return;
-  }
-  // No local data at all — safe to pull from Sheets
-  sync('spin','Loading from cloud…');
-  try{
-    const r=await fetch(SCRIPT_URL+'?action=load');
-    const j=await r.json();
-    if(j.status==='ok'&&j.data){
-      loadBundle(j.data);
-      saveLocal();
-      sync('','Loaded ✓');
-      toast('Data loaded from Google Sheets ✓');
-      setDate(curDate);
-    }else{
-      sync('','Ready');
-    }
-  }catch(e){
-    sync('','Local only');
   }
 }
 
@@ -1938,16 +2210,44 @@ window.onload=()=>{
   document.body.classList.add('tab-day');
   populateMonthSelects();
   SCRIPT_URL=localStorage.getItem('vh_script_url')||'';
-  // Always load local first — instant, no network
+  // Load from local first for instant display
   loadLocal();
-  setDate(curDate);
-  // Then sync safely — never overwrites existing local data
+  // Then try to sync from Google Sheets
   if(SCRIPT_URL){
-    bootSync();
+    manualSync();
   } else {
-    sync('','Local only — configure ⚙ Settings');
+    sync('','Ready — configure ⚙ Settings');
   }
 };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/flatpickr/4.6.13/flatpickr.min.js"></script>
+<script>
+// Initialise Flatpickr on every pharma date input after renderPharma runs
+function initPharmaDates(){
+  if(typeof flatpickr==='undefined') return; // not yet loaded
+  document.querySelectorAll('[data-fp]').forEach(inp=>{
+    if(inp._flatpickr) return; // already initialised
+    const fp=flatpickr(inp,{
+      dateFormat:'Y-m-d',
+      defaultDate: curDate,
+      position:'auto',        // auto-flips above when near bottom of viewport
+      disableMobile:true,     // use custom picker on mobile too
+    });
+    if(!inp.value) fp.setDate(curDate,false);
+  });
+}
+// Patch renderPharma to init pickers after each render
+(function(){
+  const orig=window.renderPharma;
+  if(typeof orig==='function'){
+    window.renderPharma=function(){
+      orig.apply(this,arguments);
+      setTimeout(initPharmaDates,0);
+    };
+  }
+})();
+// Init any inputs already in DOM when this script runs
+setTimeout(initPharmaDates,0);
 </script>
 </body>
 </html>
