@@ -2,12 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="VH Tracker">
 <meta name="theme-color" content="#0A3D2E">
 <title>VH Hospital Tracker — Dr. Ram</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -256,17 +261,19 @@ tfoot tr:hover td{background:var(--s2);}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0);}
 
 /* ── PHARMA ── */
-.pharma-agency{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;}
-.pharma-agency-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-.pharma-agency-name{font-size:13px;font-weight:600;color:var(--tx);}
-.pharma-outstanding{font-size:12px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+.pharma-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:8px;}
+.pharma-agency{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:10px 12px;}
+.pharma-agency-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;padding-bottom:5px;border-bottom:1px solid var(--bd);}
+.pharma-agency-name{font-size:12px;font-weight:700;color:var(--tx);}
+.pharma-outstanding{font-size:11px;font-weight:700;font-family:'JetBrains Mono',monospace;}
 .pharma-outstanding.ok{color:var(--gn);}
 .pharma-outstanding.due{color:var(--rd);}
-.pharma-entries{display:flex;flex-direction:column;gap:4px;margin-bottom:8px;}
-.pharma-entry{display:flex;align-items:center;gap:8px;padding:5px 8px;background:var(--s2);border-radius:var(--rs);}
-.pharma-entry-date{font-size:11px;color:var(--t3);width:80px;flex-shrink:0;}
-.pharma-entry-amt{font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:600;color:var(--rd);flex:1;text-align:right;}
-.pharma-add-row{display:flex;gap:6px;align-items:center;}
+.pharma-entries{margin-bottom:6px;max-height:150px;overflow-y:auto;}
+.pharma-entry{display:flex;align-items:center;gap:6px;padding:3px 4px;border-bottom:1px solid var(--bd);}
+.pharma-entry:last-child{border-bottom:none;}
+.pharma-entry-date{font-size:10px;color:var(--t3);width:72px;flex-shrink:0;}
+.pharma-entry-amt{font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:var(--rd);flex:1;text-align:right;}
+.pharma-add-row{display:flex;gap:4px;align-items:center;padding-top:5px;border-top:1px solid var(--bd);}
 
 /* ── PNL ── */
 .pnl-section{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:16px;margin-bottom:10px;}
@@ -326,6 +333,8 @@ tfoot tr:hover td{background:var(--s2);}
   <div class="nav-r">
     <div class="sync-dot" id="sync-dot"></div>
     <span class="sync-lbl" id="sync-lbl">Ready</span>
+    <button onclick="saveAsFile()" title="Save updated file" style="background:#27AE60;border:none;color:#fff;padding:5px 12px;border-radius:6px;font-family:Outfit,sans-serif;font-size:12px;font-weight:700;cursor:pointer;margin-right:4px;">💾 Save File</button>
+    <button onclick="loadFromFile()" title="Load from JSON backup" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:5px 12px;border-radius:6px;font-family:Outfit,sans-serif;font-size:12px;font-weight:600;cursor:pointer;margin-right:4px;">📂 Load</button>
     <button class="settings-btn" onclick="openSettings()" title="Settings">⚙</button>
   </div>
 </nav>
@@ -542,9 +551,10 @@ tfoot tr:hover td{background:var(--s2);}
 
 <!-- IP PAGE -->
 <div id="page-ip" class="pg">
-  <div class="msel" style="display:flex;align-items:center;gap:10px;">
+  <div class="msel" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
     <select id="ip-mth-sel" onchange="renderIPTab()"></select>
     <button class="abtn" onclick="openIPModal()">+ Admit Patient</button>
+    <button onclick="printIPRegister()" style="background:var(--bl);color:#fff;border:none;border-radius:var(--rs);padding:8px 14px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;">🖨 Print Register</button>
   </div>
   <div class="tw">
     <div class="ts">
@@ -555,6 +565,7 @@ tfoot tr:hover td{background:var(--s2);}
           <th class="lft">Ward</th>
           <th class="lft">Diagnosis</th>
           <th>Bill</th><th>Med</th><th>Total</th>
+          <th class="lft">Anaesthetist</th>
           <th>Status</th>
           <th></th>
         </tr></thead>
@@ -583,10 +594,12 @@ tfoot tr:hover td{background:var(--s2);}
       </div>
     </div>
     <div class="field"><label>Diagnosis</label><input type="text" id="ip-diag"></div>
+    <div class="field"><label>Anaesthetist</label><input type="text" id="ip-anaest" placeholder="Dr. name / NA"></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
       <div class="field"><label>Bill ₹</label><input type="number" id="ip-bill" min="0"></div>
       <div class="field"><label>Medicines ₹</label><input type="number" id="ip-med" min="0"></div>
     </div>
+    <div class="field"><label>Anaesthetist</label><input type="text" id="ip-anaest" placeholder="Anaesthetist name"></div>
     <div class="field"><label>Notes</label><textarea id="ip-notes" rows="2" style="resize:vertical"></textarea></div>
     <div class="modal-btns">
       <button class="btn-secondary" onclick="closeIPModal()">Cancel</button>
@@ -601,27 +614,43 @@ tfoot tr:hover td{background:var(--s2);}
     <select id="pharma-mth-sel" onchange="renderPharma()"></select>
     <span style="font-size:12px;color:var(--t3)" id="pharma-total-lbl"></span>
   </div>
-  <div id="pharma-list"></div>
+  <div id="pharma-list" class="pharma-grid"></div>
+<div style="background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 16px;margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+  <span style="font-size:12px;font-weight:600;color:var(--t2)">➕ Add New Agency:</span>
+  <input type="text" id="new-agency-name" placeholder="Agency name" style="flex:1;min-width:160px;font-family:inherit;font-size:13px;border:1px solid var(--bd2);border-radius:var(--rs);padding:6px 10px;background:var(--s2);color:var(--tx);outline:none;">
+  <button onclick="addNewAgency()" class="abtn" style="padding:7px 16px;">+ Add Agency</button>
+</div>
 </div>
 
 <!-- STAFF PAGE -->
 <div id="page-staff" class="pg">
-  <div class="msel"><select id="staff-mth-sel" onchange="renderStaff()"></select></div>
+  <div class="msel" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+    <select id="staff-mth-sel" onchange="renderStaff()"></select>
+    <span id="staff-total-lbl" style="font-size:12px;font-weight:700;color:var(--rd)"></span>
+  </div>
   <div class="tw">
-    <div class="ttl" style="display:flex;align-items:center;justify-content:space-between;">
-      <span>Staff Salaries</span>
-      <span id="staff-total-lbl" style="font-size:13px;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--rd)"></span>
-    </div>
     <div class="ts">
       <table>
         <thead><tr>
           <th class="lft">Name</th>
-          <th>Amount ₹</th>
+          <th>Base Salary ₹</th>
+          <th>Leaves</th>
+          <th>Deduction</th>
+          <th>Net Salary</th>
+          <th>Notes</th>
           <th>Paid</th>
+          <th></th>
         </tr></thead>
         <tbody id="staff-tbody"></tbody>
       </table>
     </div>
+  </div>
+  <!-- Add new staff -->
+  <div style="background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:12px 16px;margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+    <span style="font-size:12px;font-weight:600;color:var(--t2)">➕ Add Staff:</span>
+    <input type="text" id="new-staff-name" placeholder="Name" style="flex:2;min-width:120px;font-family:inherit;font-size:13px;border:1px solid var(--bd2);border-radius:var(--rs);padding:6px 10px;background:var(--s2);color:var(--tx);outline:none;">
+    <input type="number" id="new-staff-amt" placeholder="Salary ₹" style="flex:1;min-width:100px;font-family:'JetBrains Mono',monospace;font-size:13px;border:1px solid var(--bd2);border-radius:var(--rs);padding:6px 10px;background:var(--s2);color:var(--tx);outline:none;">
+    <button onclick="addNewStaff()" class="abtn" style="padding:7px 16px;">+ Add</button>
   </div>
 </div>
 
@@ -815,7 +844,7 @@ tfoot tr:hover td{background:var(--s2);}
 // ═══════════════════════════════════════════
 
 // ─── PRELOADED DATA ───
-const _PRELOAD = {"opd":{"2026-01-01":{"rows":[],"_c":{"T":37583.0,"M":21343.0,"C":16240.0,"XPL":11040.0,"Xr":0,"PT":0,"Lab":2795.0,"gpay":7953.0,"labAmt":2795.0,"opd":0,"cN":12,"cO":6,"cM":0,"cP":0,"cL":0,"tot":18}},"2026-01-02":{"rows":[],"_c":{"T":58622.0,"M":29412.0,"C":29210.0,"XPL":21660.0,"Xr":0,"PT":0,"Lab":6930.0,"gpay":30707.0,"labAmt":6930.0,"opd":0,"cN":17,"cO":7,"cM":0,"cP":0,"cL":0,"tot":24}},"2026-01-03":{"rows":[],"_c":{"T":39923.0,"M":24123.0,"C":15800.0,"XPL":9600.0,"Xr":0,"PT":0,"Lab":175.0,"gpay":20828.0,"labAmt":175.0,"opd":0,"cN":12,"cO":14,"cM":0,"cP":0,"cL":0,"tot":26}},"2026-01-04":{"rows":[],"_c":{"T":25254.0,"M":17754.0,"C":7500.0,"XPL":4750.0,"Xr":0,"PT":0,"Lab":0,"gpay":8533.0,"labAmt":0,"opd":0,"cN":7,"cO":8,"cM":0,"cP":0,"cL":0,"tot":15}},"2026-01-05":{"rows":[],"_c":{"T":60520.0,"M":36320.0,"C":24200.0,"XPL":15450.0,"Xr":0,"PT":0,"Lab":1700.0,"gpay":14127.0,"labAmt":1700.0,"opd":0,"cN":23,"cO":12,"cM":0,"cP":0,"cL":0,"tot":35}},"2026-01-06":{"rows":[],"_c":{"T":40763.0,"M":25513.0,"C":15250.0,"XPL":0,"Xr":0,"PT":0,"Lab":0,"gpay":10095.0,"labAmt":0,"opd":0,"cN":12,"cO":11,"cM":0,"cP":0,"cL":0,"tot":23}},"2026-01-07":{"rows":[],"_c":{"T":60312.0,"M":32982.0,"C":27330.0,"XPL":20380.0,"Xr":0,"PT":0,"Lab":4790.0,"gpay":4500.0,"labAmt":4790.0,"opd":0,"cN":16,"cO":10,"cM":0,"cP":0,"cL":0,"tot":26}},"2026-01-08":{"rows":[],"_c":{"T":41744.0,"M":28544.0,"C":13200.0,"XPL":0,"Xr":0,"PT":0,"Lab":875.0,"gpay":11972.0,"labAmt":875.0,"opd":0,"cN":9,"cO":15,"cM":0,"cP":0,"cL":0,"tot":24}},"2026-01-09":{"rows":[],"_c":{"T":45812.0,"M":27432.0,"C":18380.0,"XPL":12030.0,"Xr":0,"PT":0,"Lab":915.0,"gpay":11612.0,"labAmt":915.0,"opd":0,"cN":14,"cO":12,"cM":0,"cP":0,"cL":0,"tot":26}},"2026-01-10":{"rows":[],"_c":{"T":26060.0,"M":17310.0,"C":8750.0,"XPL":5000.0,"Xr":0,"PT":0,"Lab":0,"gpay":7610.0,"labAmt":0,"opd":0,"cN":8,"cO":8,"cM":0,"cP":0,"cL":0,"tot":16}},"2026-01-11":{"rows":[],"_c":{"T":36366.0,"M":15386.0,"C":20980.0,"XPL":16880.0,"Xr":0,"PT":0,"Lab":5990.0,"gpay":9924.0,"labAmt":5990.0,"opd":0,"cN":4,"cO":9,"cM":0,"cP":0,"cL":0,"tot":13}},"2026-01-12":{"rows":[],"_c":{"T":81576.0,"M":52296.0,"C":29280.0,"XPL":17580.0,"Xr":0,"PT":0,"Lab":1690.0,"gpay":22909.0,"labAmt":1690.0,"opd":0,"cN":21,"cO":30,"cM":0,"cP":0,"cL":0,"tot":51}},"2026-01-13":{"rows":[],"_c":{"T":40663.0,"M":29343.0,"C":11320.0,"XPL":6870.0,"Xr":0,"PT":0,"Lab":0,"gpay":13373.0,"labAmt":0,"opd":0,"cN":9,"cO":14,"cM":0,"cP":0,"cL":0,"tot":23}},"2026-01-14":{"rows":[],"_c":{"T":34935.0,"M":16495.0,"C":18440.0,"XPL":12790.0,"Xr":0,"PT":0,"Lab":4020.0,"gpay":6585.0,"labAmt":4020.0,"opd":0,"cN":10,"cO":6,"cM":0,"cP":0,"cL":0,"tot":16}},"2026-01-15":{"rows":[],"_c":{"T":32968.0,"M":19818.0,"C":13150.0,"XPL":8250.0,"Xr":0,"PT":0,"Lab":0,"gpay":11302.0,"labAmt":0,"opd":0,"cN":13,"cO":4,"cM":0,"cP":0,"cL":0,"tot":17}},"2026-01-16":{"rows":[],"_c":{"T":26935.0,"M":17435.0,"C":9500.0,"XPL":5250.0,"Xr":0,"PT":0,"Lab":0,"gpay":6824.0,"labAmt":0,"opd":0,"cN":14,"cO":5,"cM":0,"cP":0,"cL":0,"tot":19}},"2026-01-17":{"rows":[],"_c":{"T":62764.0,"M":36964.0,"C":25800.0,"XPL":16300.0,"Xr":0,"PT":0,"Lab":0,"gpay":23560.0,"labAmt":0,"opd":0,"cN":22,"cO":7,"cM":0,"cP":0,"cL":0,"tot":29}},"2026-01-18":{"rows":[],"_c":{"T":72754.0,"M":41004.0,"C":31750.0,"XPL":20200.0,"Xr":0,"PT":0,"Lab":0,"gpay":11396.0,"labAmt":0,"opd":0,"cN":23,"cO":14,"cM":0,"cP":0,"cL":0,"tot":37}},"2026-01-19":{"rows":[],"_c":{"T":62829.0,"M":38599.0,"C":24230.0,"XPL":15130.0,"Xr":0,"PT":0,"Lab":0,"gpay":8699.0,"labAmt":0,"opd":0,"cN":25,"cO":13,"cM":0,"cP":0,"cL":0,"tot":38}},"2026-01-20":{"rows":[],"_c":{"T":76210.0,"M":48320.0,"C":27890.0,"XPL":19040.0,"Xr":0,"PT":0,"Lab":0,"gpay":29899.0,"labAmt":0,"opd":0,"cN":27,"cO":17,"cM":0,"cP":0,"cL":0,"tot":44}},"2026-01-21":{"rows":[],"_c":{"T":46835.0,"M":30235.0,"C":16600.0,"XPL":9500.0,"Xr":0,"PT":0,"Lab":0,"gpay":8928.0,"labAmt":0,"opd":0,"cN":22,"cO":11,"cM":0,"cP":0,"cL":0,"tot":33}},"2026-01-22":{"rows":[],"_c":{"T":35063.0,"M":18663.0,"C":16400.0,"XPL":11350.0,"Xr":0,"PT":0,"Lab":1700.0,"gpay":6548.0,"labAmt":1700.0,"opd":0,"cN":14,"cO":12,"cM":0,"cP":0,"cL":0,"tot":26}},"2026-01-23":{"rows":[],"_c":{"T":63350.0,"M":37020.0,"C":26330.0,"XPL":17480.0,"Xr":0,"PT":0,"Lab":1540.0,"gpay":20309.0,"labAmt":1540.0,"opd":0,"cN":20,"cO":15,"cM":0,"cP":0,"cL":0,"tot":35}},"2026-01-24":{"rows":[],"_c":{"T":68908.0,"M":46158.0,"C":22750.0,"XPL":12400.0,"Xr":0,"PT":0,"Lab":0,"gpay":12354.0,"labAmt":0,"opd":0,"cN":28,"cO":7,"cM":0,"cP":0,"cL":0,"tot":35}},"2026-01-25":{"rows":[],"_c":{"T":32978.0,"M":18828.0,"C":14150.0,"XPL":8550.0,"Xr":0,"PT":0,"Lab":965.0,"gpay":2081.0,"labAmt":965.0,"opd":0,"cN":13,"cO":8,"cM":0,"cP":0,"cL":0,"tot":21}},"2026-01-26":{"rows":[],"_c":{"T":65424.0,"M":39994.0,"C":25430.0,"XPL":16880.0,"Xr":0,"PT":0,"Lab":3115.0,"gpay":20635.0,"labAmt":3115.0,"opd":0,"cN":24,"cO":17,"cM":0,"cP":0,"cL":0,"tot":41}},"2026-01-27":{"rows":[],"_c":{"T":49358.0,"M":32278.0,"C":17080.0,"XPL":10530.0,"Xr":0,"PT":0,"Lab":1690.0,"gpay":18135.0,"labAmt":1690.0,"opd":0,"cN":16,"cO":12,"cM":0,"cP":0,"cL":0,"tot":28}},"2026-01-28":{"rows":[],"_c":{"T":35857.0,"M":25757.0,"C":10100.0,"XPL":4500.0,"Xr":0,"PT":0,"Lab":4595.0,"gpay":2945.0,"labAmt":4595.0,"opd":0,"cN":9,"cO":14,"cM":0,"cP":0,"cL":0,"tot":23}},"2026-01-29":{"rows":[],"_c":{"T":88359.0,"M":50289.0,"C":38070.0,"XPL":24820.0,"Xr":0,"PT":0,"Lab":0,"gpay":15608.0,"labAmt":0,"opd":0,"cN":27,"cO":21,"cM":0,"cP":0,"cL":0,"tot":48}},"2026-01-30":{"rows":[],"_c":{"T":27320.0,"M":10530.0,"C":16790.0,"XPL":12790.0,"Xr":0,"PT":0,"Lab":5330.0,"gpay":11195.0,"labAmt":5330.0,"opd":0,"cN":10,"cO":2,"cM":0,"cP":0,"cL":0,"tot":12}},"2026-01-31":{"rows":[],"_c":{"T":35703.0,"M":19023.0,"C":16680.0,"XPL":0,"Xr":0,"PT":0,"Lab":0,"gpay":9067.0,"labAmt":0,"opd":0,"cN":7,"cO":13,"cM":0,"cP":0,"cL":0,"tot":20}},"2026-02-01":{"rows":[],"_c":{"T":18748.0,"M":13848.0,"C":4900.0,"XPL":2600.0,"Xr":0,"PT":0,"Lab":0,"gpay":6388.0,"labAmt":0,"opd":0,"cN":4,"cO":7,"cM":0,"cP":0,"cL":0,"tot":11}},"2026-02-02":{"rows":[],"_c":{"T":76686.0,"M":52636.0,"C":24050.0,"XPL":13750.0,"Xr":0,"PT":0,"Lab":0,"gpay":19583.0,"labAmt":0,"opd":0,"cN":20,"cO":26,"cM":0,"cP":0,"cL":0,"tot":46}},"2026-02-03":{"rows":[],"_c":{"T":24919.0,"M":16869.0,"C":8050.0,"XPL":4650.0,"Xr":0,"PT":0,"Lab":0,"gpay":3642.0,"labAmt":0,"opd":0,"cN":6,"cO":8,"cM":0,"cP":0,"cL":0,"tot":14}},"2026-02-04":{"rows":[],"_c":{"T":63498.0,"M":40948.0,"C":22550.0,"XPL":12200.0,"Xr":0,"PT":0,"Lab":0,"gpay":30644.0,"labAmt":0,"opd":0,"cN":25,"cO":17,"cM":0,"cP":0,"cL":0,"tot":42}},"2026-02-05":{"rows":[],"_c":{"T":38359.0,"M":25359.0,"C":13000.0,"XPL":6750.0,"Xr":0,"PT":0,"Lab":0,"gpay":9847.0,"labAmt":0,"opd":0,"cN":9,"cO":15,"cM":0,"cP":0,"cL":0,"tot":24}},"2026-02-06":{"rows":[],"_c":{"T":43276.0,"M":25176.0,"C":18100.0,"XPL":12100.0,"Xr":0,"PT":0,"Lab":2425.0,"gpay":11105.0,"labAmt":2425.0,"opd":0,"cN":14,"cO":14,"cM":0,"cP":0,"cL":0,"tot":28}},"2026-02-07":{"rows":[],"_c":{"T":64897.0,"M":39467.0,"C":25430.0,"XPL":16580.0,"Xr":0,"PT":0,"Lab":2465.0,"gpay":22922.0,"labAmt":2465.0,"opd":0,"cN":21,"cO":14,"cM":0,"cP":0,"cL":0,"tot":35}},"2026-02-08":{"rows":[],"_c":{"T":29960.0,"M":14980.0,"C":14980.0,"XPL":9780.0,"Xr":0,"PT":0,"Lab":765.0,"gpay":11102.0,"labAmt":765.0,"opd":0,"cN":13,"cO":6,"cM":0,"cP":0,"cL":0,"tot":19}},"2026-02-09":{"rows":[],"_c":{"T":83944.0,"M":39824.0,"C":44120.0,"XPL":50870.0,"Xr":0,"PT":0,"Lab":10010.0,"gpay":44229.0,"labAmt":10010.0,"opd":0,"cN":29,"cO":23,"cM":0,"cP":0,"cL":0,"tot":52}},"2026-02-10":{"rows":[],"_c":{"T":39863.0,"M":22013.0,"C":17850.0,"XPL":11550.0,"Xr":0,"PT":0,"Lab":0,"gpay":11388.0,"labAmt":0,"opd":0,"cN":13,"cO":16,"cM":0,"cP":0,"cL":0,"tot":29}},"2026-02-11":{"rows":[],"_c":{"T":41277.0,"M":19147.0,"C":22130.0,"XPL":15530.0,"Xr":0,"PT":0,"Lab":2615.0,"gpay":5941.0,"labAmt":2615.0,"opd":0,"cN":15,"cO":9,"cM":0,"cP":0,"cL":0,"tot":24}},"2026-02-12":{"rows":[],"_c":{"T":43036.0,"M":22666.0,"C":20370.0,"XPL":14770.0,"Xr":0,"PT":0,"Lab":2010.0,"gpay":13393.0,"labAmt":2010.0,"opd":0,"cN":15,"cO":7,"cM":0,"cP":0,"cL":0,"tot":22}},"2026-02-13":{"rows":[],"_c":{"T":71784.0,"M":38874.0,"C":32910.0,"XPL":23260.0,"Xr":0,"PT":0,"Lab":3585.0,"gpay":16979.0,"labAmt":3585.0,"opd":0,"cN":24,"cO":15,"cM":0,"cP":0,"cL":0,"tot":39}},"2026-02-14":{"rows":[],"_c":{"T":50977.0,"M":37157.0,"C":13820.0,"XPL":6220.0,"Xr":0,"PT":0,"Lab":0,"gpay":26504.0,"labAmt":0,"opd":0,"cN":15,"cO":13,"cM":0,"cP":0,"cL":0,"tot":28}},"2026-02-15":{"rows":[],"_c":{"T":27452.0,"M":18252.0,"C":9200.0,"XPL":5650.0,"Xr":0,"PT":0,"Lab":0,"gpay":8325.0,"labAmt":0,"opd":0,"cN":7,"cO":10,"cM":0,"cP":0,"cL":0,"tot":17}},"2026-02-16":{"rows":[],"_c":{"T":37915.0,"M":22765.0,"C":15150.0,"XPL":10000.0,"Xr":0,"PT":0,"Lab":0,"gpay":15141.0,"labAmt":0,"opd":0,"cN":16,"cO":7,"cM":0,"cP":0,"cL":0,"tot":23}},"2026-02-17":{"rows":[],"_c":{"T":43699.0,"M":22909.0,"C":20790.0,"XPL":14880.0,"Xr":0,"PT":0,"Lab":2065.0,"gpay":6532.0,"labAmt":2065.0,"opd":0,"cN":12,"cO":16,"cM":0,"cP":0,"cL":0,"tot":28}},"2026-02-18":{"rows":[],"_c":{"T":40256.0,"M":22626.0,"C":17630.0,"XPL":12530.0,"Xr":0,"PT":0,"Lab":2515.0,"gpay":6292.0,"labAmt":2515.0,"opd":0,"cN":14,"cO":7,"cM":0,"cP":0,"cL":0,"tot":21}},"2026-02-19":{"rows":[],"_c":{"T":61022.0,"M":37292.0,"C":23730.0,"XPL":15480.0,"Xr":0,"PT":0,"Lab":2890.0,"gpay":27680.0,"labAmt":2890.0,"opd":0,"cN":21,"cO":16,"cM":0,"cP":0,"cL":0,"tot":37}},"2026-02-20":{"rows":[],"_c":{"T":57842.0,"M":33102.0,"C":24740.0,"XPL":15990.0,"Xr":0,"PT":0,"Lab":2170.0,"gpay":10662.0,"labAmt":2170.0,"opd":0,"cN":23,"cO":12,"cM":0,"cP":0,"cL":0,"tot":35}},"2026-02-21":{"rows":[],"_c":{"T":71778.0,"M":45598.0,"C":26180.0,"XPL":17430.0,"Xr":0,"PT":0,"Lab":4215.0,"gpay":22182.0,"labAmt":4215.0,"opd":0,"cN":19,"cO":16,"cM":0,"cP":0,"cL":0,"tot":35}},"2026-02-22":{"rows":[],"_c":{"T":29510.0,"M":17260.0,"C":12250.0,"XPL":7000.0,"Xr":0,"PT":0,"Lab":0,"gpay":14339.0,"labAmt":0,"opd":0,"cN":10,"cO":7,"cM":0,"cP":0,"cL":0,"tot":17}},"2026-02-23":{"rows":[],"_c":{"T":91837.0,"M":54557.0,"C":37280.0,"XPL":22180.0,"Xr":0,"PT":0,"Lab":765.0,"gpay":42871.0,"labAmt":765.0,"opd":0,"cN":33,"cO":22,"cM":0,"cP":0,"cL":0,"tot":55}},"2026-02-24":{"rows":[],"_c":{"T":36928.0,"M":21678.0,"C":15250.0,"XPL":8700.0,"Xr":0,"PT":0,"Lab":0,"gpay":11160.0,"labAmt":0,"opd":0,"cN":14,"cO":7,"cM":0,"cP":0,"cL":0,"tot":21}},"2026-02-25":{"rows":[],"_c":{"T":42156.0,"M":27346.0,"C":14810.0,"XPL":9000.0,"Xr":0,"PT":0,"Lab":0,"gpay":15979.0,"labAmt":0,"opd":0,"cN":16,"cO":7,"cM":0,"cP":0,"cL":0,"tot":23}},"2026-02-26":{"rows":[],"_c":{"T":41786.0,"M":24716.0,"C":17070.0,"XPL":11470.0,"Xr":0,"PT":0,"Lab":2585.0,"gpay":12017.0,"labAmt":2585.0,"opd":0,"cN":13,"cO":10,"cM":0,"cP":0,"cL":0,"tot":23}},"2026-02-27":{"rows":[],"_c":{"T":44415.0,"M":23065.0,"C":21350.0,"XPL":14200.0,"Xr":0,"PT":0,"Lab":0,"gpay":14775.0,"labAmt":0,"opd":0,"cN":15,"cO":15,"cM":0,"cP":0,"cL":0,"tot":30}},"2026-02-28":{"rows":[],"_c":{"T":62763.0,"M":37533.0,"C":25230.0,"XPL":16330.0,"Xr":0,"PT":0,"Lab":3465.0,"gpay":26011.0,"labAmt":3465.0,"opd":0,"cN":28,"cO":11,"cM":0,"cP":0,"cL":0,"tot":39}},"2026-03-01":{"rows":[],"_c":{"T":44931.0,"M":27241.0,"C":17690.0,"XPL":12290.0,"Xr":0,"PT":0,"Lab":1820.0,"gpay":13974.0,"labAmt":1820.0,"opd":0,"cN":14,"cO":11,"cM":0,"cP":0,"cL":0,"tot":25}},"2026-03-02":{"rows":[],"_c":{"T":60240.0,"M":34660.0,"C":25580.0,"XPL":16180.0,"Xr":0,"PT":0,"Lab":1190.0,"gpay":14146.0,"labAmt":1190.0,"opd":0,"cN":20,"cO":15,"cM":0,"cP":0,"cL":0,"tot":35}},"2026-03-03":{"rows":[],"_c":{"T":54944.0,"M":23364.0,"C":31580.0,"XPL":0,"Xr":0,"PT":0,"Lab":2615.0,"gpay":19636.0,"labAmt":2615.0,"opd":0,"cN":21,"cO":10,"cM":0,"cP":0,"cL":0,"tot":32}},"2026-03-04":{"rows":[],"_c":{"T":44678.0,"M":20528.0,"C":24150.0,"XPL":17450.0,"Xr":0,"PT":0,"Lab":4050.0,"gpay":5773.0,"labAmt":4050.0,"opd":0,"cN":16,"cO":15,"cM":0,"cP":0,"cL":0,"tot":31}},"2026-03-05":{"rows":[],"_c":{"T":48381.0,"M":31301.0,"C":17080.0,"XPL":11780.0,"Xr":0,"PT":0,"Lab":2465.0,"gpay":13444.0,"labAmt":2465.0,"opd":0,"cN":18,"cO":12,"cM":0,"cP":0,"cL":0,"tot":30}},"2026-03-06":{"rows":[],"_c":{"T":48543.0,"M":28363.0,"C":20180.0,"XPL":13080.0,"Xr":0,"PT":0,"Lab":1415.0,"gpay":11321.0,"labAmt":1415.0,"opd":0,"cN":19,"cO":8,"cM":0,"cP":0,"cL":0,"tot":27}},"2026-03-07":{"rows":[],"_c":{"T":45537.0,"M":28127.0,"C":17410.0,"XPL":25760.0,"Xr":0,"PT":0,"Lab":530.0,"gpay":19820.0,"labAmt":530.0,"opd":0,"cN":20,"cO":10,"cM":0,"cP":0,"cL":0,"tot":30}},"2026-03-08":{"rows":[],"_c":{"T":26567.0,"M":15417.0,"C":11150.0,"XPL":7050.0,"Xr":0,"PT":0,"Lab":0,"gpay":10274.0,"labAmt":0,"opd":0,"cN":11,"cO":6,"cM":0,"cP":0,"cL":0,"tot":17}},"2026-03-09":{"rows":[],"_c":{"T":41276.0,"M":27376.0,"C":13900.0,"XPL":7000.0,"Xr":0,"PT":0,"Lab":0,"gpay":8620.0,"labAmt":0,"opd":0,"cN":19,"cO":12,"cM":0,"cP":0,"cL":0,"tot":31}},"2026-03-10":{"rows":[],"_c":{"T":37159.0,"M":18309.0,"C":18850.0,"XPL":13450.0,"Xr":0,"PT":0,"Lab":3350.0,"gpay":13509.0,"labAmt":3350.0,"opd":0,"cN":13,"cO":9,"cM":0,"cP":0,"cL":0,"tot":22}},"2026-03-11":{"rows":[],"_c":{"T":64174.0,"M":40974.0,"C":23200.0,"XPL":12625.0,"Xr":0,"PT":0,"Lab":475.0,"gpay":13272.0,"labAmt":475.0,"opd":0,"cN":23,"cO":18,"cM":0,"cP":0,"cL":0,"tot":41}},"2026-03-12":{"rows":[],"_c":{"T":57036.0,"M":37576.0,"C":19460.0,"XPL":11110.0,"Xr":0,"PT":0,"Lab":355.0,"gpay":17553.0,"labAmt":355.0,"opd":0,"cN":21,"cO":14,"cM":0,"cP":0,"cL":0,"tot":35}},"2026-03-13":{"rows":[],"_c":{"T":52748.0,"M":29998.0,"C":22750.0,"XPL":14550.0,"Xr":0,"PT":0,"Lab":0,"gpay":13917.0,"labAmt":0,"opd":0,"cN":19,"cO":9,"cM":0,"cP":0,"cL":0,"tot":28}},"2026-03-14":{"rows":[],"_c":{"T":63762.0,"M":39562.0,"C":24200.0,"XPL":15000.0,"Xr":0,"PT":0,"Lab":0,"gpay":20199.0,"labAmt":0,"opd":0,"cN":23,"cO":14,"cM":0,"cP":0,"cL":0,"tot":37}},"2026-03-15":{"rows":[],"_c":{"T":50136.0,"M":26446.0,"C":23690.0,"XPL":16090.0,"Xr":0,"PT":0,"Lab":2220.0,"gpay":17988.0,"labAmt":2220.0,"opd":0,"cN":21,"cO":7,"cM":0,"cP":0,"cL":0,"tot":28}},"2026-03-16":{"rows":[],"_closed":{"time":"09:15 PM","pts":34,"closedAt":"2026-03-16T21:15:00.000Z"},"_c":{"T":50170,"M":29950,"C":19970,"XPL":11835,"Xr":8800,"PT":2250,"Lab":1570,"gpay":15690,"labAmt":1570,"opd":0,"cN":21,"cO":11,"cOGN":2,"cOGO":0,"cM":3,"cP":1,"cL":0,"tot":34,"allPts":38}},"2026-03-17":{"rows":[],"_closed":{"time":"09:45 PM","pts":30,"closedAt":"2026-03-17T21:45:00.000Z"},"_c":{"T":55639,"M":27009,"C":28630,"XPL":16740,"Xr":10500,"PT":2000,"Lab":4240,"gpay":11188,"labAmt":4240,"opd":0,"cN":19,"cO":11,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":30,"allPts":30}},"2026-03-19":{"rows":[],"_closed":{"time":"09:01 PM","pts":29,"closedAt":"2026-03-19T21:00:00.000Z"},"_c":{"T":57407,"M":42177,"C":15230,"XPL":9290,"Xr":7000,"PT":1750,"Lab":1080,"gpay":30812,"labAmt":1080,"opd":0,"cN":17,"cO":10,"cOGN":0,"cOGO":2,"cM":0,"cP":0,"cL":0,"tot":29,"allPts":29}},"2026-03-18":{"rows":[],"_closed":{"time":"09:00 PM","pts":18,"closedAt":"2026-03-18T21:00:00.000Z"},"_c":{"T":40717,"M":29117,"C":11600,"XPL":9130,"Xr":6500,"PT":2500,"Lab":260,"gpay":0,"labAmt":260,"opd":0,"cN":12,"cO":6,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":18,"allPts":18}},"2026-03-20":{"rows":[],"_closed":{"time":"09:00 PM","pts":30,"closedAt":"2026-03-20T21:00:00.000Z"},"_c":{"T":94641,"M":72941,"C":21700,"XPL":12310,"Xr":10500,"PT":1750,"Lab":120,"gpay":0,"labAmt":120,"opd":0,"cN":20,"cO":10,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":30,"allPts":30}},"2026-03-21":{"rows":[],"_closed":{"time":"09:00 PM","pts":33,"closedAt":"2026-03-21T21:00:00.000Z"},"_c":{"T":62388,"M":44138,"C":18250,"XPL":14350,"Xr":8800,"PT":1500,"Lab":8100,"gpay":0,"labAmt":8100,"opd":0,"cN":22,"cO":11,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":33,"allPts":33}},"2026-03-22":{"rows":[],"_closed":{"time":"09:00 PM","pts":24,"closedAt":"2026-03-22T21:00:00.000Z"},"_c":{"T":59919,"M":44919,"C":15000,"XPL":12790,"Xr":7500,"PT":2250,"Lab":6080,"gpay":0,"labAmt":6080,"opd":0,"cN":16,"cO":8,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":24,"allPts":24}},"2026-03-23":{"rows":[],"_closed":{"time":"09:00 PM","pts":37,"closedAt":"2026-03-23T21:00:00.000Z"},"_c":{"T":66880,"M":45130,"C":21750,"XPL":14385,"Xr":9300,"PT":2750,"Lab":4670,"gpay":0,"labAmt":4670,"opd":0,"cN":25,"cO":12,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":37,"allPts":37}},"2026-03-24":{"rows":[],"_closed":{"time":"09:00 PM","pts":23,"closedAt":"2026-03-24T21:00:00.000Z"},"_c":{"T":46390,"M":32290,"C":14100,"XPL":11915,"Xr":8800,"PT":1250,"Lab":3730,"gpay":0,"labAmt":3730,"opd":0,"cN":15,"cO":8,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":23,"allPts":23}},"2026-03-25":{"rows":[],"_closed":{"time":"09:00 PM","pts":29,"closedAt":"2026-03-25T21:00:00.000Z"},"_c":{"T":61345,"M":45845,"C":15500,"XPL":8750,"Xr":6000,"PT":2750,"Lab":0,"gpay":0,"labAmt":0,"opd":0,"cN":19,"cO":10,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":29,"allPts":29}},"2026-03-26":{"rows":[],"_closed":{"time":"09:00 PM","pts":24,"closedAt":"2026-03-26T21:00:00.000Z"},"_c":{"T":35335,"M":23435,"C":11900,"XPL":9010,"Xr":4500,"PT":2500,"Lab":4020,"gpay":0,"labAmt":4020,"opd":0,"cN":16,"cO":8,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":24,"allPts":24}},"2026-03-27":{"rows":[],"_closed":{"time":"09:00 PM","pts":24,"closedAt":"2026-03-27T21:00:00.000Z"},"_c":{"T":36119,"M":21919,"C":14200,"XPL":9465,"Xr":6000,"PT":1750,"Lab":3430,"gpay":0,"labAmt":3430,"opd":0,"cN":15,"cO":9,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":24,"allPts":24}}},"pharma":{"2026-01":{"Senthil":[{"date":"2026-01-27","amt":2300.0}],"Karthikeya":[{"date":"2026-01-06","amt":3623.0},{"date":"2026-01-09","amt":6178.0},{"date":"2026-01-12","amt":15091.0},{"date":"2026-01-15","amt":11292.0},{"date":"2026-01-19","amt":2880.0},{"date":"2026-01-20","amt":13939.0},{"date":"2026-01-24","amt":4551.0}],"NH Surgical":[{"date":"2026-01-02","amt":4111.0},{"date":"2026-01-05","amt":10969.0},{"date":"2026-01-06","amt":4167.0},{"date":"2026-01-07","amt":662.0},{"date":"2026-01-09","amt":3376.0},{"date":"2026-01-13","amt":5240.0},{"date":"2026-01-14","amt":9163.0},{"date":"2026-01-20","amt":4840.0},{"date":"2026-01-21","amt":748.0},{"date":"2026-01-24","amt":3885.0},{"date":"2026-01-26","amt":3834.0},{"date":"2026-01-27","amt":914.0},{"date":"2026-01-29","amt":3903.0},{"date":"2026-01-22","amt":7655.0},{"date":"2026-01-29","amt":15667.0}],"HR Surgical":[{"date":"2026-01-02","amt":5124.0},{"date":"2026-01-03","amt":1139.0},{"date":"2026-01-08","amt":9890.0},{"date":"2026-01-09","amt":347.0},{"date":"2026-01-19","amt":9727.0},{"date":"2026-01-21","amt":6402.0},{"date":"2026-01-24","amt":1796.0},{"date":"2026-01-26","amt":3802.0},{"date":"2026-01-29","amt":4268.0},{"date":"2026-01-04","amt":617.0},{"date":"2026-01-27","amt":1005.0}],"Lakshmi":[{"date":"2026-01-01","amt":4113.0},{"date":"2026-01-03","amt":10999.0},{"date":"2026-01-06","amt":3830.0},{"date":"2026-01-10","amt":3874.0},{"date":"2026-01-14","amt":13748.0},{"date":"2026-01-15","amt":2910.0},{"date":"2026-01-19","amt":10130.0},{"date":"2026-01-20","amt":2372.0},{"date":"2026-01-21","amt":2205.0},{"date":"2026-01-22","amt":6012.0},{"date":"2026-01-26","amt":4743.0},{"date":"2026-01-29","amt":1397.0},{"date":"2026-01-30","amt":18769.0}],"Geetha Dharmapuri":[{"date":"2026-01-22","amt":2359.0},{"date":"2026-01-26","amt":8189.0}],"Thamaraikani":[{"date":"2026-01-25","amt":10200.0}],"Senthil Balaji":[{"date":"2026-01-05","amt":3751.0},{"date":"2026-01-08","amt":3805.0},{"date":"2026-01-13","amt":1050.0},{"date":"2026-01-14","amt":3725.0},{"date":"2026-01-15","amt":2133.0},{"date":"2026-01-24","amt":2133.0},{"date":"2026-01-24","amt":5655.0},{"date":"2026-01-29","amt":3200.0},{"date":"2026-01-24","amt":1463.0}],"Kumaran":[{"date":"2026-01-02","amt":5514.0},{"date":"2026-01-08","amt":17915.0},{"date":"2026-01-13","amt":1901.0},{"date":"2026-01-15","amt":19687.0},{"date":"2026-01-24","amt":21508.0},{"date":"2026-01-29","amt":9738.0},{"date":"2026-01-20","amt":11309.0}],"Saravana":[{"date":"2026-01-01","amt":5319.0},{"date":"2026-01-05","amt":12069.0},{"date":"2026-01-08","amt":3912.0},{"date":"2026-01-12","amt":9149.0},{"date":"2026-01-13","amt":11441.0},{"date":"2026-01-20","amt":12069.0},{"date":"2026-01-23","amt":13061.0},{"date":"2026-01-30","amt":9149.0},{"date":"2026-01-02","amt":11292.0},{"date":"2026-01-05","amt":8275.0},{"date":"2026-01-12","amt":8275.0},{"date":"2026-01-19","amt":8275.0},{"date":"2026-01-22","amt":6620.0},{"date":"2026-01-30","amt":8275.0}]},"2026-02":{"Senthil":[{"date":"2026-02-10","amt":53.0},{"date":"2026-02-28","amt":1611.0}],"Karthikeya":[{"date":"2026-02-05","amt":3623.0},{"date":"2026-02-07","amt":1166.0},{"date":"2026-02-11","amt":1463.0},{"date":"2026-02-12","amt":13037.0},{"date":"2026-02-16","amt":11309.0},{"date":"2026-02-18","amt":1463.0},{"date":"2026-02-21","amt":14189.0},{"date":"2026-02-21","amt":13939.0},{"date":"2026-02-23","amt":3623.0},{"date":"2026-02-27","amt":11309.0},{"date":"2026-02-28","amt":4343.0}],"NH Surgical":[{"date":"2026-02-02","amt":5763.0},{"date":"2026-02-05","amt":3067.0},{"date":"2026-02-07","amt":6918.0},{"date":"2026-02-09","amt":9170.0},{"date":"2026-02-11","amt":1688.0},{"date":"2026-02-12","amt":4584.0},{"date":"2026-02-14","amt":6671.0},{"date":"2026-02-18","amt":4040.0},{"date":"2026-02-20","amt":6996.0},{"date":"2026-02-21","amt":2237.0},{"date":"2026-02-23","amt":1323.0},{"date":"2026-02-24","amt":5862.0},{"date":"2026-02-27","amt":4317.0},{"date":"2026-02-28","amt":6137.0},{"date":"2026-02-02","amt":11781.0}],"HR Surgical":[{"date":"2026-02-02","amt":1197.0},{"date":"2026-02-07","amt":6190.0},{"date":"2026-02-09","amt":4174.0},{"date":"2026-02-12","amt":947.0},{"date":"2026-02-13","amt":673.0},{"date":"2026-02-14","amt":2930.0},{"date":"2026-02-19","amt":2990.0},{"date":"2026-02-27","amt":6014.0},{"date":"2026-02-28","amt":2756.0},{"date":"2026-02-06","amt":7900.0},{"date":"2026-02-12","amt":1052.0}],"Lakshmi":[{"date":"2026-02-03","amt":3363.0},{"date":"2026-02-07","amt":16925.0},{"date":"2026-02-09","amt":1328.0},{"date":"2026-02-10","amt":3162.0},{"date":"2026-02-14","amt":6299.0},{"date":"2026-02-16","amt":4789.0},{"date":"2026-02-20","amt":4743.0},{"date":"2026-02-21","amt":8793.0},{"date":"2026-02-23","amt":4743.0},{"date":"2026-02-25","amt":2147.0},{"date":"2026-02-26","amt":504.0},{"date":"2026-02-28","amt":9245.0},{"date":"2026-02-11","amt":1733.0}],"Thamaraikani":[{"date":"2026-02-17","amt":10200.0},{"date":"2026-02-02","amt":17349.0},{"date":"2026-02-07","amt":8189.0},{"date":"2026-02-02","amt":8189.0},{"date":"2026-02-16","amt":8189.0},{"date":"2026-02-20","amt":9424.0},{"date":"2026-02-21","amt":8189.0},{"date":"2026-02-28","amt":8189.0}],"Senthil Balaji":[{"date":"2026-02-02","amt":1875.0},{"date":"2026-02-09","amt":5884.0},{"date":"2026-02-11","amt":6399.0},{"date":"2026-02-20","amt":4801.0},{"date":"2026-02-25","amt":4266.0},{"date":"2026-02-19","amt":1226.0}],"Kumaran":[{"date":"2026-02-02","amt":21508.0},{"date":"2026-02-07","amt":3544.0},{"date":"2026-02-14","amt":25256.0},{"date":"2026-02-21","amt":5514.0},{"date":"2026-02-23","amt":1728.0},{"date":"2026-02-26","amt":3938.0}],"Saravana":[{"date":"2026-02-02","amt":2815.0},{"date":"2026-02-07","amt":12069.0},{"date":"2026-02-14","amt":9149.0},{"date":"2026-02-21","amt":12069.0},{"date":"2026-02-23","amt":9149.0},{"date":"2026-02-03","amt":1016.0},{"date":"2026-02-07","amt":25248.0},{"date":"2026-02-06","amt":3649.0},{"date":"2026-02-03","amt":3465.0},{"date":"2026-02-10","amt":3465.0},{"date":"2026-02-17","amt":6930.0}]},"2026-03":{"Senthil":[{"date":"2026-03-14","amt":11840.0}],"Karthikeya":[{"date":"2026-03-04","amt":11309.0},{"date":"2026-03-07","amt":24692.0},{"date":"2026-03-12","amt":10874.0},{"date":"2026-03-14","amt":4343.0},{"date":"2026-03-13","amt":7021.0},{"date":"2026-03-14","amt":2932.0}],"NH Surgical":[{"date":"2026-03-03","amt":3940.0},{"date":"2026-03-05","amt":3648.0},{"date":"2026-03-07","amt":11501.0},{"date":"2026-03-10","amt":1869.0},{"date":"2026-03-11","amt":2125.0},{"date":"2026-03-13","amt":7128.0}],"HR Surgical":[{"date":"2026-03-11","amt":1055.0},{"date":"2026-03-13","amt":2258.0}],"Lakshmi":[{"date":"2026-03-02","amt":754.0},{"date":"2026-03-04","amt":3385.0},{"date":"2026-03-07","amt":554.0},{"date":"2026-03-11","amt":4001.0},{"date":"2026-03-14","amt":2511.0}],"Geetha Dharmapuri":[{"date":"2026-03-11","amt":1900.0},{"date":"2026-03-12","amt":24717.0}],"Thamaraikani":[{"date":"2026-03-05","amt":10200.0},{"date":"2026-03-10","amt":8189.0},{"date":"2026-03-14","amt":8189.0}],"Senthil Balaji":[{"date":"2026-03-07","amt":4266.0},{"date":"2026-03-10","amt":1217.0}],"Kumaran":[{"date":"2026-03-02","amt":11845.0},{"date":"2026-03-04","amt":5514.0},{"date":"2026-03-07","amt":3544.0},{"date":"2026-03-13","amt":4525.0}],"Saravana":[{"date":"2026-03-07","amt":2815.0},{"date":"2026-03-12","amt":3611.0},{"date":"2026-03-05","amt":9292.0}]}},"ip":[{"id":1,"name":"Thangavel","admitDate":"2026-01-02","diagnosis":"Ankle MM","ward":"","bill":25000.0,"med":18000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":2,"name":"Kamatchi","admitDate":"2026-01-04","diagnosis":"Hysterectomy","ward":"","bill":13800.0,"med":0,"dischargeDate":"","status":"Discharged","notes":""},{"id":3,"name":"Ramesh","admitDate":"2026-01-05","diagnosis":"DER","ward":"","bill":47500.0,"med":27500.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":4,"name":"Deepa","admitDate":"2026-01-14","diagnosis":"Forearm","ward":"","bill":36700.0,"med":23500.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":5,"name":"Mahesh","admitDate":"2026-01-16","diagnosis":"Disc","ward":"","bill":52000.0,"med":28000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":6,"name":"Vignesh","admitDate":"2026-01-21","diagnosis":"DER","ward":"","bill":32000.0,"med":20000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":7,"name":"Chitra","admitDate":"2026-01-22","diagnosis":"Tendoachiles","ward":"","bill":30000.0,"med":18000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":8,"name":"Chinnasamy","admitDate":"2026-01-29","diagnosis":"Distal femur","ward":"","bill":47000.0,"med":30000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":9,"name":"Elango","admitDate":"2026-02-06","diagnosis":"SC humerus","ward":"","bill":19200.0,"med":16800.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":10,"name":"Anand","admitDate":"2026-02-08","diagnosis":"SOF","ward":"","bill":110000.0,"med":30000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":11,"name":"Madhu","admitDate":"2026-02-09","diagnosis":"Tendoachilles","ward":"","bill":35000.0,"med":23500.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":12,"name":"Jothi","admitDate":"2026-02-10","diagnosis":"Ankle LM","ward":"","bill":41000.0,"med":30000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":13,"name":"Sibi","admitDate":"2026-02-13","diagnosis":"SSG","ward":"","bill":20000.0,"med":15000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":14,"name":"Vijayakumar","admitDate":"2026-02-19","diagnosis":"LB Knee","ward":"","bill":23000.0,"med":22000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":15,"name":"Periannan","admitDate":"2026-02-20","diagnosis":"Spine","ward":"","bill":94500.0,"med":29000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":16,"name":"Dasarathan","admitDate":"2026-02-21","diagnosis":"BB Forearm","ward":"","bill":40000.0,"med":25000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":17,"name":"Sathya","admitDate":"2026-02-23","diagnosis":"TA","ward":"","bill":29000.0,"med":21000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":18,"name":"Karpagam","admitDate":"2026-02-26","diagnosis":"Ulna","ward":"","bill":23000.0,"med":17000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":19,"name":"Vijay","admitDate":"2026-02-27","diagnosis":"Radius + MC","ward":"","bill":40000.0,"med":21500.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":20,"name":"Sivasankar","admitDate":"2026-03-01","diagnosis":"ACL","ward":"","bill":55000.0,"med":26000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":21,"name":"Sampath","admitDate":"2026-03-04","diagnosis":"Perilumate","ward":"","bill":25000.0,"med":27000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":22,"name":"Dhanush","admitDate":"2026-03-06","diagnosis":"SC Humerus","ward":"","bill":14000.0,"med":7000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":23,"name":"Sudharthanam","admitDate":"2026-03-17","diagnosis":"SC Humerus","ward":"","bill":20000.0,"med":13000.0,"dischargeDate":"2026-03-19","status":"Admitted","notes":""},{"id":24,"name":"Muniappan","admitDate":"2026-03-20","diagnosis":"NOF","ward":"","bill":72500.0,"med":32500.0,"dischargeDate":"2026-03-25","status":"Discharged","notes":""}],"agencies":["Senthil","Karthikeya","NH Surgical","HR Surgical","Lakshmi","Geetha Dharmapuri","Thamaraikani","Senthil Balaji","Kumaran","Saravana","Cylinder","Geetha Salem","Sara","Dhanalakshmi","Senthil Murugan","Vishnu","Universal","Lifeline","Aanand","Latha","Salem","Jayshree","Ramesh G"],"staff":[{"name":"Bathroom","amt":2500.0},{"name":"Chinnarasu","amt":14000.0},{"name":"Cook","amt":6000.0},{"name":"Flower & Milk","amt":2380.0},{"name":"Housekeeping night","amt":9000.0},{"name":"Iyer","amt":5000.0},{"name":"Jayaprabhu","amt":19000.0},{"name":"Kaja","amt":8000.0},{"name":"Kanimozhi","amt":11000.0},{"name":"Karthik","amt":18000.0},{"name":"Kesavan","amt":17000.0},{"name":"Parvathi","amt":8500.0},{"name":"Rekha","amt":8000.0},{"name":"Salammal","amt":8500.0},{"name":"Sandhya","amt":9000.0},{"name":"Sylvi","amt":6300.0}],"staffPaid":{"2026-01":{"Bathroom":true,"Chinnarasu":true,"Cook":true,"Flower & Milk":true,"Housekeeping night":true,"Iyer":true,"Jayaprabhu":true,"Kaja":true,"Kanimozhi":true,"Karthik":true,"Kesavan":true,"Parvathi":true,"Rekha":true,"Salammal":true,"Sandhya":true,"Sylvi":true},"2026-02":{"Bathroom":true,"Chinnarasu":true,"Cook":true,"Flower & Milk":true,"Housekeeping night":true,"Iyer":true,"Jayaprabhu":true,"Kaja":true,"Kanimozhi":true,"Karthik":true,"Kesavan":true,"Parvathi":true,"Rekha":true,"Salammal":true,"Sandhya":true,"Sylvi":true},"2026-03":{}},"pnlExp":{"2026-01":{"imp":0,"ana":7500.0,"sco":15000.0,"out":21060.0,"gst":0,"eb":0,"xrf":41570.0,"oth":2200.0},"2026-02":{"imp":60000.0,"ana":0,"sco":15000.0,"out":0,"gst":0,"eb":0,"xrf":10200.0,"oth":6000.0},"2026-03":{"imp":25000.0,"ana":0,"sco":0,"out":0,"gst":0,"eb":0,"xrf":40670.0,"oth":0}}};
+const _PRELOAD = {"opd":{"2026-01-01":{"rows":[],"_c":{"T":37583.0,"M":21343.0,"C":16240.0,"XPL":11040.0,"Xr":0,"PT":0,"Lab":2795.0,"gpay":7953.0,"labAmt":2795.0,"opd":0,"cN":12,"cO":6,"cM":0,"cP":0,"cL":0,"tot":18}},"2026-01-02":{"rows":[],"_c":{"T":58622.0,"M":29412.0,"C":29210.0,"XPL":21660.0,"Xr":0,"PT":0,"Lab":6930.0,"gpay":30707.0,"labAmt":6930.0,"opd":0,"cN":17,"cO":7,"cM":0,"cP":0,"cL":0,"tot":24}},"2026-01-03":{"rows":[],"_c":{"T":39923.0,"M":24123.0,"C":15800.0,"XPL":9600.0,"Xr":0,"PT":0,"Lab":175.0,"gpay":20828.0,"labAmt":175.0,"opd":0,"cN":12,"cO":14,"cM":0,"cP":0,"cL":0,"tot":26}},"2026-01-04":{"rows":[],"_c":{"T":25254.0,"M":17754.0,"C":7500.0,"XPL":4750.0,"Xr":0,"PT":0,"Lab":0,"gpay":8533.0,"labAmt":0,"opd":0,"cN":7,"cO":8,"cM":0,"cP":0,"cL":0,"tot":15}},"2026-01-05":{"rows":[],"_c":{"T":60520.0,"M":36320.0,"C":24200.0,"XPL":15450.0,"Xr":0,"PT":0,"Lab":1700.0,"gpay":14127.0,"labAmt":1700.0,"opd":0,"cN":23,"cO":12,"cM":0,"cP":0,"cL":0,"tot":35}},"2026-01-06":{"rows":[],"_c":{"T":40763.0,"M":25513.0,"C":15250.0,"XPL":0,"Xr":0,"PT":0,"Lab":0,"gpay":10095.0,"labAmt":0,"opd":0,"cN":12,"cO":11,"cM":0,"cP":0,"cL":0,"tot":23}},"2026-01-07":{"rows":[],"_c":{"T":60312.0,"M":32982.0,"C":27330.0,"XPL":20380.0,"Xr":0,"PT":0,"Lab":4790.0,"gpay":4500.0,"labAmt":4790.0,"opd":0,"cN":16,"cO":10,"cM":0,"cP":0,"cL":0,"tot":26}},"2026-01-08":{"rows":[],"_c":{"T":41744.0,"M":28544.0,"C":13200.0,"XPL":0,"Xr":0,"PT":0,"Lab":875.0,"gpay":11972.0,"labAmt":875.0,"opd":0,"cN":9,"cO":15,"cM":0,"cP":0,"cL":0,"tot":24}},"2026-01-09":{"rows":[],"_c":{"T":45812.0,"M":27432.0,"C":18380.0,"XPL":12030.0,"Xr":0,"PT":0,"Lab":915.0,"gpay":11612.0,"labAmt":915.0,"opd":0,"cN":14,"cO":12,"cM":0,"cP":0,"cL":0,"tot":26}},"2026-01-10":{"rows":[],"_c":{"T":26060.0,"M":17310.0,"C":8750.0,"XPL":5000.0,"Xr":0,"PT":0,"Lab":0,"gpay":7610.0,"labAmt":0,"opd":0,"cN":8,"cO":8,"cM":0,"cP":0,"cL":0,"tot":16}},"2026-01-11":{"rows":[],"_c":{"T":36366.0,"M":15386.0,"C":20980.0,"XPL":16880.0,"Xr":0,"PT":0,"Lab":5990.0,"gpay":9924.0,"labAmt":5990.0,"opd":0,"cN":4,"cO":9,"cM":0,"cP":0,"cL":0,"tot":13}},"2026-01-12":{"rows":[],"_c":{"T":81576.0,"M":52296.0,"C":29280.0,"XPL":17580.0,"Xr":0,"PT":0,"Lab":1690.0,"gpay":22909.0,"labAmt":1690.0,"opd":0,"cN":21,"cO":30,"cM":0,"cP":0,"cL":0,"tot":51}},"2026-01-13":{"rows":[],"_c":{"T":40663.0,"M":29343.0,"C":11320.0,"XPL":6870.0,"Xr":0,"PT":0,"Lab":0,"gpay":13373.0,"labAmt":0,"opd":0,"cN":9,"cO":14,"cM":0,"cP":0,"cL":0,"tot":23}},"2026-01-14":{"rows":[],"_c":{"T":34935.0,"M":16495.0,"C":18440.0,"XPL":12790.0,"Xr":0,"PT":0,"Lab":4020.0,"gpay":6585.0,"labAmt":4020.0,"opd":0,"cN":10,"cO":6,"cM":0,"cP":0,"cL":0,"tot":16}},"2026-01-15":{"rows":[],"_c":{"T":32968.0,"M":19818.0,"C":13150.0,"XPL":8250.0,"Xr":0,"PT":0,"Lab":0,"gpay":11302.0,"labAmt":0,"opd":0,"cN":13,"cO":4,"cM":0,"cP":0,"cL":0,"tot":17}},"2026-01-16":{"rows":[],"_c":{"T":26935.0,"M":17435.0,"C":9500.0,"XPL":5250.0,"Xr":0,"PT":0,"Lab":0,"gpay":6824.0,"labAmt":0,"opd":0,"cN":14,"cO":5,"cM":0,"cP":0,"cL":0,"tot":19}},"2026-01-17":{"rows":[],"_c":{"T":62764.0,"M":36964.0,"C":25800.0,"XPL":16300.0,"Xr":0,"PT":0,"Lab":0,"gpay":23560.0,"labAmt":0,"opd":0,"cN":22,"cO":7,"cM":0,"cP":0,"cL":0,"tot":29}},"2026-01-18":{"rows":[],"_c":{"T":72754.0,"M":41004.0,"C":31750.0,"XPL":20200.0,"Xr":0,"PT":0,"Lab":0,"gpay":11396.0,"labAmt":0,"opd":0,"cN":23,"cO":14,"cM":0,"cP":0,"cL":0,"tot":37}},"2026-01-19":{"rows":[],"_c":{"T":62829.0,"M":38599.0,"C":24230.0,"XPL":15130.0,"Xr":0,"PT":0,"Lab":0,"gpay":8699.0,"labAmt":0,"opd":0,"cN":25,"cO":13,"cM":0,"cP":0,"cL":0,"tot":38}},"2026-01-20":{"rows":[],"_c":{"T":76210.0,"M":48320.0,"C":27890.0,"XPL":19040.0,"Xr":0,"PT":0,"Lab":0,"gpay":29899.0,"labAmt":0,"opd":0,"cN":27,"cO":17,"cM":0,"cP":0,"cL":0,"tot":44}},"2026-01-21":{"rows":[],"_c":{"T":46835.0,"M":30235.0,"C":16600.0,"XPL":9500.0,"Xr":0,"PT":0,"Lab":0,"gpay":8928.0,"labAmt":0,"opd":0,"cN":22,"cO":11,"cM":0,"cP":0,"cL":0,"tot":33}},"2026-01-22":{"rows":[],"_c":{"T":35063.0,"M":18663.0,"C":16400.0,"XPL":11350.0,"Xr":0,"PT":0,"Lab":1700.0,"gpay":6548.0,"labAmt":1700.0,"opd":0,"cN":14,"cO":12,"cM":0,"cP":0,"cL":0,"tot":26}},"2026-01-23":{"rows":[],"_c":{"T":63350.0,"M":37020.0,"C":26330.0,"XPL":17480.0,"Xr":0,"PT":0,"Lab":1540.0,"gpay":20309.0,"labAmt":1540.0,"opd":0,"cN":20,"cO":15,"cM":0,"cP":0,"cL":0,"tot":35}},"2026-01-24":{"rows":[],"_c":{"T":68908.0,"M":46158.0,"C":22750.0,"XPL":12400.0,"Xr":0,"PT":0,"Lab":0,"gpay":12354.0,"labAmt":0,"opd":0,"cN":28,"cO":7,"cM":0,"cP":0,"cL":0,"tot":35}},"2026-01-25":{"rows":[],"_c":{"T":32978.0,"M":18828.0,"C":14150.0,"XPL":8550.0,"Xr":0,"PT":0,"Lab":965.0,"gpay":2081.0,"labAmt":965.0,"opd":0,"cN":13,"cO":8,"cM":0,"cP":0,"cL":0,"tot":21}},"2026-01-26":{"rows":[],"_c":{"T":65424.0,"M":39994.0,"C":25430.0,"XPL":16880.0,"Xr":0,"PT":0,"Lab":3115.0,"gpay":20635.0,"labAmt":3115.0,"opd":0,"cN":24,"cO":17,"cM":0,"cP":0,"cL":0,"tot":41}},"2026-01-27":{"rows":[],"_c":{"T":49358.0,"M":32278.0,"C":17080.0,"XPL":10530.0,"Xr":0,"PT":0,"Lab":1690.0,"gpay":18135.0,"labAmt":1690.0,"opd":0,"cN":16,"cO":12,"cM":0,"cP":0,"cL":0,"tot":28}},"2026-01-28":{"rows":[],"_c":{"T":35857.0,"M":25757.0,"C":10100.0,"XPL":4500.0,"Xr":0,"PT":0,"Lab":4595.0,"gpay":2945.0,"labAmt":4595.0,"opd":0,"cN":9,"cO":14,"cM":0,"cP":0,"cL":0,"tot":23}},"2026-01-29":{"rows":[],"_c":{"T":88359.0,"M":50289.0,"C":38070.0,"XPL":24820.0,"Xr":0,"PT":0,"Lab":0,"gpay":15608.0,"labAmt":0,"opd":0,"cN":27,"cO":21,"cM":0,"cP":0,"cL":0,"tot":48}},"2026-01-30":{"rows":[],"_c":{"T":27320.0,"M":10530.0,"C":16790.0,"XPL":12790.0,"Xr":0,"PT":0,"Lab":5330.0,"gpay":11195.0,"labAmt":5330.0,"opd":0,"cN":10,"cO":2,"cM":0,"cP":0,"cL":0,"tot":12}},"2026-01-31":{"rows":[],"_c":{"T":35703.0,"M":19023.0,"C":16680.0,"XPL":0,"Xr":0,"PT":0,"Lab":0,"gpay":9067.0,"labAmt":0,"opd":0,"cN":7,"cO":13,"cM":0,"cP":0,"cL":0,"tot":20}},"2026-02-01":{"rows":[],"_c":{"T":18748.0,"M":13848.0,"C":4900.0,"XPL":2600.0,"Xr":0,"PT":0,"Lab":0,"gpay":6388.0,"labAmt":0,"opd":0,"cN":4,"cO":7,"cM":0,"cP":0,"cL":0,"tot":11}},"2026-02-02":{"rows":[],"_c":{"T":76686.0,"M":52636.0,"C":24050.0,"XPL":13750.0,"Xr":0,"PT":0,"Lab":0,"gpay":19583.0,"labAmt":0,"opd":0,"cN":20,"cO":26,"cM":0,"cP":0,"cL":0,"tot":46}},"2026-02-03":{"rows":[],"_c":{"T":24919.0,"M":16869.0,"C":8050.0,"XPL":4650.0,"Xr":0,"PT":0,"Lab":0,"gpay":3642.0,"labAmt":0,"opd":0,"cN":6,"cO":8,"cM":0,"cP":0,"cL":0,"tot":14}},"2026-02-04":{"rows":[],"_c":{"T":63498.0,"M":40948.0,"C":22550.0,"XPL":12200.0,"Xr":0,"PT":0,"Lab":0,"gpay":30644.0,"labAmt":0,"opd":0,"cN":25,"cO":17,"cM":0,"cP":0,"cL":0,"tot":42}},"2026-02-05":{"rows":[],"_c":{"T":38359.0,"M":25359.0,"C":13000.0,"XPL":6750.0,"Xr":0,"PT":0,"Lab":0,"gpay":9847.0,"labAmt":0,"opd":0,"cN":9,"cO":15,"cM":0,"cP":0,"cL":0,"tot":24}},"2026-02-06":{"rows":[],"_c":{"T":43276.0,"M":25176.0,"C":18100.0,"XPL":12100.0,"Xr":0,"PT":0,"Lab":2425.0,"gpay":11105.0,"labAmt":2425.0,"opd":0,"cN":14,"cO":14,"cM":0,"cP":0,"cL":0,"tot":28}},"2026-02-07":{"rows":[],"_c":{"T":64897.0,"M":39467.0,"C":25430.0,"XPL":16580.0,"Xr":0,"PT":0,"Lab":2465.0,"gpay":22922.0,"labAmt":2465.0,"opd":0,"cN":21,"cO":14,"cM":0,"cP":0,"cL":0,"tot":35}},"2026-02-08":{"rows":[],"_c":{"T":29960.0,"M":14980.0,"C":14980.0,"XPL":9780.0,"Xr":0,"PT":0,"Lab":765.0,"gpay":11102.0,"labAmt":765.0,"opd":0,"cN":13,"cO":6,"cM":0,"cP":0,"cL":0,"tot":19}},"2026-02-09":{"rows":[],"_c":{"T":83944.0,"M":39824.0,"C":44120.0,"XPL":50870.0,"Xr":0,"PT":0,"Lab":10010.0,"gpay":44229.0,"labAmt":10010.0,"opd":0,"cN":29,"cO":23,"cM":0,"cP":0,"cL":0,"tot":52}},"2026-02-10":{"rows":[],"_c":{"T":39863.0,"M":22013.0,"C":17850.0,"XPL":11550.0,"Xr":0,"PT":0,"Lab":0,"gpay":11388.0,"labAmt":0,"opd":0,"cN":13,"cO":16,"cM":0,"cP":0,"cL":0,"tot":29}},"2026-02-11":{"rows":[],"_c":{"T":41277.0,"M":19147.0,"C":22130.0,"XPL":15530.0,"Xr":0,"PT":0,"Lab":2615.0,"gpay":5941.0,"labAmt":2615.0,"opd":0,"cN":15,"cO":9,"cM":0,"cP":0,"cL":0,"tot":24}},"2026-02-12":{"rows":[],"_c":{"T":43036.0,"M":22666.0,"C":20370.0,"XPL":14770.0,"Xr":0,"PT":0,"Lab":2010.0,"gpay":13393.0,"labAmt":2010.0,"opd":0,"cN":15,"cO":7,"cM":0,"cP":0,"cL":0,"tot":22}},"2026-02-13":{"rows":[],"_c":{"T":71784.0,"M":38874.0,"C":32910.0,"XPL":23260.0,"Xr":0,"PT":0,"Lab":3585.0,"gpay":16979.0,"labAmt":3585.0,"opd":0,"cN":24,"cO":15,"cM":0,"cP":0,"cL":0,"tot":39}},"2026-02-14":{"rows":[],"_c":{"T":50977.0,"M":37157.0,"C":13820.0,"XPL":6220.0,"Xr":0,"PT":0,"Lab":0,"gpay":26504.0,"labAmt":0,"opd":0,"cN":15,"cO":13,"cM":0,"cP":0,"cL":0,"tot":28}},"2026-02-15":{"rows":[],"_c":{"T":27452.0,"M":18252.0,"C":9200.0,"XPL":5650.0,"Xr":0,"PT":0,"Lab":0,"gpay":8325.0,"labAmt":0,"opd":0,"cN":7,"cO":10,"cM":0,"cP":0,"cL":0,"tot":17}},"2026-02-16":{"rows":[],"_c":{"T":37915.0,"M":22765.0,"C":15150.0,"XPL":10000.0,"Xr":0,"PT":0,"Lab":0,"gpay":15141.0,"labAmt":0,"opd":0,"cN":16,"cO":7,"cM":0,"cP":0,"cL":0,"tot":23}},"2026-02-17":{"rows":[],"_c":{"T":43699.0,"M":22909.0,"C":20790.0,"XPL":14880.0,"Xr":0,"PT":0,"Lab":2065.0,"gpay":6532.0,"labAmt":2065.0,"opd":0,"cN":12,"cO":16,"cM":0,"cP":0,"cL":0,"tot":28}},"2026-02-18":{"rows":[],"_c":{"T":40256.0,"M":22626.0,"C":17630.0,"XPL":12530.0,"Xr":0,"PT":0,"Lab":2515.0,"gpay":6292.0,"labAmt":2515.0,"opd":0,"cN":14,"cO":7,"cM":0,"cP":0,"cL":0,"tot":21}},"2026-02-19":{"rows":[],"_c":{"T":61022.0,"M":37292.0,"C":23730.0,"XPL":15480.0,"Xr":0,"PT":0,"Lab":2890.0,"gpay":27680.0,"labAmt":2890.0,"opd":0,"cN":21,"cO":16,"cM":0,"cP":0,"cL":0,"tot":37}},"2026-02-20":{"rows":[],"_c":{"T":57842.0,"M":33102.0,"C":24740.0,"XPL":15990.0,"Xr":0,"PT":0,"Lab":2170.0,"gpay":10662.0,"labAmt":2170.0,"opd":0,"cN":23,"cO":12,"cM":0,"cP":0,"cL":0,"tot":35}},"2026-02-21":{"rows":[],"_c":{"T":71778.0,"M":45598.0,"C":26180.0,"XPL":17430.0,"Xr":0,"PT":0,"Lab":4215.0,"gpay":22182.0,"labAmt":4215.0,"opd":0,"cN":19,"cO":16,"cM":0,"cP":0,"cL":0,"tot":35}},"2026-02-22":{"rows":[],"_c":{"T":29510.0,"M":17260.0,"C":12250.0,"XPL":7000.0,"Xr":0,"PT":0,"Lab":0,"gpay":14339.0,"labAmt":0,"opd":0,"cN":10,"cO":7,"cM":0,"cP":0,"cL":0,"tot":17}},"2026-02-23":{"rows":[],"_c":{"T":91837.0,"M":54557.0,"C":37280.0,"XPL":22180.0,"Xr":0,"PT":0,"Lab":765.0,"gpay":42871.0,"labAmt":765.0,"opd":0,"cN":33,"cO":22,"cM":0,"cP":0,"cL":0,"tot":55}},"2026-02-24":{"rows":[],"_c":{"T":36928.0,"M":21678.0,"C":15250.0,"XPL":8700.0,"Xr":0,"PT":0,"Lab":0,"gpay":11160.0,"labAmt":0,"opd":0,"cN":14,"cO":7,"cM":0,"cP":0,"cL":0,"tot":21}},"2026-02-25":{"rows":[],"_c":{"T":42156.0,"M":27346.0,"C":14810.0,"XPL":9000.0,"Xr":0,"PT":0,"Lab":0,"gpay":15979.0,"labAmt":0,"opd":0,"cN":16,"cO":7,"cM":0,"cP":0,"cL":0,"tot":23}},"2026-02-26":{"rows":[],"_c":{"T":41786.0,"M":24716.0,"C":17070.0,"XPL":11470.0,"Xr":0,"PT":0,"Lab":2585.0,"gpay":12017.0,"labAmt":2585.0,"opd":0,"cN":13,"cO":10,"cM":0,"cP":0,"cL":0,"tot":23}},"2026-02-27":{"rows":[],"_c":{"T":44415.0,"M":23065.0,"C":21350.0,"XPL":14200.0,"Xr":0,"PT":0,"Lab":0,"gpay":14775.0,"labAmt":0,"opd":0,"cN":15,"cO":15,"cM":0,"cP":0,"cL":0,"tot":30}},"2026-02-28":{"rows":[],"_c":{"T":62763.0,"M":37533.0,"C":25230.0,"XPL":16330.0,"Xr":0,"PT":0,"Lab":3465.0,"gpay":26011.0,"labAmt":3465.0,"opd":0,"cN":28,"cO":11,"cM":0,"cP":0,"cL":0,"tot":39}},"2026-03-01":{"rows":[],"_c":{"T":44931.0,"M":27241.0,"C":17690.0,"XPL":12290.0,"Xr":0,"PT":0,"Lab":1820.0,"gpay":13974.0,"labAmt":1820.0,"opd":0,"cN":14,"cO":11,"cM":0,"cP":0,"cL":0,"tot":25},"_closed":{"time":"09:00 PM","pts":25,"closedAt":"2026-03-01T21:00:00.000Z"}},"2026-03-02":{"rows":[],"_c":{"T":60240.0,"M":34660.0,"C":25580.0,"XPL":16180.0,"Xr":0,"PT":0,"Lab":1190.0,"gpay":14146.0,"labAmt":1190.0,"opd":0,"cN":20,"cO":15,"cM":0,"cP":0,"cL":0,"tot":35},"_closed":{"time":"09:00 PM","pts":35,"closedAt":"2026-03-02T21:00:00.000Z"}},"2026-03-03":{"rows":[],"_c":{"T":54944.0,"M":23364.0,"C":31580.0,"XPL":0,"Xr":0,"PT":0,"Lab":2615.0,"gpay":19636.0,"labAmt":2615.0,"opd":0,"cN":21,"cO":10,"cM":0,"cP":0,"cL":0,"tot":32},"_closed":{"time":"09:00 PM","pts":32,"closedAt":"2026-03-03T21:00:00.000Z"}},"2026-03-04":{"rows":[],"_c":{"T":44678.0,"M":20528.0,"C":24150.0,"XPL":17450.0,"Xr":0,"PT":0,"Lab":4050.0,"gpay":5773.0,"labAmt":4050.0,"opd":0,"cN":16,"cO":15,"cM":0,"cP":0,"cL":0,"tot":31},"_closed":{"time":"09:00 PM","pts":31,"closedAt":"2026-03-04T21:00:00.000Z"}},"2026-03-05":{"rows":[],"_c":{"T":48381.0,"M":31301.0,"C":17080.0,"XPL":11780.0,"Xr":0,"PT":0,"Lab":2465.0,"gpay":13444.0,"labAmt":2465.0,"opd":0,"cN":18,"cO":12,"cM":0,"cP":0,"cL":0,"tot":30},"_closed":{"time":"09:00 PM","pts":30,"closedAt":"2026-03-05T21:00:00.000Z"}},"2026-03-06":{"rows":[],"_c":{"T":48543.0,"M":28363.0,"C":20180.0,"XPL":13080.0,"Xr":0,"PT":0,"Lab":1415.0,"gpay":11321.0,"labAmt":1415.0,"opd":0,"cN":19,"cO":8,"cM":0,"cP":0,"cL":0,"tot":27},"_closed":{"time":"09:00 PM","pts":27,"closedAt":"2026-03-06T21:00:00.000Z"}},"2026-03-07":{"rows":[],"_c":{"T":45537.0,"M":28127.0,"C":17410.0,"XPL":25760.0,"Xr":0,"PT":0,"Lab":530.0,"gpay":19820.0,"labAmt":530.0,"opd":0,"cN":20,"cO":10,"cM":0,"cP":0,"cL":0,"tot":30},"_closed":{"time":"09:00 PM","pts":30,"closedAt":"2026-03-07T21:00:00.000Z"}},"2026-03-08":{"rows":[],"_c":{"T":26567.0,"M":15417.0,"C":11150.0,"XPL":7050.0,"Xr":0,"PT":0,"Lab":0,"gpay":10274.0,"labAmt":0,"opd":0,"cN":11,"cO":6,"cM":0,"cP":0,"cL":0,"tot":17},"_closed":{"time":"09:00 PM","pts":17,"closedAt":"2026-03-08T21:00:00.000Z"}},"2026-03-09":{"rows":[],"_c":{"T":41276.0,"M":27376.0,"C":13900.0,"XPL":7000.0,"Xr":0,"PT":0,"Lab":0,"gpay":8620.0,"labAmt":0,"opd":0,"cN":19,"cO":12,"cM":0,"cP":0,"cL":0,"tot":31},"_closed":{"time":"09:00 PM","pts":31,"closedAt":"2026-03-09T21:00:00.000Z"}},"2026-03-10":{"rows":[],"_c":{"T":37159.0,"M":18309.0,"C":18850.0,"XPL":13450.0,"Xr":0,"PT":0,"Lab":3350.0,"gpay":13509.0,"labAmt":3350.0,"opd":0,"cN":13,"cO":9,"cM":0,"cP":0,"cL":0,"tot":22},"_closed":{"time":"09:00 PM","pts":22,"closedAt":"2026-03-10T21:00:00.000Z"}},"2026-03-11":{"rows":[],"_c":{"T":64174.0,"M":40974.0,"C":23200.0,"XPL":12625.0,"Xr":0,"PT":0,"Lab":475.0,"gpay":13272.0,"labAmt":475.0,"opd":0,"cN":23,"cO":18,"cM":0,"cP":0,"cL":0,"tot":41},"_closed":{"time":"09:00 PM","pts":41,"closedAt":"2026-03-11T21:00:00.000Z"}},"2026-03-12":{"rows":[],"_c":{"T":57036.0,"M":37576.0,"C":19460.0,"XPL":11110.0,"Xr":0,"PT":0,"Lab":355.0,"gpay":17553.0,"labAmt":355.0,"opd":0,"cN":21,"cO":14,"cM":0,"cP":0,"cL":0,"tot":35},"_closed":{"time":"09:00 PM","pts":35,"closedAt":"2026-03-12T21:00:00.000Z"}},"2026-03-13":{"rows":[],"_c":{"T":52748.0,"M":29998.0,"C":22750.0,"XPL":14550.0,"Xr":0,"PT":0,"Lab":0,"gpay":13917.0,"labAmt":0,"opd":0,"cN":19,"cO":9,"cM":0,"cP":0,"cL":0,"tot":28},"_closed":{"time":"09:00 PM","pts":28,"closedAt":"2026-03-13T21:00:00.000Z"}},"2026-03-14":{"rows":[],"_c":{"T":63762.0,"M":39562.0,"C":24200.0,"XPL":15000.0,"Xr":0,"PT":0,"Lab":0,"gpay":20199.0,"labAmt":0,"opd":0,"cN":23,"cO":14,"cM":0,"cP":0,"cL":0,"tot":37},"_closed":{"time":"09:00 PM","pts":37,"closedAt":"2026-03-14T21:00:00.000Z"}},"2026-03-15":{"rows":[],"_c":{"T":50136.0,"M":26446.0,"C":23690.0,"XPL":16090.0,"Xr":0,"PT":0,"Lab":2220.0,"gpay":17988.0,"labAmt":2220.0,"opd":0,"cN":21,"cO":7,"cM":0,"cP":0,"cL":0,"tot":28},"_closed":{"time":"09:00 PM","pts":28,"closedAt":"2026-03-15T21:00:00.000Z"}},"2026-03-16":{"rows":[],"_closed":{"time":"09:15 PM","pts":34,"closedAt":"2026-03-16T21:15:00.000Z"},"_c":{"T":50170,"M":29950,"C":19970,"XPL":11835,"Xr":8800,"PT":2250,"Lab":1570,"gpay":15690,"labAmt":1570,"opd":0,"cN":21,"cO":11,"cOGN":2,"cOGO":0,"cM":3,"cP":1,"cL":0,"tot":34,"allPts":38}},"2026-03-17":{"rows":[],"_closed":{"time":"09:45 PM","pts":30,"closedAt":"2026-03-17T21:45:00.000Z"},"_c":{"T":55639,"M":27009,"C":28630,"XPL":16740,"Xr":10500,"PT":2000,"Lab":4240,"gpay":11188,"labAmt":4240,"opd":0,"cN":19,"cO":11,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":30,"allPts":30}},"2026-03-19":{"rows":[],"_closed":{"time":"09:01 PM","pts":29,"closedAt":"2026-03-19T21:00:00.000Z"},"_c":{"T":57407,"M":42177,"C":15230,"XPL":9290,"Xr":7000,"PT":1750,"Lab":1080,"gpay":30812,"labAmt":1080,"opd":0,"cN":17,"cO":10,"cOGN":0,"cOGO":2,"cM":0,"cP":0,"cL":0,"tot":29,"allPts":29}},"2026-03-18":{"rows":[],"_closed":{"time":"09:00 PM","pts":18,"closedAt":"2026-03-18T21:00:00.000Z"},"_c":{"T":40717,"M":29117,"C":11600,"XPL":9130,"Xr":6500,"PT":2500,"Lab":260,"gpay":0,"labAmt":260,"opd":0,"cN":12,"cO":6,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":18,"allPts":18}},"2026-03-20":{"rows":[],"_closed":{"time":"09:00 PM","pts":30,"closedAt":"2026-03-20T21:00:00.000Z"},"_c":{"T":94641,"M":72941,"C":21700,"XPL":12310,"Xr":10500,"PT":1750,"Lab":120,"gpay":0,"labAmt":120,"opd":0,"cN":20,"cO":10,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":30,"allPts":30}},"2026-03-21":{"rows":[],"_closed":{"time":"09:00 PM","pts":33,"closedAt":"2026-03-21T21:00:00.000Z"},"_c":{"T":62388,"M":44138,"C":18250,"XPL":14350,"Xr":8800,"PT":1500,"Lab":8100,"gpay":0,"labAmt":8100,"opd":0,"cN":22,"cO":11,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":33,"allPts":33}},"2026-03-22":{"rows":[],"_closed":{"time":"09:00 PM","pts":24,"closedAt":"2026-03-22T21:00:00.000Z"},"_c":{"T":59919,"M":44919,"C":15000,"XPL":12790,"Xr":7500,"PT":2250,"Lab":6080,"gpay":0,"labAmt":6080,"opd":0,"cN":16,"cO":8,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":24,"allPts":24}},"2026-03-23":{"rows":[],"_closed":{"time":"09:00 PM","pts":37,"closedAt":"2026-03-23T21:00:00.000Z"},"_c":{"T":66880,"M":45130,"C":21750,"XPL":14385,"Xr":9300,"PT":2750,"Lab":4670,"gpay":0,"labAmt":4670,"opd":0,"cN":25,"cO":12,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":37,"allPts":37}},"2026-03-24":{"rows":[],"_closed":{"time":"09:00 PM","pts":23,"closedAt":"2026-03-24T21:00:00.000Z"},"_c":{"T":46390,"M":32290,"C":14100,"XPL":11915,"Xr":8800,"PT":1250,"Lab":3730,"gpay":0,"labAmt":3730,"opd":0,"cN":15,"cO":8,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":23,"allPts":23}},"2026-03-25":{"rows":[],"_closed":{"time":"09:00 PM","pts":29,"closedAt":"2026-03-25T21:00:00.000Z"},"_c":{"T":61345,"M":45845,"C":15500,"XPL":8750,"Xr":6000,"PT":2750,"Lab":0,"gpay":0,"labAmt":0,"opd":0,"cN":19,"cO":10,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":29,"allPts":29}},"2026-03-26":{"rows":[],"_closed":{"time":"09:00 PM","pts":24,"closedAt":"2026-03-26T21:00:00.000Z"},"_c":{"T":35335,"M":23435,"C":11900,"XPL":9010,"Xr":4500,"PT":2500,"Lab":4020,"gpay":0,"labAmt":4020,"opd":0,"cN":16,"cO":8,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":24,"allPts":24}},"2026-03-27":{"rows":[],"_closed":{"time":"09:00 PM","pts":24,"closedAt":"2026-03-27T21:00:00.000Z"},"_c":{"T":36119,"M":21919,"C":14200,"XPL":9465,"Xr":6000,"PT":1750,"Lab":3430,"gpay":0,"labAmt":3430,"opd":0,"cN":15,"cO":9,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":24,"allPts":24}},"2026-03-31":{"rows":[{"id":101,"mrn":"","name":"Selvi","type":"N","opd":250,"xray":0,"pop":0,"pt":0,"lab":0,"med":1579,"mode":"C","cash":1829,"gpay":0},{"id":102,"mrn":"","name":"Ovadhasri","type":"O","opd":200,"xray":0,"pop":0,"pt":0,"lab":0,"med":631,"mode":"C","cash":831,"gpay":0},{"id":103,"mrn":"","name":"Kuppusamy","type":"N","opd":250,"xray":0,"pop":0,"pt":0,"lab":0,"med":860,"mode":"C","cash":1110,"gpay":0},{"id":104,"mrn":"","name":"Karpagam","type":"O","opd":200,"xray":800,"pop":0,"pt":0,"lab":0,"med":338,"mode":"C","cash":1338,"gpay":0},{"id":105,"mrn":"","name":"Kalyani","type":"N","opd":250,"xray":500,"pop":0,"pt":0,"lab":0,"med":1383,"mode":"C","cash":2133,"gpay":0},{"id":106,"mrn":"","name":"Chinnamani","type":"M","opd":0,"xray":0,"pop":0,"pt":0,"lab":0,"med":1571,"mode":"C","cash":1571,"gpay":0},{"id":107,"mrn":"","name":"Parveen","type":"N","opd":0,"xray":1000,"pop":0,"pt":0,"lab":0,"med":814,"mode":"G","cash":0,"gpay":1814},{"id":108,"mrn":"","name":"Maniammal","type":"N","opd":250,"xray":1000,"pop":0,"pt":0,"lab":0,"med":1383,"mode":"C","cash":2633,"gpay":0},{"id":109,"mrn":"","name":"Sithammal","type":"O","opd":200,"xray":0,"pop":0,"pt":0,"lab":0,"med":1053,"mode":"C","cash":1253,"gpay":0},{"id":110,"mrn":"","name":"Manju","type":"N","opd":500,"xray":500,"pop":0,"pt":250,"lab":3730,"med":1040,"mode":"C","cash":6020,"gpay":0},{"id":111,"mrn":"","name":"Parthiban","type":"O","opd":200,"xray":0,"pop":200,"pt":0,"lab":0,"med":681,"mode":"C","cash":1081,"gpay":0},{"id":112,"mrn":"","name":"Sakthi","type":"N","opd":250,"xray":0,"pop":0,"pt":250,"lab":0,"med":1040,"mode":"C","cash":1540,"gpay":0},{"id":113,"mrn":"","name":"Sumathi","type":"O","opd":200,"xray":0,"pop":0,"pt":0,"lab":0,"med":1106,"mode":"C","cash":1306,"gpay":0},{"id":114,"mrn":"","name":"Lalitha","type":"N","opd":250,"xray":0,"pop":0,"pt":250,"lab":0,"med":1790,"mode":"C","cash":2290,"gpay":0},{"id":115,"mrn":"","name":"Malliga","type":"O","opd":200,"xray":0,"pop":0,"pt":0,"lab":0,"med":672,"mode":"C","cash":872,"gpay":0},{"id":116,"mrn":"","name":"Eswari","type":"N","opd":250,"xray":0,"pop":0,"pt":0,"lab":0,"med":0,"mode":"C","cash":250,"gpay":0},{"id":117,"mrn":"","name":"Manonmani","type":"M","opd":0,"xray":0,"pop":0,"pt":0,"lab":0,"med":13,"mode":"C","cash":13,"gpay":0},{"id":118,"mrn":"","name":"Sadam","type":"P","opd":0,"xray":0,"pop":0,"pt":250,"lab":0,"med":0,"mode":"C","cash":250,"gpay":0},{"id":119,"mrn":"","name":"Sudha","type":"P","opd":0,"xray":0,"pop":0,"pt":250,"lab":0,"med":0,"mode":"G","cash":0,"gpay":250},{"id":120,"mrn":"","name":"Geetha","type":"O","opd":200,"xray":0,"pop":0,"pt":0,"lab":0,"med":559,"mode":"C","cash":759,"gpay":0},{"id":121,"mrn":"","name":"Chandra","type":"N","opd":250,"xray":0,"pop":0,"pt":0,"lab":0,"med":1086,"mode":"C","cash":1336,"gpay":0},{"id":122,"mrn":"","name":"Sarvaadhithya","type":"O","opd":250,"xray":500,"pop":0,"pt":0,"lab":0,"med":596,"mode":"C","cash":1346,"gpay":0},{"id":123,"mrn":"","name":"Balu","type":"N","opd":250,"xray":0,"pop":0,"pt":0,"lab":0,"med":1127,"mode":"C","cash":1377,"gpay":0},{"id":124,"mrn":"","name":"Dhanalakshmi","type":"O","opd":200,"xray":0,"pop":0,"pt":0,"lab":0,"med":841,"mode":"C","cash":1041,"gpay":0},{"id":125,"mrn":"","name":"Palaniammal","type":"O","opd":200,"xray":0,"pop":0,"pt":0,"lab":0,"med":1267,"mode":"C","cash":1467,"gpay":0},{"id":126,"mrn":"","name":"Vahidha","type":"O","opd":300,"xray":0,"pop":0,"pt":0,"lab":0,"med":1794,"mode":"C","cash":2094,"gpay":0},{"id":127,"mrn":"","name":"Jayanthi","type":"O","opd":200,"xray":0,"pop":0,"pt":0,"lab":0,"med":724,"mode":"C","cash":924,"gpay":0},{"id":128,"mrn":"","name":"Murugamani","type":"N","opd":250,"xray":500,"pop":0,"pt":0,"lab":0,"med":829,"mode":"C","cash":0,"gpay":1579},{"id":129,"mrn":"","name":"Lalitha B","type":"M","opd":0,"xray":0,"pop":0,"pt":0,"lab":0,"med":155,"mode":"C","cash":155,"gpay":0}],"_c":{"T":40462,"M":24932,"C":38223,"XPL":7915,"Xr":4800,"PT":1250,"Lab":3730,"gpay":2064,"labAmt":3730,"opd":0,"cN":12,"cO":12,"cOGN":0,"cOGO":0,"cM":3,"cP":2,"cL":0,"tot":29,"allPts":29}},"2026-03-28":{"rows":[],"_closed":{"time":"09:00 PM","pts":31,"closedAt":"2026-03-28T21:00:00.000Z"},"_c":{"T":64127,"M":34947,"C":9870,"XPL":17365,"Xr":9650,"PT":3400,"Lab":8630,"gpay":18577,"labAmt":8630,"opd":0,"cN":21,"cO":8,"cOGN":2,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":31,"allPts":31}},"2026-03-29":{"rows":[],"_closed":{"time":"09:00 PM","pts":19,"closedAt":"2026-03-29T21:00:00.000Z"},"_c":{"T":30758,"M":17588,"C":12670,"XPL":7468,"Xr":5500,"PT":500,"Lab":2920,"gpay":15857,"labAmt":2920,"opd":0,"cN":14,"cO":5,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":19,"allPts":19}},"2026-03-30":{"rows":[],"_closed":{"time":"09:00 PM","pts":34,"closedAt":"2026-03-30T21:00:00.000Z"},"_c":{"T":59528,"M":36620,"C":25658,"XPL":13250,"Xr":10500,"PT":2750,"Lab":0,"gpay":28633,"labAmt":0,"opd":0,"cN":24,"cO":10,"cOGN":0,"cOGO":0,"cM":0,"cP":0,"cL":0,"tot":34,"allPts":34}},"2026-04-01":{"rows":[{"id":201,"mrn":"","name":"Murugan","type":"N","opd":250,"xray":1000,"pop":0,"pt":250,"lab":0,"med":2017,"mode":"C","cash":3517,"gpay":0},{"id":202,"mrn":"","name":"Deepa","type":"N","opd":250,"xray":500,"pop":0,"pt":0,"lab":0,"med":0,"mode":"G","cash":500,"gpay":250},{"id":203,"mrn":"","name":"Manju","type":"M","opd":0,"xray":0,"pop":0,"pt":250,"lab":660,"med":822,"mode":"C","cash":1732,"gpay":0},{"id":204,"mrn":"","name":"Suresh","type":"N","opd":250,"xray":500,"pop":0,"pt":250,"lab":0,"med":1040,"mode":"G","cash":0,"gpay":2040},{"id":205,"mrn":"","name":"Palaniammal","type":"O","opd":200,"xray":0,"pop":200,"pt":0,"lab":0,"med":659,"mode":"C","cash":823,"gpay":0},{"id":206,"mrn":"","name":"Pandiyan","type":"O","opd":250,"xray":0,"pop":0,"pt":0,"lab":0,"med":674,"mode":"C","cash":924,"gpay":0},{"id":207,"mrn":"","name":"Kannan","type":"N","opd":250,"xray":0,"pop":0,"pt":250,"lab":0,"med":1052,"mode":"G","cash":0,"gpay":1552},{"id":208,"mrn":"","name":"Palaniammal","type":"O","opd":200,"xray":0,"pop":0,"pt":0,"lab":0,"med":2524,"mode":"C","cash":2724,"gpay":0},{"id":209,"mrn":"","name":"Durai","type":"O","opd":200,"xray":0,"pop":0,"pt":0,"lab":0,"med":970,"mode":"C","cash":1170,"gpay":0},{"id":210,"mrn":"","name":"Ajithkumar","type":"O","opd":200,"xray":0,"pop":0,"pt":0,"lab":0,"med":0,"mode":"C","cash":200,"gpay":0},{"id":211,"mrn":"","name":"Thangavel","type":"O","opd":200,"xray":500,"pop":0,"pt":0,"lab":0,"med":0,"mode":"C","cash":700,"gpay":0}],"_c":{"T":16368,"M":8758,"C":7140,"XPL":2580,"Xr":2500,"PT":1000,"Lab":660,"gpay":3842,"labAmt":660,"opd":0,"cN":3,"cO":6,"cOGN":0,"cOGO":0,"cM":1,"cP":0,"cL":0,"tot":11,"allPts":11}}},"pharma":{"2026-01":{"Senthil":[{"date":"2026-01-27","amt":2300.0}],"Karthikeya":[{"date":"2026-01-06","amt":3623.0},{"date":"2026-01-09","amt":6178.0},{"date":"2026-01-12","amt":15091.0},{"date":"2026-01-15","amt":11292.0},{"date":"2026-01-19","amt":2880.0},{"date":"2026-01-20","amt":13939.0},{"date":"2026-01-24","amt":4551.0}],"NH Surgical":[{"date":"2026-01-02","amt":4111.0},{"date":"2026-01-05","amt":10969.0},{"date":"2026-01-06","amt":4167.0},{"date":"2026-01-07","amt":662.0},{"date":"2026-01-09","amt":3376.0},{"date":"2026-01-13","amt":5240.0},{"date":"2026-01-14","amt":9163.0},{"date":"2026-01-20","amt":4840.0},{"date":"2026-01-21","amt":748.0},{"date":"2026-01-24","amt":3885.0},{"date":"2026-01-26","amt":3834.0},{"date":"2026-01-27","amt":914.0},{"date":"2026-01-29","amt":3903.0},{"date":"2026-01-22","amt":7655.0},{"date":"2026-01-29","amt":15667.0}],"HR Surgical":[{"date":"2026-01-02","amt":5124.0},{"date":"2026-01-03","amt":1139.0},{"date":"2026-01-08","amt":9890.0},{"date":"2026-01-09","amt":347.0},{"date":"2026-01-19","amt":9727.0},{"date":"2026-01-21","amt":6402.0},{"date":"2026-01-24","amt":1796.0},{"date":"2026-01-26","amt":3802.0},{"date":"2026-01-29","amt":4268.0},{"date":"2026-01-04","amt":617.0},{"date":"2026-01-27","amt":1005.0}],"Lakshmi":[{"date":"2026-01-01","amt":4113.0},{"date":"2026-01-03","amt":10999.0},{"date":"2026-01-06","amt":3830.0},{"date":"2026-01-10","amt":3874.0},{"date":"2026-01-14","amt":13748.0},{"date":"2026-01-15","amt":2910.0},{"date":"2026-01-19","amt":10130.0},{"date":"2026-01-20","amt":2372.0},{"date":"2026-01-21","amt":2205.0},{"date":"2026-01-22","amt":6012.0},{"date":"2026-01-26","amt":4743.0},{"date":"2026-01-29","amt":1397.0},{"date":"2026-01-30","amt":18769.0}],"Geetha Dharmapuri":[{"date":"2026-01-22","amt":2359.0},{"date":"2026-01-26","amt":8189.0}],"Thamaraikani":[{"date":"2026-01-25","amt":10200.0}],"Senthil Balaji":[{"date":"2026-01-05","amt":3751.0},{"date":"2026-01-08","amt":3805.0},{"date":"2026-01-13","amt":1050.0},{"date":"2026-01-14","amt":3725.0},{"date":"2026-01-15","amt":2133.0},{"date":"2026-01-24","amt":2133.0},{"date":"2026-01-24","amt":5655.0},{"date":"2026-01-29","amt":3200.0},{"date":"2026-01-24","amt":1463.0}],"Kumaran":[{"date":"2026-01-02","amt":5514.0},{"date":"2026-01-08","amt":17915.0},{"date":"2026-01-13","amt":1901.0},{"date":"2026-01-15","amt":19687.0},{"date":"2026-01-24","amt":21508.0},{"date":"2026-01-29","amt":9738.0},{"date":"2026-01-20","amt":11309.0}],"Saravana":[{"date":"2026-01-01","amt":5319.0},{"date":"2026-01-05","amt":12069.0},{"date":"2026-01-08","amt":3912.0},{"date":"2026-01-12","amt":9149.0},{"date":"2026-01-13","amt":11441.0},{"date":"2026-01-20","amt":12069.0},{"date":"2026-01-23","amt":13061.0},{"date":"2026-01-30","amt":9149.0},{"date":"2026-01-02","amt":11292.0},{"date":"2026-01-05","amt":8275.0},{"date":"2026-01-12","amt":8275.0},{"date":"2026-01-19","amt":8275.0},{"date":"2026-01-22","amt":6620.0},{"date":"2026-01-30","amt":8275.0}]},"2026-02":{"Senthil":[{"date":"2026-02-10","amt":53.0},{"date":"2026-02-28","amt":1611.0}],"Karthikeya":[{"date":"2026-02-05","amt":3623.0},{"date":"2026-02-07","amt":1166.0},{"date":"2026-02-11","amt":1463.0},{"date":"2026-02-12","amt":13037.0},{"date":"2026-02-16","amt":11309.0},{"date":"2026-02-18","amt":1463.0},{"date":"2026-02-21","amt":14189.0},{"date":"2026-02-21","amt":13939.0},{"date":"2026-02-23","amt":3623.0},{"date":"2026-02-27","amt":11309.0},{"date":"2026-02-28","amt":4343.0}],"NH Surgical":[{"date":"2026-02-02","amt":5763.0},{"date":"2026-02-05","amt":3067.0},{"date":"2026-02-07","amt":6918.0},{"date":"2026-02-09","amt":9170.0},{"date":"2026-02-11","amt":1688.0},{"date":"2026-02-12","amt":4584.0},{"date":"2026-02-14","amt":6671.0},{"date":"2026-02-18","amt":4040.0},{"date":"2026-02-20","amt":6996.0},{"date":"2026-02-21","amt":2237.0},{"date":"2026-02-23","amt":1323.0},{"date":"2026-02-24","amt":5862.0},{"date":"2026-02-27","amt":4317.0},{"date":"2026-02-28","amt":6137.0},{"date":"2026-02-02","amt":11781.0}],"HR Surgical":[{"date":"2026-02-02","amt":1197.0},{"date":"2026-02-07","amt":6190.0},{"date":"2026-02-09","amt":4174.0},{"date":"2026-02-12","amt":947.0},{"date":"2026-02-13","amt":673.0},{"date":"2026-02-14","amt":2930.0},{"date":"2026-02-19","amt":2990.0},{"date":"2026-02-27","amt":6014.0},{"date":"2026-02-28","amt":2756.0},{"date":"2026-02-06","amt":7900.0},{"date":"2026-02-12","amt":1052.0}],"Lakshmi":[{"date":"2026-02-03","amt":3363.0},{"date":"2026-02-07","amt":16925.0},{"date":"2026-02-09","amt":1328.0},{"date":"2026-02-10","amt":3162.0},{"date":"2026-02-14","amt":6299.0},{"date":"2026-02-16","amt":4789.0},{"date":"2026-02-20","amt":4743.0},{"date":"2026-02-21","amt":8793.0},{"date":"2026-02-23","amt":4743.0},{"date":"2026-02-25","amt":2147.0},{"date":"2026-02-26","amt":504.0},{"date":"2026-02-28","amt":9245.0},{"date":"2026-02-11","amt":1733.0}],"Thamaraikani":[{"date":"2026-02-17","amt":10200.0},{"date":"2026-02-02","amt":17349.0},{"date":"2026-02-07","amt":8189.0},{"date":"2026-02-02","amt":8189.0},{"date":"2026-02-16","amt":8189.0},{"date":"2026-02-20","amt":9424.0},{"date":"2026-02-21","amt":8189.0},{"date":"2026-02-28","amt":8189.0}],"Senthil Balaji":[{"date":"2026-02-02","amt":1875.0},{"date":"2026-02-09","amt":5884.0},{"date":"2026-02-11","amt":6399.0},{"date":"2026-02-20","amt":4801.0},{"date":"2026-02-25","amt":4266.0},{"date":"2026-02-19","amt":1226.0}],"Kumaran":[{"date":"2026-02-02","amt":21508.0},{"date":"2026-02-07","amt":3544.0},{"date":"2026-02-14","amt":25256.0},{"date":"2026-02-21","amt":5514.0},{"date":"2026-02-23","amt":1728.0},{"date":"2026-02-26","amt":3938.0}],"Saravana":[{"date":"2026-02-02","amt":2815.0},{"date":"2026-02-07","amt":12069.0},{"date":"2026-02-14","amt":9149.0},{"date":"2026-02-21","amt":12069.0},{"date":"2026-02-23","amt":9149.0},{"date":"2026-02-03","amt":1016.0},{"date":"2026-02-07","amt":25248.0},{"date":"2026-02-06","amt":3649.0},{"date":"2026-02-03","amt":3465.0},{"date":"2026-02-10","amt":3465.0},{"date":"2026-02-17","amt":6930.0}]},"2026-03":{"Senthil":[{"date":"2026-03-28","amt":1611}],"Karthikeya":[{"date":"2026-03-04","amt":11309},{"date":"2026-03-07","amt":24692},{"date":"2026-03-12","amt":10874},{"date":"2026-03-14","amt":4343},{"date":"2026-03-14","amt":8699},{"date":"2026-03-16","amt":4723},{"date":"2026-03-20","amt":10874},{"date":"2026-03-23","amt":10874},{"date":"2026-03-24","amt":3863},{"date":"2026-03-27","amt":7179},{"date":"2026-03-27","amt":8699}],"NH Surgical":[{"date":"2026-03-03","amt":3940},{"date":"2026-03-05","amt":3648},{"date":"2026-03-07","amt":11501},{"date":"2026-03-09","amt":399},{"date":"2026-03-10","amt":1869},{"date":"2026-03-11","amt":2125},{"date":"2026-03-13","amt":7128},{"date":"2026-03-17","amt":3738},{"date":"2026-03-17","amt":3155},{"date":"2026-03-19","amt":4379},{"date":"2026-03-21","amt":8217},{"date":"2026-03-25","amt":7439},{"date":"2026-03-26","amt":4881},{"date":"2026-03-27","amt":441},{"date":"2026-03-28","amt":4222}],"HR Surgical":[{"date":"2026-03-11","amt":1055},{"date":"2026-03-13","amt":2258},{"date":"2026-03-13","amt":2310},{"date":"2026-03-16","amt":525},{"date":"2026-03-17","amt":8012},{"date":"2026-03-18","amt":4431},{"date":"2026-03-19","amt":9283},{"date":"2026-03-21","amt":2717},{"date":"2026-03-25","amt":1467},{"date":"2026-03-28","amt":3759},{"date":"2026-03-30","amt":4773}],"Lakshmi":[{"date":"2026-03-02","amt":754},{"date":"2026-03-04","amt":3385},{"date":"2026-03-07","amt":554},{"date":"2026-03-07","amt":895},{"date":"2026-03-07","amt":1996},{"date":"2026-03-07","amt":9525},{"date":"2026-03-11","amt":4001},{"date":"2026-03-11","amt":1538},{"date":"2026-03-14","amt":2511},{"date":"2026-03-16","amt":1822},{"date":"2026-03-19","amt":943},{"date":"2026-03-24","amt":1689},{"date":"2026-03-25","amt":2293},{"date":"2026-03-25","amt":2835},{"date":"2026-03-25","amt":1616},{"date":"2026-03-27","amt":1794},{"date":"2026-03-28","amt":645},{"date":"2026-03-30","amt":1421}],"Geetha Dharmapuri":[{"date":"2026-03-11","amt":1900}],"Thamaraikani":[{"date":"2026-03-05","amt":10200},{"date":"2026-03-28","amt":10200}],"Senthil Balaji":[{"date":"2026-03-07","amt":4266},{"date":"2026-03-10","amt":1217},{"date":"2026-03-19","amt":7164},{"date":"2026-03-21","amt":4801},{"date":"2026-03-30","amt":1050},{"date":"2026-03-30","amt":2133}],"Kumaran":[{"date":"2026-03-02","amt":11845},{"date":"2026-03-04","amt":5514},{"date":"2026-03-07","amt":3544},{"date":"2026-03-13","amt":4525},{"date":"2026-03-17","amt":5514},{"date":"2026-03-17","amt":3026},{"date":"2026-03-20","amt":3241},{"date":"2026-03-21","amt":3544},{"date":"2026-03-26","amt":1462}],"Saravana":[{"date":"2026-03-07","amt":2815},{"date":"2026-03-07","amt":16763},{"date":"2026-03-12","amt":3611},{"date":"2026-03-17","amt":2889},{"date":"2026-03-18","amt":6099},{"date":"2026-03-20","amt":3611},{"date":"2026-03-21","amt":6099},{"date":"2026-03-25","amt":3611},{"date":"2026-03-28","amt":8032}],"Cylinder":[{"date":"2026-03-11","amt":1900}],"Geetha Salem":[{"date":"2026-03-28","amt":1489}],"Sara":[],"Dhanalakshmi":[],"Senthil Murugan":[{"date":"2026-03-05","amt":9292},{"date":"2026-03-16","amt":2033},{"date":"2026-03-19","amt":4138},{"date":"2026-03-21","amt":11366},{"date":"2026-03-24","amt":11366}],"Vishnu":[],"Universal":[],"Lifeline":[],"Aanand":[{"date":"2026-03-12","amt":24717}],"Latha":[{"date":"2026-03-10","amt":8189},{"date":"2026-03-14","amt":8189},{"date":"2026-03-28","amt":8189},{"date":"2026-03-30","amt":8189}],"Salem":[],"Jayshree":[{"date":"2026-03-25","amt":2119}],"Ramesh G":[],"Rathna":[{"date":"2026-03-14","amt":11840},{"date":"2026-03-19","amt":11840},{"date":"2026-03-28","amt":14800}],"Bioremedies":[{"date":"2026-03-13","amt":7021},{"date":"2026-03-17","amt":8602},{"date":"2026-03-24","amt":8602}],"Dharmapuri":[{"date":"2026-03-14","amt":2932}],"Sunshine":[{"date":"2026-03-24","amt":53531}]}},"ip":[{"id":1,"name":"Thangavel","admitDate":"2026-01-02","diagnosis":"Ankle MM","ward":"","bill":25000.0,"med":18000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":2,"name":"Kamatchi","admitDate":"2026-01-04","diagnosis":"Hysterectomy","ward":"","bill":13800.0,"med":0,"dischargeDate":"","status":"Discharged","notes":""},{"id":3,"name":"Ramesh","admitDate":"2026-01-05","diagnosis":"DER","ward":"","bill":47500.0,"med":27500.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":4,"name":"Deepa","admitDate":"2026-01-14","diagnosis":"Forearm","ward":"","bill":36700.0,"med":23500.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":5,"name":"Mahesh","admitDate":"2026-01-16","diagnosis":"Disc","ward":"","bill":52000.0,"med":28000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":6,"name":"Vignesh","admitDate":"2026-01-21","diagnosis":"DER","ward":"","bill":32000.0,"med":20000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":7,"name":"Chitra","admitDate":"2026-01-22","diagnosis":"Tendoachiles","ward":"","bill":30000.0,"med":18000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":8,"name":"Chinnasamy","admitDate":"2026-01-29","diagnosis":"Distal femur","ward":"","bill":47000.0,"med":30000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":9,"name":"Elango","admitDate":"2026-02-06","diagnosis":"SC humerus","ward":"","bill":19200.0,"med":16800.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":10,"name":"Anand","admitDate":"2026-02-08","diagnosis":"SOF","ward":"","bill":110000.0,"med":30000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":11,"name":"Madhu","admitDate":"2026-02-09","diagnosis":"Tendoachilles","ward":"","bill":35000.0,"med":23500.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":12,"name":"Jothi","admitDate":"2026-02-10","diagnosis":"Ankle LM","ward":"","bill":41000.0,"med":30000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":13,"name":"Sibi","admitDate":"2026-02-13","diagnosis":"SSG","ward":"","bill":20000.0,"med":15000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":14,"name":"Vijayakumar","admitDate":"2026-02-19","diagnosis":"LB Knee","ward":"","bill":23000.0,"med":22000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":15,"name":"Periannan","admitDate":"2026-02-20","diagnosis":"Spine","ward":"","bill":94500.0,"med":29000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":16,"name":"Dasarathan","admitDate":"2026-02-21","diagnosis":"BB Forearm","ward":"","bill":40000.0,"med":25000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":17,"name":"Sathya","admitDate":"2026-02-23","diagnosis":"TA","ward":"","bill":29000.0,"med":21000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":18,"name":"Karpagam","admitDate":"2026-02-26","diagnosis":"Ulna","ward":"","bill":23000.0,"med":17000.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":19,"name":"Vijay","admitDate":"2026-02-27","diagnosis":"Radius + MC","ward":"","bill":40000.0,"med":21500.0,"dischargeDate":"","status":"Discharged","notes":""},{"id":20,"name":"Sivasankar","admitDate":"2026-03-01","dischargeDate":"","diagnosis":"ACL","ward":"","bill":55000,"med":26000,"status":"Discharged","notes":""},{"id":21,"name":"Sampath","admitDate":"2026-03-04","dischargeDate":"","diagnosis":"Perilumate","ward":"","bill":25000,"med":27000,"status":"Discharged","notes":""},{"id":22,"name":"Dhanush","admitDate":"2026-03-06","dischargeDate":"","diagnosis":"SC Humerus","ward":"","bill":14000,"med":7000,"status":"Discharged","notes":""},{"id":23,"name":"Sudharthanam","admitDate":"2026-03-17","dischargeDate":"2026-03-19","diagnosis":"SC Humerus","ward":"","bill":20000,"med":13000,"status":"Discharged","notes":""},{"id":24,"name":"Muniappan","admitDate":"2026-03-20","dischargeDate":"2026-03-25","diagnosis":"NOF","ward":"","bill":72500,"med":32000,"status":"Discharged","notes":""},{"id":25,"name":"Sabarinathan","admitDate":"2026-03-21","dischargeDate":"2026-03-22","diagnosis":"DER IR","ward":"","bill":15000,"med":14000,"status":"Discharged","notes":""},{"id":26,"name":"Parthiban","admitDate":"2026-03-25","dischargeDate":"2026-03-25","diagnosis":"1st MC","ward":"","bill":19500,"med":6000,"status":"Discharged","notes":""},{"id":27,"name":"Palaniammal","admitDate":"2026-03-23","dischargeDate":"","diagnosis":"SC Tear","ward":"","bill":95000,"med":29000,"status":"Discharged","notes":""},{"id":28,"name":"Ganesh","admitDate":"2026-03-26","dischargeDate":"2026-03-28","diagnosis":"4th PPx Foot","ward":"","bill":13000,"med":22000,"status":"Discharged","notes":""},{"id":29,"name":"Monnikumari","admitDate":"2026-03-28","dischargeDate":"","diagnosis":"Laceration Injury Left Hand","ward":"","bill":20000,"med":18000,"status":"Discharged","notes":""}],"agencies":["Senthil","Karthikeya","NH Surgical","HR Surgical","Lakshmi","Geetha Dharmapuri","Thamaraikani","Senthil Balaji","Kumaran","Saravana","Cylinder","Geetha Salem","Sara","Dhanalakshmi","Senthil Murugan","Vishnu","Universal","Lifeline","Aanand","Latha","Salem","Jayshree","Ramesh G","Rathna","Bioremedies","Dharmapuri","Sunshine"],"staff":[{"name":"Bathroom","amt":2500.0},{"name":"Chinnarasu","amt":14000.0},{"name":"Cook","amt":6000.0},{"name":"Flower & Milk","amt":2380.0},{"name":"Housekeeping night","amt":9000.0},{"name":"Iyer","amt":5000.0},{"name":"Jayaprabhu","amt":19000.0},{"name":"Kaja","amt":8000.0},{"name":"Kanimozhi","amt":11000.0},{"name":"Karthik","amt":18000.0},{"name":"Kesavan","amt":17000.0},{"name":"Parvathi","amt":8500.0},{"name":"Rekha","amt":8000.0},{"name":"Salammal","amt":8500.0},{"name":"Sandhya","amt":9000.0},{"name":"Sylvi","amt":6300.0}],"staffPaid":{"2026-01":{"Bathroom":true,"Chinnarasu":true,"Cook":true,"Flower & Milk":true,"Housekeeping night":true,"Iyer":true,"Jayaprabhu":true,"Kaja":true,"Kanimozhi":true,"Karthik":true,"Kesavan":true,"Parvathi":true,"Rekha":true,"Salammal":true,"Sandhya":true,"Sylvi":true},"2026-02":{"Bathroom":true,"Chinnarasu":true,"Cook":true,"Flower & Milk":true,"Housekeeping night":true,"Iyer":true,"Jayaprabhu":true,"Kaja":true,"Kanimozhi":true,"Karthik":true,"Kesavan":true,"Parvathi":true,"Rekha":true,"Salammal":true,"Sandhya":true,"Sylvi":true},"2026-03":{}},"pnlExp":{"2026-01":{"imp":0,"ana":7500.0,"sco":15000.0,"out":21060.0,"gst":0,"eb":0,"xrf":41570.0,"oth":2200.0},"2026-02":{"imp":60000.0,"ana":0,"sco":15000.0,"out":0,"gst":0,"eb":0,"xrf":10200.0,"oth":6000.0},"2026-03":{"imp":25000.0,"ana":0,"sco":0,"out":0,"gst":0,"eb":0,"xrf":40670.0,"oth":0}},"_version":"2026-04-01-v1","_date":"2026-03-31"};
 
 
 // ─── CONSTANTS ───
@@ -837,6 +866,8 @@ let pnlExpenses = {};
 let personalData = {};
 let staffList = [];
 let staffPaid = {};
+let staffLeaves = {};
+let staffNotes = {};
 let agencyList = [];
 let curDate = isoToday();
 let rowId = 1;
@@ -858,7 +889,8 @@ const DEF_AGENCIES = [
   'Senthil','Karthikeya','NH Surgical','HR Surgical','Lakshmi',
   'Geetha Dharmapuri','Thamaraikani','Senthil Balaji','Kumaran','Saravana',
   'Cylinder','Geetha Salem','Sara','Dhanalakshmi','Senthil Murugan',
-  'Vishnu','Universal','Lifeline','Aanand','Latha','Salem','Jayshree','Ramesh G'
+  'Vishnu','Universal','Lifeline','Aanand','Latha','Salem','Jayshree','Ramesh G',
+  'Rathna','Bioremedies','Dharmapuri','Sunshine'
 ];
 
 // ─── UTILS ───
@@ -994,15 +1026,16 @@ function renderRow(r){
   const tr=document.createElement('tr');
   tr.id='row-'+r.id;
   const rowTotal=['opd','xray','pop','pt','lab','med'].reduce((s,c)=>s+n(r[c]),0);
-  const typeOpts=PT_TYPES.map(t=>`<option value="${t}"${r.type===t?' selected':''}>${t}</option>`).join('');
-  const modeOpts=['C','G','S'].map(m=>`<option value="${m}"${r.mode===m?' selected':''}>${m}</option>`).join('');
-  const typeColor=PT_COLORS[r.type]||'var(--tx)';
-  const modeColor={C:'var(--gn)',G:'var(--bl)',S:'var(--pu)'}[r.mode]||'var(--tx)';
+  // Type buttons - Safari-safe coloured tap buttons
+  const TYPE_BG={N:'#27AE60',O:'#2E86C1','OG-N':'#C0392B','OG-O':'#8E44AD',M:'#7F8C8D',P:'#17A589',L:'#F39C12'};
+  const typeOpts=PT_TYPES.map(t=>`<button onclick="sv(${r.id},'type','${t}');updateTypeBtns(${r.id},'${t}')" id="tb-${r.id}-${t}" style="border:none;border-radius:4px;padding:2px 5px;font-size:11px;font-weight:700;cursor:pointer;margin:1px;background:${r.type===t?TYPE_BG[t]:'var(--s2)'};color:${r.type===t?'#fff':'var(--t3)'}">${t}</button>`).join('');
+  const MODE_BG={C:'#27AE60',G:'#2E86C1',S:'#8E44AD'};
+  const modeOpts=['C','G','S'].map(m=>`<button onclick="sv(${r.id},'mode','${m}');updateModeBtns(${r.id},'${m}')" id="mb-${r.id}-${m}" style="border:none;border-radius:4px;padding:2px 6px;font-size:11px;font-weight:700;cursor:pointer;margin:1px;background:${r.mode===m?MODE_BG[m]:'var(--s2)'};color:${r.mode===m?'#fff':'var(--t3)'}">${m}</button>`).join('');
   tr.innerHTML=`
     <td class="lft" style="color:var(--t3);font-size:11px">${tbody.children.length+1}</td>
     <td><input class="ci" style="width:55px;text-align:left;font-family:'Outfit',sans-serif;font-size:11px" value="${esc(r.mrn)}" placeholder="MRN" oninput="sv(${r.id},'mrn',this.value)"></td>
     <td><input class="ci name-inp" value="${esc(r.name)}" placeholder="Patient name" oninput="sv(${r.id},'name',this.value)"></td>
-    <td><select class="type-sel" id="ts-${r.id}" style="color:${typeColor}" onchange="sv(${r.id},'type',this.value);applyTypeColor(${r.id},this.value)">${typeOpts}</select></td>
+    <td style="white-space:nowrap"><div id="tg-${r.id}">${typeOpts}</div></td>
     <td><input class="ci" type="number" value="${r.opd||''}" placeholder="—" oninput="sv(${r.id},'opd',this.value)"></td>
     <td><input class="ci" type="number" value="${r.xray||''}" placeholder="—" oninput="sv(${r.id},'xray',this.value)"></td>
     <td><input class="ci" type="number" value="${r.pop||''}" placeholder="—" oninput="sv(${r.id},'pop',this.value)"></td>
@@ -1010,14 +1043,21 @@ function renderRow(r){
     <td><input class="ci" type="number" value="${r.lab||''}" placeholder="—" oninput="sv(${r.id},'lab',this.value)"></td>
     <td><div class="med-cell"><input class="ci" type="number" id="med-inp-${r.id}" value="${r.med||''}" placeholder="—" oninput="sv(${r.id},'med',this.value)" style="min-width:0"><button class="med-plus" onclick="openMedCalc(${r.id},event)" title="Add amount">+</button></div></td>
     <td class="g" id="rt-${r.id}" style="font-family:'JetBrains Mono',monospace;font-weight:700">₹${fmt(rowTotal)}</td>
-    <td><select class="mode-sel" id="ms-${r.id}" style="color:${modeColor}" onchange="sv(${r.id},'mode',this.value);applyModeColor(${r.id},this.value)">${modeOpts}</select></td>
+    <td style="white-space:nowrap"><div id="mg-${r.id}">${modeOpts}</div></td>
     <td><input class="ci" type="number" value="${r.cash||''}" placeholder="—" oninput="sv(${r.id},'cash',this.value)"></td>
     <td><input class="ci" type="number" value="${r.gpay||''}" placeholder="—" oninput="sv(${r.id},'gpay',this.value)"></td>
     <td><button class="del-btn" onclick="delRow(${r.id})">✕</button></td>`;
   tbody.appendChild(tr);
 }
-function applyTypeColor(id,val){const e=el('ts-'+id);if(e)e.style.color=PT_COLORS[val]||'var(--tx)';}
-function applyModeColor(id,val){const e=el('ms-'+id);if(e)e.style.color={C:'var(--gn)',G:'var(--bl)',S:'var(--pu)'}[val]||'var(--tx)';}
+function updateTypeBtns(id,val){
+  const TYPE_BG={N:'#27AE60',O:'#2E86C1','OG-N':'#C0392B','OG-O':'#8E44AD',M:'#7F8C8D',P:'#17A589',L:'#F39C12'};
+  const PT_T=['N','O','OG-N','OG-O','M','P','L'];
+  PT_T.forEach(t=>{const b=el('tb-'+id+'-'+t);if(b){b.style.background=t===val?TYPE_BG[t]:'var(--s2)';b.style.color=t===val?'#fff':'var(--t3)';}});
+}
+function updateModeBtns(id,val){
+  const MODE_BG={C:'#27AE60',G:'#2E86C1',S:'#8E44AD'};
+  ['C','G','S'].forEach(m=>{const b=el('mb-'+id+'-'+m);if(b){b.style.background=m===val?MODE_BG[m]:'var(--s2)';b.style.color=m===val?'#fff':'var(--t3)';}});
+}
 
 // ─── RECALC ───
 function computeCache(rows){
@@ -1169,7 +1209,7 @@ function renderDayStatus(){
   } else {
     if(stampDiv)stampDiv.innerHTML='';
     const pts=(allData[curDate]||{rows:[]}).rows.length;
-    actionDiv.innerHTML=pts>0?`<button class="close-day-btn" onclick="closeDay()">✓ Close Day</button>`:`<span style="font-size:12px;color:var(--t3)">Add patients to close</span>`;
+    actionDiv.innerHTML=pts>0?`<button class="close-day-btn" onclick="closeDay()" style="padding:10px 28px;font-size:14px;font-weight:700;background:#0A6644;color:#fff;border:none;border-radius:8px;cursor:pointer;">✓ Close Day</button>`:`<span style="font-size:12px;color:var(--t3)">Add patients to close</span>`;
     const addBtn=el('add-pt-btn');if(addBtn)addBtn.style.display='';
   }
 }
@@ -1181,8 +1221,9 @@ function closeDay(){
   const now=new Date();
   const t=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
   day._closed={time:t,pts:day.rows.length,closedAt:now.toISOString()};
-  sched();renderDayStatus();toast('Day closed at '+t);
-  if(SCRIPT_URL)setTimeout(backupToSheets,2000);
+  sched();renderDayStatus();
+  toast('Day closed at '+t+' — saving file…',4000);
+  setTimeout(saveAsFile, 1000);
 }
 
 function reopenDay(){
@@ -1208,7 +1249,34 @@ function renderIPTab(){
   const mth=el('ip-mth-sel')?.value||curDate.substring(0,7);
   const ips=ipData.filter(x=>x.admitDate?.startsWith(mth));
   const tbody=el('ip-tbody');if(!tbody)return;
-  if(!ips.length){tbody.innerHTML='<tr><td colspan="10" style="color:var(--t3);text-align:center;padding:20px">No IP patients this month</td></tr>';return;}
+  if(!ips.length){tbody.innerHTML='<tr><td colspan="11" style="color:var(--t3);text-align:center;padding:20px">No IP patients this month</td></tr>';return;}
+  let totBill=0,totMed=0;
+  tbody.innerHTML=ips.map(p=>{
+    const bill=n(p.bill),med=n(p.med),tot=bill+med;
+    totBill+=bill;totMed+=med;
+    return`<tr>
+    <td class="lft" style="font-weight:600">${esc(p.name)}</td>
+    <td>${p.admitDate||'—'}</td>
+    <td>${p.dischargeDate||'—'}</td>
+    <td class="lft">${esc(p.diagnosis||'—')}</td>
+    <td class="lft" style="font-size:11px;color:var(--bl)">${esc(p.anaesthetist||'—')}</td>
+    <td style="font-family:'JetBrains Mono',monospace;color:var(--gn)">₹${fmt(bill)}</td>
+    <td style="font-family:'JetBrains Mono',monospace;color:var(--pu)">₹${fmt(med)}</td>
+    <td style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--bl)">₹${fmt(tot)}</td>
+    <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${p.status==='Admitted'?'var(--gbg)':'var(--s2)'};color:${p.status==='Admitted'?'var(--gn)':'var(--t2)'}">${p.status||'—'}</span></td>
+    <td style="display:flex;gap:4px;align-items:center;">
+      <button class="del-btn" onclick="openIPModal(${p.id})" title="Edit" style="color:var(--ac);font-size:13px">✎</button>
+      <button class="del-btn" onclick="delIP(${p.id})" title="Delete">✕</button>
+    </td>
+  </tr>`}).join('');
+  tbody.innerHTML+=`<tr style="font-weight:700;background:var(--s2);">
+    <td class="lft" colspan="5" style="font-weight:700;color:var(--t2)">Month Total</td>
+    <td style="font-family:'JetBrains Mono',monospace;color:var(--gn);font-weight:700">₹${fmt(totBill)}</td>
+    <td style="font-family:'JetBrains Mono',monospace;color:var(--pu);font-weight:700">₹${fmt(totMed)}</td>
+    <td style="font-family:'JetBrains Mono',monospace;color:var(--bl);font-weight:700">₹${fmt(totBill+totMed)}</td>
+    <td colspan="2"></td>
+  </tr>`;
+}
   let totBill=0,totMed=0;
   tbody.innerHTML=ips.map(p=>{
     const bill=n(p.bill),med=n(p.med),tot=bill+med;
@@ -1222,6 +1290,7 @@ function renderIPTab(){
     <td style="font-family:'JetBrains Mono',monospace;color:var(--gn)">₹${fmt(bill)}</td>
     <td style="font-family:'JetBrains Mono',monospace;color:var(--pu)">₹${fmt(med)}</td>
     <td style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--bl)">₹${fmt(tot)}</td>
+    <td style="font-size:11px;color:var(--t2)">${esc(p.anaest||'—')}</td>
     <td><span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${p.status==='Admitted'?'var(--gbg)':'var(--s2)'};color:${p.status==='Admitted'?'var(--gn)':'var(--t2)'}">${p.status||'—'}</span></td>
     <td style="display:flex;gap:4px;align-items:center;">
       <button class="del-btn" onclick="openIPModal(${p.id})" title="Edit" style="color:var(--ac);font-size:13px">✎</button>
@@ -1246,10 +1315,12 @@ function openIPModal(id){
   el('ip-discharge').value=p?.dischargeDate||'';
   el('ip-ward').value=p?.ward||'';
   el('ip-diag').value=p?.diagnosis||'';
+  if(el('ip-anaest')) el('ip-anaest').value=p?.anaesthetist||'';
   el('ip-status').value=p?.status||'Admitted';
   el('ip-bill').value=p?.bill||'';
   el('ip-med').value=p?.med||'';
   el('ip-notes').value=p?.notes||'';
+  el('ip-anaest').value=p?.anaest||'';
   el('ipModal').classList.add('on');
 }
 function closeIPModal(){el('ipModal').classList.remove('on');}
@@ -1260,7 +1331,8 @@ function saveIP(){
     admitDate:el('ip-admit').value,dischargeDate:el('ip-discharge').value,
     ward:el('ip-ward').value,diagnosis:el('ip-diag').value,
     status:el('ip-status').value,bill:n(el('ip-bill').value),
-    med:n(el('ip-med').value),notes:el('ip-notes').value
+    med:n(el('ip-med').value),anaest:el('ip-anaest').value.trim(),
+    notes:el('ip-notes').value
   };
   if(!p.name){toast('Enter patient name');return;}
   if(id)ipData=ipData.map(x=>x.id===id?p:x);
@@ -1285,35 +1357,38 @@ function renderPharma(){
     const paid=n(pharmaData[mth][ag+'_paid']);
     const due=total-paid;
     grandTotal+=total;grandPaid+=paid;
+    const safe=ag.replace(/\s/g,'_');
     return`<div class="pharma-agency">
       <div class="pharma-agency-hdr">
         <span class="pharma-agency-name">${esc(ag)}</span>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <span style="font-size:11px;color:var(--t3)">Total: ₹${fmt(total)}</span>
-          <span class="pharma-outstanding ${due>0?'due':'ok'}">Due: ₹${fmt(due)}</span>
-        </div>
+        <span class="pharma-outstanding ${due>0?'due':'ok'}">₹${fmt(total)}${due>0?' | Due:₹'+fmt(due):' ✓'}</span>
       </div>
-      <div class="pharma-entries">${entries.map((e,i)=>`
+      <div class="pharma-entries">${entries.length?entries.map((e,i)=>`
         <div class="pharma-entry">
-          <span class="pharma-entry-date">${e.date}</span>
-          <span style="flex:1;font-size:12px;color:var(--t2)">${esc(e.note||'')}</span>
+          <span class="pharma-entry-date">${e.date?.substring(5)||''}</span>
           <span class="pharma-entry-amt">₹${fmt(e.amt)}</span>
-          <button class="del-btn" onclick="delPharmaEntry('${mth}','${ag}',${i})">✕</button>
-        </div>`).join('')}
+          <button class="del-btn" style="font-size:11px;padding:1px 4px" onclick="delPharmaEntry('${mth}','${ag}',${i})">✕</button>
+        </div>`).join(''):'<div style="font-size:10px;color:var(--t3);padding:4px">No entries</div>'}
       </div>
       <div class="pharma-add-row">
-        <input type="date" id="ph-date-${ag.replace(/\s/g,'_')}" value="${curDate}" style="font-family:inherit;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 8px;background:var(--sf);color:var(--tx);outline:none;">
-        <input type="number" min="0" id="ph-amt-${ag.replace(/\s/g,'_')}" placeholder="Amount" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 8px;background:var(--sf);color:var(--tx);outline:none;" onkeydown="if(event.key==='Enter')addPharmaEntry('${mth}','${ag}')">
-        <button class="abtn" style="padding:5px 12px;font-size:12px" onclick="addPharmaEntry('${mth}','${ag}')">+ Add</button>
-        <div style="display:flex;align-items:center;gap:5px;margin-left:8px;">
-          <span style="font-size:11px;color:var(--t3)">Paid:</span>
-          <input type="number" min="0" value="${paid||''}" placeholder="0" id="ph-paid-${ag.replace(/\s/g,'_')}" style="width:80px;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--bd2);border-radius:var(--rs);padding:5px 8px;background:var(--sf);color:var(--tx);outline:none;" oninput="savePharmaPayment('${mth}','${ag}',this.value)">
-        </div>
+        <input type="date" id="ph-date-${safe}" value="${curDate}" style="font-size:11px;border:1px solid var(--bd2);border-radius:var(--rs);padding:3px 6px;background:var(--sf);color:var(--tx);outline:none;width:120px;">
+        <input type="number" min="0" id="ph-amt-${safe}" placeholder="₹ Amount" style="flex:1;font-family:'JetBrains Mono',monospace;font-size:11px;border:1px solid var(--bd2);border-radius:var(--rs);padding:3px 6px;background:var(--sf);color:var(--tx);outline:none;" onkeydown="if(event.key==='Enter')addPharmaEntry('${mth}','${ag}')">
+        <button class="abtn" style="padding:3px 8px;font-size:11px" onclick="addPharmaEntry('${mth}','${ag}')">+</button>
       </div>
     </div>`;
   }).join('');
   const totEl=el('pharma-total-lbl');
   if(totEl)totEl.textContent=`Total: ₹${fmt(grandTotal)} · Paid: ₹${fmt(grandPaid)} · Due: ₹${fmt(grandTotal-grandPaid)}`;
+}
+
+function addNewAgency(){
+  const name=(document.getElementById('new-agency-name')?.value||'').trim();
+  if(!name){toast('Enter agency name');return;}
+  if(agencyList.includes(name)){toast('Agency already exists');return;}
+  agencyList.push(name);
+  document.getElementById('new-agency-name').value='';
+  sched();renderPharma();
+  toast('✓ Agency "'+name+'" added');
 }
 
 function addPharmaEntry(mth,ag){
@@ -1341,24 +1416,72 @@ function savePharmaPayment(mth,ag,val){
 function renderStaff(){
   const mth=el('staff-mth-sel')?.value||curDate.substring(0,7);
   if(!staffPaid[mth])staffPaid[mth]={};
+  if(!staffLeaves)staffLeaves={};
+  if(!staffLeaves[mth])staffLeaves[mth]={};
+  if(!staffNotes)staffNotes={};
+  if(!staffNotes[mth])staffNotes[mth]={};
   const tbody=el('staff-tbody');if(!tbody)return;
-  let total=0,paidTotal=0;
+  let total=0,paidTotal=0,netTotal=0;
   tbody.innerHTML=staffList.map(s=>{
     total+=s.amt;
+    const leaves=parseInt(staffLeaves[mth][s.name]||0);
+    const maxFree=2; // 2 days free leave
+    const extraLeaves=Math.max(0,leaves-maxFree);
+    const workDays=26; // approx working days
+    const deduction=extraLeaves>0?Math.round((s.amt/workDays)*extraLeaves):0;
+    const netSalary=s.amt-deduction;
+    netTotal+=netSalary;
     const paid=staffPaid[mth][s.name];
-    if(paid)paidTotal+=s.amt;
-    return`<tr style="${paid?'opacity:.5;text-decoration:line-through':''}">
-      <td class="lft">${esc(s.name)}</td>
-      <td style="font-family:'JetBrains Mono',monospace">₹${fmt(s.amt)}</td>
-      <td><input type="checkbox" ${paid?'checked':''} onchange="toggleStaffPaid('${mth}','${s.name}',this.checked)" style="cursor:pointer;width:16px;height:16px;"></td>
+    if(paid)paidTotal+=netSalary;
+    const notes=staffNotes[mth][s.name]||'';
+    const safe=s.name.replace(/\s/g,'_');
+    return`<tr style="${paid?'opacity:.5':''}">
+      <td class="lft" style="font-weight:600">${esc(s.name)}</td>
+      <td style="text-align:right"><input type="number" value="${s.amt}" style="width:90px;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--bd2);border-radius:4px;padding:3px 6px;text-align:right;background:var(--s2);outline:none;" onchange="updateStaffAmt('${s.name}',this.value)"></td>
+      <td style="text-align:center"><input type="number" min="0" max="31" value="${leaves}" placeholder="0" style="width:50px;font-family:'JetBrains Mono',monospace;font-size:12px;border:1px solid var(--bd2);border-radius:4px;padding:3px 6px;text-align:center;background:var(--s2);outline:none;" onchange="updateStaffLeaves('${mth}','${s.name}',this.value)"></td>
+      <td style="text-align:right;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--rd)">${deduction>0?'−₹'+fmt(deduction):'—'}</td>
+      <td style="text-align:right;font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--gn)">₹${fmt(netSalary)}</td>
+      <td><input type="text" value="${esc(notes)}" placeholder="Notes" style="width:100%;font-family:inherit;font-size:11px;border:1px solid var(--bd2);border-radius:4px;padding:3px 6px;background:var(--s2);outline:none;" onchange="updateStaffNotes('${mth}','${s.name}',this.value)"></td>
+      <td style="text-align:center"><input type="checkbox" ${paid?'checked':''} onchange="toggleStaffPaid('${mth}','${s.name}',this.checked)" style="cursor:pointer;width:16px;height:16px;"></td>
+      <td><button class="del-btn" onclick="deleteStaff('${s.name}')" title="Delete">✕</button></td>
     </tr>`;
   }).join('');
-  setText('staff-total-lbl',`Paid: ₹${fmt(paidTotal)} / Total: ₹${fmt(total)}`);
+  setText('staff-total-lbl',`Net Payable: ₹${fmt(netTotal)} · Paid: ₹${fmt(paidTotal)}`);
+}
+function updateStaffAmt(name,val){
+  const s=staffList.find(x=>x.name===name);
+  if(s){s.amt=parseInt(val)||0;sched();renderStaff();}
+}
+function updateStaffLeaves(mth,name,val){
+  if(!staffLeaves)staffLeaves={};
+  if(!staffLeaves[mth])staffLeaves[mth]={};
+  staffLeaves[mth][name]=parseInt(val)||0;
+  sched();renderStaff();
+}
+function updateStaffNotes(mth,name,val){
+  if(!staffNotes)staffNotes={};
+  if(!staffNotes[mth])staffNotes[mth]={};
+  staffNotes[mth][name]=val;
+  sched();
 }
 function toggleStaffPaid(mth,name,val){
   if(!staffPaid[mth])staffPaid[mth]={};
-  staffPaid[mth][name]=val||undefined;
-  if(!val)delete staffPaid[mth][name];
+  if(val)staffPaid[mth][name]=true;
+  else delete staffPaid[mth][name];
+  sched();renderStaff();
+}
+function addNewStaff(){
+  const name=(el('new-staff-name')?.value||'').trim();
+  const amt=parseInt(el('new-staff-amt')?.value)||0;
+  if(!name){toast('Enter staff name');return;}
+  if(staffList.find(s=>s.name===name)){toast('Staff already exists');return;}
+  staffList.push({name,amt});
+  el('new-staff-name').value='';el('new-staff-amt').value='';
+  sched();renderStaff();toast('✓ '+name+' added');
+}
+function deleteStaff(name){
+  if(!confirm('Delete '+name+'?'))return;
+  staffList=staffList.filter(s=>s.name!==name);
   sched();renderStaff();
 }
 
@@ -1716,9 +1839,60 @@ function printStatement(){
   const body=el('stmt-body');
   if(!body)return;
   const win=window.open('','_blank');
-  win.document.write('<html><head><title>VH Hospital Statement</title><style>body{font-family:Outfit,sans-serif;padding:20px;} @media print{body{padding:0}}</style></head><body>'+body.innerHTML+'</body></html>');
+  win.document.write('<html><head><title>VH Hospital Statement</title><style>body{font-family:Arial,sans-serif;padding:20px;font-size:13px;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ccc;padding:6px 10px;} th{background:#0A3D2E;color:#fff;} @media print{body{padding:0}}</style></head><body>'+body.innerHTML+'</body></html>');
   win.document.close();
   win.print();
+}
+
+function printIPRegister(){
+  const mth=el('ip-mth-sel')?.value||curDate.substring(0,7);
+  const ips=ipData.filter(x=>x.admitDate?.startsWith(mth));
+  const mthLabel=new Date(mth+'-01').toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+  const rows=ips.map((p,i)=>`<tr>
+    <td style="text-align:center">${i+1}</td>
+    <td>${esc(p.name)}</td>
+    <td>${p.admitDate||'—'}</td>
+    <td>${p.dischargeDate||'—'}</td>
+    <td>${esc(p.diagnosis||'—')}</td>
+    <td>${esc(p.anaest||'—')}</td>
+    <td style="text-align:right">₹${fmt(p.bill)}</td>
+    <td style="text-align:right">₹${fmt(p.med)}</td>
+    <td style="text-align:right">₹${fmt((p.bill||0)+(p.med||0))}</td>
+    <td>${p.status||'—'}</td>
+  </tr>`).join('');
+  const totalBill=ips.reduce((s,p)=>s+(p.bill||0),0);
+  const totalMed=ips.reduce((s,p)=>s+(p.med||0),0);
+  const win=window.open('','_blank');
+  win.document.write(`<html><head><title>IP Register ${mthLabel}</title>
+  <style>body{font-family:Arial,sans-serif;padding:20px;font-size:12px;}
+  h2{text-align:center;color:#0A3D2E;margin:0;}h3{text-align:center;color:#666;margin:4px 0 16px;}
+  table{width:100%;border-collapse:collapse;}
+  th{background:#0A3D2E;color:#fff;padding:8px 6px;font-size:11px;}
+  td{border:1px solid #ddd;padding:6px;} tr:nth-child(even){background:#f9f9f9;}
+  tfoot td{font-weight:700;background:#e8f4ec;}
+  @media print{body{padding:10px}}</style></head>
+  <body>
+  <h2>VH HOSPITAL — IP REGISTER</h2>
+  <h3>${mthLabel}</h3>
+  <table>
+  <thead><tr>
+    <th>#</th><th>Patient Name</th><th>Admit</th><th>Discharge</th>
+    <th>Diagnosis</th><th>Anaesthetist</th>
+    <th>Bill ₹</th><th>Med ₹</th><th>Total ₹</th><th>Status</th>
+  </tr></thead>
+  <tbody>${rows}</tbody>
+  <tfoot><tr>
+    <td colspan="6" style="text-align:right">TOTAL</td>
+    <td style="text-align:right">₹${fmt(totalBill)}</td>
+    <td style="text-align:right">₹${fmt(totalMed)}</td>
+    <td style="text-align:right">₹${fmt(totalBill+totalMed)}</td>
+    <td></td>
+  </tr></tfoot>
+  </table>
+  <p style="margin-top:20px;font-size:11px;color:#666;">Printed on ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}</p>
+  <script>window.onload=()=>window.print();</script>
+  </body></html>`);
+  win.document.close();
 }
 
 // ─── PERSONAL ───
@@ -2021,10 +2195,14 @@ async function backupToSheets(){
 
 // ─── LOCAL SAVE ───
 function bundle(){
-  return{opd:allData,pharma:pharmaData,ip:ipData,agencies:agencyList,staff:staffList,staffPaid,pnlExp:pnlExpenses,personal:personalData};
+  return{opd:allData,pharma:pharmaData,ip:ipData,agencies:agencyList,staff:staffList,staffPaid:staffPaid,staffLeaves:staffLeaves,staffNotes:staffNotes,pnlExp:pnlExpenses,personal:personalData};
 }
 function saveLocal(){
-  try{localStorage.setItem('vh_data',JSON.stringify(bundle()));}catch(e){}
+  try{
+    const b=bundle();
+    b._version=(_PRELOAD||{})._version||'unknown';
+    localStorage.setItem('vh_data',JSON.stringify(b));
+  }catch(e){}
 }
 function loadLocal(){
   try{
@@ -2033,21 +2211,76 @@ function loadLocal(){
     else loadBundle({});
   }catch(e){loadBundle({});}
 }
+
+// ─── SELF-UPDATING FILE SAVE ───
+function saveAsFile(){
+  const data=bundle();
+  fetch(location.href)
+    .then(r=>r.text())
+    .then(src=>{
+      const newPreload='const _PRELOAD = '+JSON.stringify(data)+';';
+      const updated=src.replace(/const _PRELOAD = \{[\s\S]*?\};/,newPreload);
+      const blob=new Blob([updated],{type:'text/html;charset=utf-8'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download='VH-Hospital-Tracker.html';
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast('✓ File saved! Replace old file with the new download.');
+      sync('','File saved ✓');
+    })
+    .catch(()=>{
+      // Fallback: JSON backup
+      const blob=new Blob([JSON.stringify(data)],{type:'application/json'});
+      const url=URL.createObjectURL(blob);
+      const a=document.createElement('a');
+      a.href=url; a.download='VH-Data-'+new Date().toISOString().split('T')[0]+'.json';
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast('✓ Data backup saved as JSON.');
+    });
+}
 function loadBundle(d){
-  // Normalise old discharge field name
-  if(d.ip){d.ip.forEach(p=>{if(p.discharge!==undefined&&p.dischargeDate===undefined){p.dischargeDate=p.discharge;delete p.discharge;}});}
-  // Always merge preload as base — live data wins on top
   const base=_PRELOAD||{};
-  const baseOpd=base.opd||{};
-  const incoming=d.opd||{};
-  allData=Object.assign({},baseOpd,incoming);
-  pharmaData=d.pharma||base.pharma||{};
-  ipData=d.ip||base.ip||[];
-  agencyList=d.agencies||base.agencies||[...DEF_AGENCIES];
-  staffList=d.staff||base.staff||[...DEF_STAFF];
-  staffPaid=d.staffPaid||base.staffPaid||{};
-  pnlExpenses=d.pnlExp||base.pnlExp||{};
-  personalData=d.personal||{};
+  // If stored data is older than preload version, ignore it
+  if(d._version && base._version && d._version >= base._version){
+    // Stored data is same version or newer — merge carefully
+    // Normalise discharge field
+    if(d.ip){d.ip.forEach(p=>{if(p.discharge!==undefined&&p.dischargeDate===undefined){p.dischargeDate=p.discharge;delete p.discharge;}});}
+    // OPD: preload base + localStorage only adds NEW days not in preload
+    allData={};
+    const baseOpd=base.opd||{};
+    const incomingOpd=d.opd||{};
+    Object.assign(allData,baseOpd);
+    Object.keys(incomingOpd).forEach(day=>{
+      if(!baseOpd[day]) allData[day]=incomingOpd[day]; // only add truly new days
+    });
+    // Pharma: preload always wins for historical months
+    pharmaData={};
+    Object.assign(pharmaData,d.pharma||{});
+    Object.keys(base.pharma||{}).forEach(mth=>{ pharmaData[mth]=base.pharma[mth]; });
+    // IP: use whichever has more records
+    ipData=(d.ip||[]).length>=(base.ip||[]).length?(d.ip||[]):(base.ip||[]);
+    agencyList=d.agencies||base.agencies||[...DEF_AGENCIES];
+    staffList=d.staff||base.staff||[...DEF_STAFF];
+    staffPaid=d.staffPaid||base.staffPaid||{};
+    pnlExpenses=d.pnlExp||base.pnlExp||{};
+    personalData=d.personal||{};
+  } else {
+    // Stored data is stale or different version — use preload as truth
+    allData=JSON.parse(JSON.stringify(base.opd||{}));
+    pharmaData=JSON.parse(JSON.stringify(base.pharma||{}));
+    ipData=JSON.parse(JSON.stringify(base.ip||[]));
+    agencyList=[...( base.agencies||DEF_AGENCIES)];
+    staffList=[...(base.staff||DEF_STAFF)];
+    staffPaid=JSON.parse(JSON.stringify(base.staffPaid||{}));
+    staffLeaves=JSON.parse(JSON.stringify(d.staffLeaves||base.staffLeaves||{}));
+    staffNotes=JSON.parse(JSON.stringify(d.staffNotes||base.staffNotes||{}));
+    pnlExpenses=JSON.parse(JSON.stringify(base.pnlExp||{}));
+    personalData={};
+  }
   // Recalculate IDs
   rowId=Object.values(allData).flatMap(d=>d.rows||[]).reduce((m,r)=>Math.max(m,(r.id||0)),0)+1;
   ipId=ipData.reduce((m,x)=>Math.max(m,(x.id||0)),0)+1;
@@ -2059,12 +2292,9 @@ function loadBundle(d){
 // ─── SCHEDULED SAVE ───
 function sched(){
   saveLocal();
+  sync('','Saved ✓');
   clearTimeout(saveTimer);
-  saveTimer=setTimeout(()=>{
-    sync('spin','Saving…');
-    // Save to Google Sheets in background
-    saveToSheets();
-  },1500);
+  saveTimer=null;
 }
 
 async function saveToSheets(){
@@ -2152,21 +2382,86 @@ function check9PM(){
 }
 setInterval(check9PM,60000);
 
+// ─── LOCAL FILE SAVE ───
+function saveToFile(){
+  const data = JSON.stringify(bundle());
+  const blob = new Blob([data], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'VH-Hospital-Data.json';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  localStorage.setItem('vh_last_file_save', new Date().toISOString());
+  toast('✓ Saved as VH-Hospital-Data.json');
+  sync('','File saved ✓');
+}
+
+function loadFromFile(){
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = '.json';
+  inp.onchange = e => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const d = JSON.parse(ev.target.result);
+        loadBundle(d);
+        saveLocal();
+        setDate(curDate);
+        toast('✓ Data loaded from ' + file.name);
+        sync('','Loaded ✓');
+      } catch(err) { toast('Error reading file: ' + err.message); }
+    };
+    reader.readAsText(file);
+  };
+  inp.click();
+}
+
 // ─── BOOT ───
 window.onload=()=>{
   document.body.classList.add('tab-day');
   populateMonthSelects();
-  SCRIPT_URL=localStorage.getItem('vh_script_url')||'';
-  // Always load local first — instant, no network
+  // Check if stored data matches current preload version
+  try{
+    const stored = localStorage.getItem('vh_data');
+    if(stored){
+      const parsed = JSON.parse(stored);
+      const storedVer = parsed._version || '0';
+      const preloadVer = (_PRELOAD||{})._version || '0';
+      if(storedVer !== preloadVer){
+        // Version mismatch — clear stale data, use preload
+        localStorage.removeItem('vh_data');
+        console.log('VH: Cleared stale localStorage v'+storedVer+' -> using preload v'+preloadVer);
+      }
+    }
+  }catch(e){}
   loadLocal();
   setDate(curDate);
-  // Then sync safely — never overwrites existing local data
-  if(SCRIPT_URL){
-    bootSync();
-  } else {
-    sync('','Local only — configure ⚙ Settings');
-  }
+  sync('','Ready');
 };
+</script>
+<script>
+// ── SERVICE WORKER ──
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+
+// ── PASSWORD PROTECTION ──
+(function(){
+  const PASS = 'VH@Ram2026';
+  const KEY = 'vh_auth';
+  if(localStorage.getItem(KEY) === PASS) return;
+  document.body.style.display = 'none';
+  const pwd = prompt('VH Hospital Tracker\nEnter password:');
+  if(pwd === PASS){
+    localStorage.setItem(KEY, PASS);
+    document.body.style.display = '';
+  } else {
+    document.body.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;background:#0A3D2E;color:#fff;font-size:18px;">Access Denied</div>';
+  }
+})();
 </script>
 </body>
 </html>
