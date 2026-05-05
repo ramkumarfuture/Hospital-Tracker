@@ -53,6 +53,7 @@ textarea.form-input { resize: vertical; min-height: 70px; line-height: 1.5; }
   } catch(e) {}
 })();
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
 </head>
 <body>
 <div id="root"></div>
@@ -1041,7 +1042,7 @@ function StaffView(){
 // ═══════════════════════════════════════════════════════════════
 const PNL_KEY='vh-pnl-manual';
 const PNL_CATS=[
-  {key:'pharmaSales',label:'Pharma sales',type:'income'},
+  {key:'pharmaSales',label:'Pharma sales (manual top-up)',type:'income'},
   {key:'rent',label:'Rent',type:'expense'},
   {key:'utilities',label:'Utilities',type:'expense'},
   {key:'internet',label:'Internet',type:'expense'},
@@ -1094,8 +1095,13 @@ function PnLView({ allData, ipRecords }){
 
   function computeMonth(y,m){
     const ms=`${y}-${String(m+1).padStart(2,'0')}`;
-    let opd=0;
-    Object.keys(allData).forEach(d=>{ if(d.startsWith(ms))(allData[d]||[]).forEach(r=>{opd+=calcTotal(r);}); });
+    let opd=0; let medsAuto=0;
+    Object.keys(allData).forEach(d=>{
+      if(d.startsWith(ms))(allData[d]||[]).forEach(r=>{
+        opd+=n(r.opd)+n(r.xray)+n(r.popd)+n(r.pt)+n(r.lab);
+        medsAuto+=n(r.medicals);
+      });
+    });
     let ip=0;
     (ipRecords||[]).forEach(r=>{
       const adm=r.admitDate||r.date||'';
@@ -1108,7 +1114,8 @@ function PnLView({ allData, ipRecords }){
     staff.forEach(s=>{ if(monthPaidMap[s.id])staffCash+=salaryFor(s,ms); });
 
     const rec=getMonthRec(ms);
-    const pharmaSales=sumEntries(rec.pharmaSales);
+    const pharmaSalesManual=sumEntries(rec.pharmaSales);
+    const pharmaSales=medsAuto+pharmaSalesManual;
     const rent=sumEntries(rec.rent);
     const utilities=sumEntries(rec.utilities);
     const internet=sumEntries(rec.internet);
@@ -1120,15 +1127,15 @@ function PnLView({ allData, ipRecords }){
     const net=totalIncome-totalExp;
     const margin=totalIncome>0?Math.round((net/totalIncome)*100):0;
 
-    return {ms,opd,ip,pharmaSales,pharmaPaid,staffCash,rent,utilities,internet,electricity,other,
+    return {ms,opd,ip,pharmaSales,medsAuto,pharmaSalesManual,pharmaPaid,staffCash,rent,utilities,internet,electricity,other,
       totalIncome,totalExp,net,margin,rec};
   }
 
   function computeYTD(y,uptoM){
-    const acc={opd:0,ip:0,pharmaSales:0,pharmaPaid:0,staffCash:0,rent:0,utilities:0,internet:0,electricity:0,other:0,totalIncome:0,totalExp:0,net:0};
+    const acc={opd:0,ip:0,pharmaSales:0,medsAuto:0,pharmaSalesManual:0,pharmaPaid:0,staffCash:0,rent:0,utilities:0,internet:0,electricity:0,other:0,totalIncome:0,totalExp:0,net:0};
     for(let m=0;m<=uptoM;m++){
       const x=computeMonth(y,m);
-      ['opd','ip','pharmaSales','pharmaPaid','staffCash','rent','utilities','internet','electricity','other','totalIncome','totalExp','net'].forEach(k=>{acc[k]+=x[k];});
+      ['opd','ip','pharmaSales','medsAuto','pharmaSalesManual','pharmaPaid','staffCash','rent','utilities','internet','electricity','other','totalIncome','totalExp','net'].forEach(k=>{acc[k]+=x[k];});
     }
     acc.margin=acc.totalIncome>0?Math.round((acc.net/acc.totalIncome)*100):0;
     return acc;
@@ -1151,7 +1158,9 @@ function PnLView({ allData, ipRecords }){
     return (
       <tr style={{borderBottom:'1px solid var(--bd)'}}>
         <td style={{padding:'6px 10px',paddingLeft:opts.indent?24:14,color:'var(--t1)',fontWeight:opts.bold?700:400,fontSize:12}}>
-          {label}{opts.muted&&<span style={{color:'var(--t3)',fontSize:10,marginLeft:4}}>(manual)</span>}
+          {label}
+          {opts.muted&&<span style={{color:'var(--t3)',fontSize:10,marginLeft:4}}>(manual)</span>}
+          {opts.subnote&&<div style={{color:'var(--t3)',fontSize:9,marginTop:1,fontFamily:"'Noto Sans Mono',monospace"}}>{opts.subnote}</div>}
         </td>
         <td style={{padding:'6px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",borderLeft:'1px solid var(--bd)',color:opts.bold?'var(--t1)':'var(--t1)',fontWeight:opts.bold?700:400}}>{curV===0?'—':inrZ(curV)}</td>
         <td style={{padding:'6px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",borderLeft:'1px solid var(--bd)',color:'var(--t3)',fontWeight:opts.bold?700:400}}>{prevV===0?'—':inrZ(prevV)}</td>
@@ -1214,7 +1223,7 @@ function PnLView({ allData, ipRecords }){
               </tr>
               {row('OPD',cur.opd,prev.opd,ytd.opd,{indent:true})}
               {row('IP',cur.ip,prev.ip,ytd.ip,{indent:true})}
-              {row('Pharma sales',cur.pharmaSales,prev.pharmaSales,ytd.pharmaSales,{indent:true,muted:true})}
+              {row(`Pharma sales`,cur.pharmaSales,prev.pharmaSales,ytd.pharmaSales,{indent:true,subnote:`auto ${inrZ(cur.medsAuto)} + manual ${inrZ(cur.pharmaSalesManual)}`})}
               <tr style={{background:'var(--g0)',borderBottom:'2px solid var(--bd2)'}}>
                 <td style={{padding:'7px 14px',fontWeight:700}}>Total Income</td>
                 <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:'var(--grntx)',borderLeft:'1px solid var(--bd)'}}>{inrZ(cur.totalIncome)}</td>
@@ -1300,6 +1309,234 @@ function PnLCategoryRow({ cat, entries, total, open, onToggle, onAdd, onDelete }
         </div>
       )}
     </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TRENDS TAB
+// ═══════════════════════════════════════════════════════════════
+
+// Shared P&L month computation (for any tab that needs it)
+function computePnlMonth(y,m,deps){
+  const {allData,ipRecords,pharma,staff,staffPaid,manual}=deps;
+  const ms=`${y}-${String(m+1).padStart(2,'0')}`;
+  let opd=0; let medsAuto=0;
+  Object.keys(allData||{}).forEach(d=>{
+    if(d.startsWith(ms))(allData[d]||[]).forEach(r=>{
+      opd+=n(r.opd)+n(r.xray)+n(r.popd)+n(r.pt)+n(r.lab);
+      medsAuto+=n(r.medicals);
+    });
+  });
+  let ip=0;
+  (ipRecords||[]).forEach(r=>{
+    const adm=r.admitDate||r.date||'';
+    if(adm.startsWith(ms))ip+=n(r.ipBill||r.bill)+n(r.ipMed||r.medicines);
+  });
+  let pharmaPaid=0;
+  (pharma||[]).forEach(e=>{ if(e.date&&e.date.startsWith(ms))pharmaPaid+=n(e.paid); });
+  let staffCash=0;
+  const monthPaidMap=(staffPaid||{})[ms]||{};
+  (staff||[]).forEach(s=>{ if(monthPaidMap[s.id])staffCash+=salaryFor(s,ms); });
+  const rec=migratePnlMonth((manual||{})[ms]||{},ms);
+  const pharmaSalesManual=sumEntries(rec.pharmaSales);
+  const pharmaSales=medsAuto+pharmaSalesManual;
+  const otherExp=sumEntries(rec.rent)+sumEntries(rec.utilities)+sumEntries(rec.internet)+sumEntries(rec.electricity)+sumEntries(rec.other);
+  const totalIncome=opd+ip+pharmaSales;
+  const totalExp=pharmaPaid+staffCash+otherExp;
+  const net=totalIncome-totalExp;
+  return {ms,y,m,opd,ip,pharmaSales,pharmaPaid,staffCash,otherExp,totalIncome,totalExp,net};
+}
+
+function TrendsView({ allData, ipRecords }){
+  const [win,setWin]=useState('12mo'); // '6mo' | '12mo' | 'ytd' | 'all'
+  const [view,setView]=useState('totals'); // 'totals' | 'breakdown'
+  const [staff,setStaff]=useState([]);
+  const [staffPaid,setStaffPaid]=useState({});
+  const [pharma,setPharma]=useState([]);
+  const [manual,setManual]=useState({});
+
+  useEffect(()=>{
+    try{setStaff(JSON.parse(localStorage.getItem(STAFF_KEY)||'[]'));}catch{}
+    try{setStaffPaid(JSON.parse(localStorage.getItem(STAFF_PAID_KEY)||'{}'));}catch{}
+    try{setPharma(JSON.parse(localStorage.getItem(PHARMA_KEY)||'[]'));}catch{}
+    try{setManual(JSON.parse(localStorage.getItem(PNL_KEY)||'{}'));}catch{}
+  },[]);
+
+  // Build month list based on win
+  const td=today(); const ty=parseInt(td.slice(0,4)); const tm=parseInt(td.slice(5,7))-1;
+  function buildMonths(){
+    const out=[];
+    if(win==='all'){
+      // find earliest data month
+      let minMs='9999-99';
+      Object.keys(allData||{}).forEach(d=>{ const ms=d.slice(0,7); if(ms<minMs)minMs=ms; });
+      (ipRecords||[]).forEach(r=>{ const ms=(r.admitDate||r.date||'').slice(0,7); if(ms&&ms<minMs)minMs=ms; });
+      if(minMs==='9999-99'){minMs=`${ty}-${String(tm+1).padStart(2,'0')}`;}
+      const [sy,sm]=minMs.split('-').map(Number);
+      let y=sy, m=sm-1;
+      while(y<ty||(y===ty&&m<=tm)){ out.push({y,m}); m++; if(m>11){m=0;y++;} }
+    }else if(win==='ytd'){
+      for(let m=0;m<=tm;m++)out.push({y:ty,m});
+    }else{
+      const count=win==='6mo'?6:12;
+      let y=ty,m=tm;
+      const buf=[];
+      for(let i=0;i<count;i++){buf.push({y,m});m--;if(m<0){m=11;y--;}}
+      buf.reverse();
+      out.push(...buf);
+    }
+    return out;
+  }
+  const months=buildMonths();
+  const data=months.map(({y,m})=>{
+    const x=computePnlMonth(y,m,{allData,ipRecords,pharma,staff,staffPaid,manual});
+    return {
+      label: `${MONTHS_LONG[m].slice(0,3)} '${String(y).slice(2)}`,
+      Income: x.totalIncome,
+      Expenses: x.totalExp,
+      Net: x.net,
+      OPD: x.opd, IP: x.ip, Pharma: x.pharmaSales,
+      Staff: x.staffCash, PharmaCost: x.pharmaPaid, Other: x.otherExp
+    };
+  });
+
+  // KPIs
+  const totIncome=data.reduce((s,d)=>s+d.Income,0);
+  const totNet=data.reduce((s,d)=>s+d.Net,0);
+  const avgNet=data.length>0?Math.round(totNet/data.length):0;
+
+  // Growth: compare first half to second half
+  let growthPct=null;
+  if(data.length>=2){
+    const mid=Math.floor(data.length/2);
+    const firstHalf=data.slice(0,mid).reduce((s,d)=>s+d.Income,0);
+    const secondHalf=data.slice(mid).reduce((s,d)=>s+d.Income,0);
+    if(firstHalf>0)growthPct=Math.round(((secondHalf-firstHalf)/firstHalf)*100);
+  }
+
+  // Best/worst
+  let best=null,worst=null;
+  data.forEach(d=>{
+    if(!best||d.Net>best.Net)best=d;
+    if(!worst||d.Net<worst.Net)worst=d;
+  });
+
+  // Recharts
+  const R=typeof Recharts!=='undefined'?Recharts:null;
+
+  const T=({label,value,sub,color,bg})=>(
+    <div style={{background:bg||'var(--w)',border:`1px solid ${color||'var(--bd)'}`,borderRadius:7,padding:'8px 14px',flex:'1 1 0',minWidth:0}}>
+      <div style={{fontSize:9,fontWeight:700,color:color||'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',whiteSpace:'nowrap'}}>{label}</div>
+      <div style={{fontSize:20,fontWeight:700,fontFamily:"'Noto Sans Mono',monospace",color:color||'var(--t1)',lineHeight:1.2,marginTop:3}}>{value}</div>
+      {sub&&<div style={{fontSize:10,color:color||'var(--t3)',marginTop:2}}>{sub}</div>}
+    </div>
+  );
+
+  const PillBtn=({active,onClick,children})=>(
+    <button onClick={onClick} style={{background:active?'var(--g7)':'var(--w)',color:active?'#fff':'var(--t2)',border:`1px solid ${active?'var(--g7)':'var(--bd2)'}`,borderRadius:5,padding:'5px 12px',fontSize:11,fontWeight:600,cursor:'pointer'}}>{children}</button>
+  );
+
+  // Format number for axis (₹L)
+  function fmtAxis(v){
+    if(v>=10000000)return `₹${(v/10000000).toFixed(1)}Cr`;
+    if(v>=100000)return `₹${(v/100000).toFixed(1)}L`;
+    if(v>=1000)return `₹${(v/1000).toFixed(0)}K`;
+    return `₹${v}`;
+  }
+
+  // Tooltip content
+  function CustomTooltip({active,payload,label}){
+    if(!active||!payload||payload.length===0)return null;
+    return (
+      <div style={{background:'var(--w)',border:'1px solid var(--bd2)',borderRadius:6,padding:'8px 12px',fontSize:11,boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}>
+        <div style={{fontWeight:700,marginBottom:4,color:'var(--t1)'}}>{label}</div>
+        {payload.map(p=>(
+          <div key={p.dataKey} style={{display:'flex',justifyContent:'space-between',gap:14,color:p.color}}>
+            <span>{p.name}:</span>
+            <span style={{fontFamily:"'Noto Sans Mono',monospace",fontWeight:600}}>{(p.value>=0?'':'')+inrZ(p.value)}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div style={{background:'var(--w)',borderBottom:'1px solid var(--bd)',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10,flexShrink:0}}>
+        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+          <span style={{fontSize:10,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',fontWeight:700,marginRight:4}}>Window</span>
+          <PillBtn active={win==='6mo'} onClick={()=>setWin('6mo')}>6 mo</PillBtn>
+          <PillBtn active={win==='12mo'} onClick={()=>setWin('12mo')}>12 mo</PillBtn>
+          <PillBtn active={win==='ytd'} onClick={()=>setWin('ytd')}>YTD</PillBtn>
+          <PillBtn active={win==='all'} onClick={()=>setWin('all')}>All</PillBtn>
+        </div>
+        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+          <span style={{fontSize:10,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',fontWeight:700,marginRight:4}}>View</span>
+          <PillBtn active={view==='totals'} onClick={()=>setView('totals')}>Totals</PillBtn>
+          <PillBtn active={view==='breakdown'} onClick={()=>setView('breakdown')}>Breakdown</PillBtn>
+        </div>
+      </div>
+
+      {/* KPIs */}
+      <div style={{background:'var(--bg)',borderBottom:'1px solid var(--bd)',padding:'8px 12px',display:'flex',gap:8,flexShrink:0}}>
+        <T label="Avg Monthly Net" value={(avgNet>=0?'+':'')+inrZ(avgNet)} sub={`${data.length} months`} color="var(--blutx)" bg="var(--blubg)"/>
+        <T label="Income Growth" value={growthPct===null?'—':(growthPct>=0?'+':'')+growthPct+'%'} sub="2nd half vs 1st" color="var(--grntx)" bg="var(--grnbg)"/>
+        <T label="Best Month" value={best?(best.Net>=0?'+':'')+inrZ(best.Net):'—'} sub={best?best.label:''} color="var(--ambtx)" bg="var(--ambbg)"/>
+        <T label="Worst Month" value={worst?(worst.Net>=0?'+':'')+inrZ(worst.Net):'—'} sub={worst?worst.label:''} color="var(--redtx)" bg="var(--redbg)"/>
+      </div>
+
+      {/* Chart */}
+      <div style={{flex:1,overflowY:'auto',background:'var(--bg)',padding:12}}>
+        <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,padding:14}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+            <div style={{fontSize:12,fontWeight:700,color:'var(--t1)'}}>
+              Monthly Performance — {win==='6mo'?'Last 6 Months':win==='12mo'?'Last 12 Months':win==='ytd'?`YTD ${ty}`:'All Time'}
+              {view==='breakdown'&&' — Breakdown'}
+            </div>
+          </div>
+          {!R ? (
+            <div style={{textAlign:'center',color:'var(--t3)',padding:40,fontSize:13}}>Loading chart library…</div>
+          ) : data.length===0 ? (
+            <div style={{textAlign:'center',color:'var(--t3)',padding:40,fontSize:13}}>No data in this win</div>
+          ) : (
+            <div style={{width:'100%',height:380}}>
+              <R.ResponsiveContainer width="100%" height="100%">
+                {view==='totals' ? (
+                  <R.ComposedChart data={data} margin={{top:10,right:20,left:10,bottom:10}}>
+                    <R.CartesianGrid strokeDasharray="3 3" stroke="#e8e0c8"/>
+                    <R.XAxis dataKey="label" tick={{fontSize:10,fill:'#555'}}/>
+                    <R.YAxis tick={{fontSize:10,fill:'#555'}} tickFormatter={fmtAxis}/>
+                    <R.Tooltip content={<CustomTooltip/>}/>
+                    <R.Legend wrapperStyle={{fontSize:11}}/>
+                    <R.Bar dataKey="Income" fill="#66bb6a" radius={[3,3,0,0]}/>
+                    <R.Bar dataKey="Expenses" fill="#ef5350" radius={[3,3,0,0]}/>
+                    <R.Line type="monotone" dataKey="Net" stroke="#1565c0" strokeWidth={2.5} dot={{r:4}}/>
+                  </R.ComposedChart>
+                ) : (
+                  <R.ComposedChart data={data} margin={{top:10,right:20,left:10,bottom:10}}>
+                    <R.CartesianGrid strokeDasharray="3 3" stroke="#e8e0c8"/>
+                    <R.XAxis dataKey="label" tick={{fontSize:10,fill:'#555'}}/>
+                    <R.YAxis tick={{fontSize:10,fill:'#555'}} tickFormatter={fmtAxis}/>
+                    <R.Tooltip content={<CustomTooltip/>}/>
+                    <R.Legend wrapperStyle={{fontSize:11}}/>
+                    <R.Bar dataKey="OPD" stackId="inc" fill="#66bb6a"/>
+                    <R.Bar dataKey="IP" stackId="inc" fill="#2e7d32"/>
+                    <R.Bar dataKey="Pharma" stackId="inc" fill="#a5d6a7"/>
+                    <R.Bar dataKey="PharmaCost" stackId="exp" fill="#ef9a9a" name="Pharma cost"/>
+                    <R.Bar dataKey="Staff" stackId="exp" fill="#c62828"/>
+                    <R.Bar dataKey="Other" stackId="exp" fill="#ef5350"/>
+                    <R.Line type="monotone" dataKey="Net" stroke="#1565c0" strokeWidth={2.5} dot={{r:4}}/>
+                  </R.ComposedChart>
+                )}
+              </R.ResponsiveContainer>
+            </div>
+          )}
+          <div style={{textAlign:'center',fontSize:10,color:'var(--t3)',marginTop:8,fontStyle:'italic'}}>
+            {view==='totals'?'Hover to see exact figures · Toggle "Breakdown" to see income/expense components':'Income stacks (greens) above zero · Expense stacks (reds) · Net line shows profit'}
+          </div>
+        </div>
+      </div>
+    </>
   );
 }
 
@@ -1399,7 +1636,7 @@ function SettingsView({ allData, ipRecords, syncStatus, setSyncStatus }) {
 const TABS = ['Day','Month','IP','Pharma','Staff','P&L','Trends','Export','Personal','Statement','Annual','Settings'];
 
 function TabBar({ active, onTab, syncDot }) {
-  const built=['Day','Month','IP','Pharma','Staff','P&L','Settings'];
+  const built=['Day','Month','IP','Pharma','Staff','P&L','Trends','Settings'];
   return (
     <div style={{display:'flex',alignItems:'stretch',background:'var(--g7)',paddingLeft:14,gap:2,flexShrink:0,width:'100%'}}>
       <div style={{display:'flex',alignItems:'center',gap:7,paddingRight:16,borderRight:'1px solid rgba(255,255,255,0.15)',marginRight:6}}>
@@ -1440,6 +1677,7 @@ function App() {
       {tab==='Pharma'&&<PharmaView/>}
       {tab==='Staff'&&<StaffView/>}
       {tab==='P&L'&&<PnLView allData={allData} ipRecords={ipRecords}/>}
+      {tab==='Trends'&&<TrendsView allData={allData} ipRecords={ipRecords}/>}
       {tab==='Settings'&&<SettingsView allData={allData} ipRecords={ipRecords} syncStatus={syncStatus} setSyncStatus={setSyncStatus}/>}
     </div>
   );
