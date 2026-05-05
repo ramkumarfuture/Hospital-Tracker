@@ -657,6 +657,191 @@ function IpView({ ipRecords, setIpRecords }) {
 }
 
 // ═══════════════════════════════════════════════════════════════
+// PHARMA TAB
+// ═══════════════════════════════════════════════════════════════
+const PHARMA_KEY='vh-pharma-data';
+const PHARMA_AGENCIES_KEY='vh-pharma-agencies';
+
+function PharmaView(){
+  const td=today(); const ty=parseInt(td.slice(0,4)); const tm=parseInt(td.slice(5,7))-1;
+  const [year,setYear]=useState(ty); const [month,setMonth]=useState(tm);
+  const [entries,setEntries]=useState(()=>{try{return JSON.parse(localStorage.getItem(PHARMA_KEY)||'[]');}catch{return [];}});
+  const [agencies,setAgencies]=useState(()=>{try{return JSON.parse(localStorage.getItem(PHARMA_AGENCIES_KEY)||'[]');}catch{return [];}});
+  const [newAgency,setNewAgency]=useState('');
+
+  function saveEntries(e){setEntries(e);try{localStorage.setItem(PHARMA_KEY,JSON.stringify(e));}catch{}}
+  function saveAgencies(a){setAgencies(a);try{localStorage.setItem(PHARMA_AGENCIES_KEY,JSON.stringify(a));}catch{}}
+
+  const monthStr=`${year}-${String(month+1).padStart(2,'0')}`;
+  const monthEntries=entries.filter(e=>e.date&&e.date.startsWith(monthStr));
+
+  // All agencies = managed list ∪ agencies seen in entries
+  const allAgencyNames=[...new Set([...agencies,...entries.map(e=>e.agency).filter(Boolean)])].sort();
+
+  function addAgency(){
+    const name=newAgency.trim();
+    if(!name){return;}
+    if(agencies.includes(name)){setNewAgency('');return;}
+    saveAgencies([...agencies,name]);
+    setNewAgency('');
+  }
+
+  function addEntry(agency,date,amount,paid,mode){
+    if(!date||!amount||n(amount)<=0){alert('Date and amount required');return;}
+    if(!agencies.includes(agency))saveAgencies([...agencies,agency]);
+    saveEntries([...entries,{id:uid(),date,agency,amount:n(amount),paid:n(paid),mode}]);
+  }
+
+  function deleteEntry(id){if(confirm('Delete this entry?'))saveEntries(entries.filter(e=>e.id!==id));}
+
+  function bulkSetPaid(agency,total){
+    // Distribute oldest-first across this agency's entries (all months, oldest first)
+    const t=n(total);
+    if(t<0){alert('Invalid amount');return;}
+    const agencyEntries=entries.filter(e=>e.agency===agency).sort((a,b)=>a.date.localeCompare(b.date));
+    let remaining=t;
+    const updated=new Map();
+    for(const e of agencyEntries){
+      const can=Math.min(remaining,e.amount);
+      updated.set(e.id,can);
+      remaining-=can;
+      if(remaining<=0)break;
+    }
+    saveEntries(entries.map(e=>e.agency===agency?{...e,paid:updated.has(e.id)?updated.get(e.id):0}:e));
+  }
+
+  // Month totals
+  const totAmt=monthEntries.reduce((s,e)=>s+n(e.amount),0);
+  const totPaid=monthEntries.reduce((s,e)=>s+n(e.paid),0);
+  const totDue=totAmt-totPaid;
+
+  return (
+    <>
+      <MonthYearNav year={year} month={month} onChange={(y,m)=>{setYear(y);setMonth(m);}}>
+        <div style={{display:'flex',alignItems:'center',gap:14,fontSize:12}}>
+          <span style={{color:'var(--t2)'}}>Total: <b style={{color:'var(--t1)',fontFamily:"'Noto Sans Mono',monospace"}}>{inrZ(totAmt)}</b></span>
+          <span style={{color:'var(--t2)'}}>Paid: <b style={{color:'var(--grntx)',fontFamily:"'Noto Sans Mono',monospace"}}>{inrZ(totPaid)}</b></span>
+          <span style={{color:'var(--t2)'}}>Due: <b style={{color:'var(--redtx)',fontFamily:"'Noto Sans Mono',monospace"}}>{inrZ(totDue)}</b></span>
+        </div>
+      </MonthYearNav>
+
+      {/* Add agency row */}
+      <div style={{background:'var(--bg)',borderBottom:'1px solid var(--bd)',padding:'8px 12px',display:'flex',gap:8,alignItems:'center',flexShrink:0}}>
+        <input value={newAgency} onChange={e=>setNewAgency(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')addAgency();}} placeholder="New agency name"
+          style={{flex:'0 0 240px',border:'1px solid var(--bd2)',borderRadius:7,padding:'7px 10px',fontSize:12,background:'var(--w)',outline:'none'}}/>
+        <button onClick={addAgency} style={{background:'var(--g7)',color:'#fff',border:'none',borderRadius:7,padding:'7px 14px',cursor:'pointer',fontSize:12,fontWeight:700}}>+ Add Agency</button>
+        <span style={{color:'var(--t3)',fontSize:11,marginLeft:8}}>{allAgencyNames.length} agencies</span>
+      </div>
+
+      {/* Cards grid */}
+      <div style={{flex:1,overflowY:'auto',background:'var(--bg)',padding:12}}>
+        {allAgencyNames.length===0 ? (
+          <div style={{textAlign:'center',color:'var(--t3)',padding:'40px 0',fontSize:13}}>No agencies yet. Add one above to get started.</div>
+        ) : (
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:10}}>
+            {allAgencyNames.map(ag=><AgencyCard key={ag} agency={ag} monthEntries={monthEntries.filter(e=>e.agency===ag)} allEntries={entries.filter(e=>e.agency===ag)} onAdd={(d,a,p,m)=>addEntry(ag,d,a,p,m)} onDelete={deleteEntry} onBulkPaid={t=>bulkSetPaid(ag,t)}/>)}
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
+function AgencyCard({ agency, monthEntries, allEntries, onAdd, onDelete, onBulkPaid }){
+  const [date,setDate]=useState(today());
+  const [amount,setAmount]=useState('');
+  const [paid,setPaid]=useState('');
+  const [mode,setMode]=useState('Cash');
+  const [editingPaid,setEditingPaid]=useState(false);
+  const [paidDraft,setPaidDraft]=useState('');
+
+  // Card shows month totals (matches header), but bulk paid edits across all months oldest-first
+  const totAmt=monthEntries.reduce((s,e)=>s+n(e.amount),0);
+  const totPaid=monthEntries.reduce((s,e)=>s+n(e.paid),0);
+  const due=totAmt-totPaid;
+
+  function submit(){
+    onAdd(date,amount,paid||0,mode);
+    setAmount(''); setPaid(''); // keep date+mode
+  }
+
+  function savePaid(){
+    onBulkPaid(paidDraft);
+    setEditingPaid(false);
+  }
+
+  return (
+    <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,padding:12,display:'flex',flexDirection:'column',gap:10}}>
+      {/* Header */}
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+        <div style={{minWidth:0,flex:1}}>
+          <div style={{fontWeight:700,fontSize:13,color:'var(--t1)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{agency}</div>
+          <div style={{fontSize:11,color:'var(--t3)',fontFamily:"'Noto Sans Mono',monospace",marginTop:2}}>
+            {inrZ(totAmt)}{due>0&&<> · <span style={{color:'var(--redtx)'}}>Due {inrZ(due)}</span></>}
+          </div>
+        </div>
+        <div style={{textAlign:'right',fontSize:11,minWidth:80}}>
+          <div style={{color:'var(--t3)'}}>Paid</div>
+          {editingPaid ? (
+            <div style={{display:'flex',gap:3,alignItems:'center',marginTop:2}}>
+              <input type="number" value={paidDraft} onChange={e=>setPaidDraft(e.target.value)} autoFocus
+                style={{width:70,border:'1px solid var(--bd2)',borderRadius:5,padding:'2px 5px',fontSize:11,fontFamily:"'Noto Sans Mono',monospace",textAlign:'right'}}/>
+              <button onClick={savePaid} style={{background:'var(--g7)',color:'#fff',border:'none',borderRadius:4,padding:'2px 6px',fontSize:10,cursor:'pointer'}}>✓</button>
+              <button onClick={()=>setEditingPaid(false)} style={{background:'var(--w)',border:'1px solid var(--bd2)',borderRadius:4,padding:'2px 6px',fontSize:10,cursor:'pointer'}}>×</button>
+            </div>
+          ) : (
+            <div style={{display:'flex',gap:4,alignItems:'center',justifyContent:'flex-end',marginTop:2}}>
+              <span style={{color:'var(--grntx)',fontWeight:700,fontFamily:"'Noto Sans Mono',monospace"}}>{inrZ(totPaid)}</span>
+              <span onClick={()=>{setPaidDraft(String(totPaid));setEditingPaid(true);}} style={{cursor:'pointer',color:'var(--t3)',fontSize:11}} title="Bulk set paid (distributes oldest-first)">✎</span>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Entries list */}
+      <div style={{borderTop:'1px solid var(--bd)',paddingTop:8,minHeight:30}}>
+        {monthEntries.length===0 ? (
+          <div style={{textAlign:'center',color:'var(--dis)',fontSize:11,padding:'8px 0'}}>No entries this month</div>
+        ) : (
+          monthEntries.sort((a,b)=>a.date.localeCompare(b.date)).map(e=>{
+            const eDue=n(e.amount)-n(e.paid);
+            return (
+              <div key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11,padding:'3px 0',gap:6}}>
+                <span style={{color:'var(--t3)',whiteSpace:'nowrap'}}>{fmtDateShort(e.date).slice(0,5)} · {e.mode==='Bank Transfer'?'BT':'Cash'}</span>
+                <span style={{display:'flex',alignItems:'center',gap:6,fontFamily:"'Noto Sans Mono',monospace"}}>
+                  <span style={{color:eDue>0?'var(--redtx)':'var(--t1)'}}>{inrZ(e.amount)}</span>
+                  {n(e.paid)>0&&<span style={{color:'var(--grntx)',fontSize:10}}>p {inrZ(e.paid)}</span>}
+                  <span onClick={()=>onDelete(e.id)} style={{cursor:'pointer',color:'var(--red)',fontSize:13,lineHeight:1}}>×</span>
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {/* Add row */}
+      <div style={{display:'grid',gridTemplateColumns:'1fr 80px 60px 28px',gap:4,alignItems:'center'}}>
+        <input type="date" value={date} onChange={e=>setDate(e.target.value)}
+          style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'5px 6px',fontSize:11,minWidth:0}}/>
+        <input type="number" placeholder="Amount" value={amount} onChange={e=>setAmount(e.target.value)} onKeyDown={e=>{if(e.key==='Enter'&&amount)submit();}}
+          style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'5px 6px',fontSize:11,fontFamily:"'Noto Sans Mono',monospace",textAlign:'right',minWidth:0}}/>
+        <select value={mode} onChange={e=>setMode(e.target.value)}
+          style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'5px 4px',fontSize:11,minWidth:0,background:'var(--w)'}}>
+          <option value="Cash">Cash</option>
+          <option value="Bank Transfer">BT</option>
+        </select>
+        <button onClick={submit} disabled={!amount} style={{background:amount?'var(--g6)':'var(--dis)',color:'#fff',border:'none',borderRadius:5,padding:'5px 0',cursor:amount?'pointer':'not-allowed',fontSize:14,fontWeight:700,lineHeight:1}}>+</button>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'1fr 80px',gap:4,marginTop:-6}}>
+        <span style={{fontSize:10,color:'var(--t3)',paddingLeft:2}}>Optional: paid now</span>
+        <input type="number" placeholder="Paid" value={paid} onChange={e=>setPaid(e.target.value)}
+          style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'4px 6px',fontSize:11,fontFamily:"'Noto Sans Mono',monospace",textAlign:'right'}}/>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // SETTINGS TAB
 // ═══════════════════════════════════════════════════════════════
 function SettingsView({ allData, ipRecords, syncStatus, setSyncStatus }) {
@@ -749,10 +934,10 @@ function SettingsView({ allData, ipRecords, syncStatus, setSyncStatus }) {
 // ═══════════════════════════════════════════════════════════════
 // APP SHELL
 // ═══════════════════════════════════════════════════════════════
-const TABS = ['Day','Month','IP','Reports','Settings'];
+const TABS = ['Day','Month','IP','Pharma','Staff','P&L','Trends','Export','Personal','Statement','Annual','Settings'];
 
 function TabBar({ active, onTab, syncDot }) {
-  const built=['Day','Month','IP','Settings'];
+  const built=['Day','Month','IP','Pharma','Settings'];
   return (
     <div style={{display:'flex',alignItems:'stretch',background:'var(--g7)',paddingLeft:14,gap:2,flexShrink:0,width:'100%'}}>
       <div style={{display:'flex',alignItems:'center',gap:7,paddingRight:16,borderRight:'1px solid rgba(255,255,255,0.15)',marginRight:6}}>
@@ -790,6 +975,7 @@ function App() {
       {tab==='Day'&&<DayView allData={allData} setAllData={setAllData} date={date} setDate={setDate}/>}
       {tab==='Month'&&<MonthView allData={allData} date={date} setDate={setDate} setTab={setTab}/>}
       {tab==='IP'&&<IpView ipRecords={ipRecords} setIpRecords={setIpRecords}/>}
+      {tab==='Pharma'&&<PharmaView/>}
       {tab==='Settings'&&<SettingsView allData={allData} ipRecords={ipRecords} syncStatus={syncStatus} setSyncStatus={setSyncStatus}/>}
     </div>
   );
