@@ -842,6 +842,468 @@ function AgencyCard({ agency, monthEntries, allEntries, onAdd, onDelete, onBulkP
 }
 
 // ═══════════════════════════════════════════════════════════════
+// STAFF TAB
+// ═══════════════════════════════════════════════════════════════
+const STAFF_KEY='vh-staff-data';
+const STAFF_PAID_KEY='vh-staff-paid';
+
+// Get salary effective for a given month (YYYY-MM) by walking salaryHistory
+function salaryFor(staff,monthStr){
+  if(!staff.salaryHistory||staff.salaryHistory.length===0)return 0;
+  const sorted=[...staff.salaryHistory].sort((a,b)=>a.effectiveMonth.localeCompare(b.effectiveMonth));
+  let cur=0;
+  for(const h of sorted){
+    if(h.effectiveMonth<=monthStr)cur=n(h.amount);
+    else break;
+  }
+  return cur;
+}
+
+// Months between two YYYY-MM strings
+function monthsBetween(fromYM,toYM){
+  if(!fromYM||!toYM)return 0;
+  const [fy,fm]=fromYM.split('-').map(Number);
+  const [ty,tm]=toYM.split('-').map(Number);
+  return (ty-fy)*12+(tm-fm);
+}
+
+function StaffView(){
+  const td=today(); const ty=parseInt(td.slice(0,4)); const tm=parseInt(td.slice(5,7))-1;
+  const [year,setYear]=useState(ty); const [month,setMonth]=useState(tm);
+  const [staff,setStaff]=useState(()=>{try{return JSON.parse(localStorage.getItem(STAFF_KEY)||'[]');}catch{return [];}});
+  const [paidMap,setPaidMap]=useState(()=>{try{return JSON.parse(localStorage.getItem(STAFF_PAID_KEY)||'{}');}catch{return {};}});
+  const [newName,setNewName]=useState('');
+  const [newSalary,setNewSalary]=useState('');
+  const [newJoin,setNewJoin]=useState(today());
+
+  function saveStaff(s){setStaff(s);try{localStorage.setItem(STAFF_KEY,JSON.stringify(s));}catch{}}
+  function savePaid(p){setPaidMap(p);try{localStorage.setItem(STAFF_PAID_KEY,JSON.stringify(p));}catch{}}
+
+  const monthStr=`${year}-${String(month+1).padStart(2,'0')}`;
+  const monthPaid=paidMap[monthStr]||{};
+
+  function addStaff(){
+    const name=newName.trim();
+    if(!name||!newSalary||n(newSalary)<=0){alert('Name and salary required');return;}
+    const joinMonth=(newJoin||today()).slice(0,7);
+    saveStaff([...staff,{
+      id:uid(), name, joinDate:newJoin||today(),
+      salaryHistory:[{effectiveMonth:joinMonth,amount:n(newSalary)}]
+    }]);
+    setNewName(''); setNewSalary(''); setNewJoin(today());
+  }
+
+  function deleteStaff(id){
+    if(!confirm('Delete this staff member? Past payment records remain.'))return;
+    saveStaff(staff.filter(s=>s.id!==id));
+  }
+
+  function updateSalary(id,newAmount){
+    const amt=n(newAmount);
+    if(amt<=0)return;
+    saveStaff(staff.map(s=>{
+      if(s.id!==id)return s;
+      const hist=[...(s.salaryHistory||[])];
+      const existing=hist.findIndex(h=>h.effectiveMonth===monthStr);
+      if(existing>=0)hist[existing]={effectiveMonth:monthStr,amount:amt};
+      else hist.push({effectiveMonth:monthStr,amount:amt});
+      return {...s,salaryHistory:hist};
+    }));
+  }
+
+  function togglePaid(id){
+    const next={...paidMap,[monthStr]:{...monthPaid,[id]:!monthPaid[id]}};
+    savePaid(next);
+  }
+
+  // Hike check: 12+ months since last salary change OR join date
+  function lastChangeMonth(s){
+    if(!s.salaryHistory||s.salaryHistory.length===0)return s.joinDate?s.joinDate.slice(0,7):'';
+    return [...s.salaryHistory].sort((a,b)=>b.effectiveMonth.localeCompare(a.effectiveMonth))[0].effectiveMonth;
+  }
+  function needsHike(s){
+    const last=lastChangeMonth(s);
+    return monthsBetween(last,monthStr)>=12;
+  }
+  const hikeList=staff.filter(needsHike);
+
+  // Totals (for current viewing month)
+  const rows=staff.map(s=>({...s,salary:salaryFor(s,monthStr),paid:!!monthPaid[s.id]}));
+  const totMonthly=rows.reduce((sum,r)=>sum+r.salary,0);
+  const totPaid=rows.filter(r=>r.paid).reduce((sum,r)=>sum+r.salary,0);
+  const totPending=totMonthly-totPaid;
+  const paidCount=rows.filter(r=>r.paid).length;
+  const totAnnual=totMonthly*12;
+
+  const T=({label,value,sub,color,bg})=>(
+    <div style={{background:bg||'var(--w)',border:`1px solid ${color||'var(--bd)'}`,borderRadius:7,padding:'8px 14px',flex:'1 1 0',minWidth:0}}>
+      <div style={{fontSize:9,fontWeight:700,color:color||'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',whiteSpace:'nowrap'}}>{label}</div>
+      <div style={{fontSize:20,fontWeight:700,fontFamily:"'Noto Sans Mono',monospace",color:color||'var(--t1)',lineHeight:1.2,marginTop:3}}>{value}</div>
+      {sub&&<div style={{fontSize:10,color:color||'var(--t3)',marginTop:2}}>{sub}</div>}
+    </div>
+  );
+
+  return (
+    <>
+      <MonthYearNav year={year} month={month} onChange={(y,m)=>{setYear(y);setMonth(m);}}/>
+
+      {/* KPI tiles */}
+      <div style={{background:'var(--bg)',borderBottom:'1px solid var(--bd)',padding:'8px 12px',display:'flex',gap:8,flexShrink:0,width:'100%'}}>
+        <T label="Total Monthly" value={inrZ(totMonthly)} sub={`${staff.length} staff`} color="var(--ambtx)" bg="var(--ambbg)"/>
+        <T label="Paid This Month" value={inrZ(totPaid)} sub={`${paidCount} paid`} color="var(--grntx)" bg="var(--grnbg)"/>
+        <T label="Pending" value={inrZ(totPending)} sub={`${staff.length-paidCount} unpaid`} color="var(--redtx)" bg="var(--redbg)"/>
+        <T label="Annual Cost" value={inrZ(totAnnual)} color="var(--blutx)" bg="var(--blubg)"/>
+      </div>
+
+      {/* Hike banner */}
+      {hikeList.length>0&&(
+        <div style={{background:'var(--ambbg)',borderBottom:'1px solid var(--amb)',padding:'8px 14px',fontSize:12,color:'var(--ambtx)',flexShrink:0}}>
+          <b>⚠ {hikeList.length} staff due for salary hike review</b> — {hikeList.map(s=>s.name).join(', ')}
+        </div>
+      )}
+
+      {/* Add staff */}
+      <div style={{background:'var(--w)',borderBottom:'1px solid var(--bd)',padding:'10px 14px',display:'flex',gap:8,alignItems:'center',flexShrink:0}}>
+        <span style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',marginRight:4}}>Add</span>
+        <input value={newName} onChange={e=>setNewName(e.target.value)} placeholder="Staff name"
+          style={{flex:'1 1 200px',border:'1px solid var(--bd2)',borderRadius:7,padding:'7px 10px',fontSize:12,background:'var(--w)',outline:'none'}}/>
+        <input type="number" value={newSalary} onChange={e=>setNewSalary(e.target.value)} placeholder="Monthly ₹"
+          style={{flex:'0 0 120px',border:'1px solid var(--bd2)',borderRadius:7,padding:'7px 10px',fontSize:12,fontFamily:"'Noto Sans Mono',monospace",textAlign:'right',outline:'none'}}/>
+        <input type="date" value={newJoin} onChange={e=>setNewJoin(e.target.value)} title="Join date"
+          style={{flex:'0 0 130px',border:'1px solid var(--bd2)',borderRadius:7,padding:'7px 10px',fontSize:12,outline:'none'}}/>
+        <button onClick={addStaff} style={{background:'var(--g7)',color:'#fff',border:'none',borderRadius:7,padding:'7px 16px',cursor:'pointer',fontSize:12,fontWeight:700,whiteSpace:'nowrap'}}>+ Add</button>
+      </div>
+
+      {/* Table */}
+      <div style={{flex:1,overflowY:'auto',background:'var(--bg)',padding:12}}>
+        <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,overflow:'hidden'}}>
+          <div style={{background:'var(--g7)',color:'#fff',padding:'9px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:12,fontWeight:700}}>
+            <span>Staff Salary Register — {MONTHS_LONG[month]} {year}</span>
+            <span style={{fontFamily:"'Noto Sans Mono',monospace",fontWeight:500,fontSize:11}}>
+              Paid {inrZ(totPaid)} / {inrZ(totMonthly)} · Pending {inrZ(totPending)}
+            </span>
+          </div>
+          {staff.length===0 ? (
+            <div style={{textAlign:'center',color:'var(--t3)',padding:40,fontSize:13}}>No staff yet. Add one above.</div>
+          ) : (
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+              <thead>
+                <tr style={{background:'var(--g0)',borderBottom:'1px solid var(--bd)'}}>
+                  <th style={{padding:'7px 10px',textAlign:'left',width:30,color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>#</th>
+                  <th style={{padding:'7px 10px',textAlign:'left',color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Name</th>
+                  <th style={{padding:'7px 10px',textAlign:'left',width:90,color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Joined</th>
+                  <th style={{padding:'7px 10px',textAlign:'right',width:120,color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Monthly ₹</th>
+                  <th style={{padding:'7px 10px',textAlign:'right',width:110,color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Annual ₹</th>
+                  <th style={{padding:'7px 10px',textAlign:'center',width:90,color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Paid?</th>
+                  <th style={{padding:'7px 10px',width:34}}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.sort((a,b)=>a.name.localeCompare(b.name)).map((r,i)=>{
+                  const hike=needsHike(r);
+                  const joinShort=r.joinDate?(()=>{const d=new Date(r.joinDate+'T00:00:00');return `${MONTHS_LONG[d.getMonth()].slice(0,3)} '${String(d.getFullYear()).slice(2)}`;})():'—';
+                  return (
+                    <tr key={r.id} style={{borderBottom:'1px solid var(--bd)'}}>
+                      <td style={{padding:'7px 10px',color:'var(--t3)'}}>{i+1}</td>
+                      <td style={{padding:'7px 10px',fontWeight:600,color:'var(--t1)'}}>
+                        {r.name}
+                        {hike&&<span style={{background:'var(--ambbg)',color:'var(--ambtx)',fontSize:9,padding:'1px 6px',borderRadius:3,marginLeft:6,fontWeight:700,letterSpacing:'0.3px'}}>HIKE?</span>}
+                      </td>
+                      <td style={{padding:'7px 10px',color:'var(--t3)',fontSize:11}}>{joinShort}</td>
+                      <td style={{padding:'4px 10px',textAlign:'right'}}>
+                        <input type="number" defaultValue={r.salary} onBlur={e=>{if(n(e.target.value)!==r.salary)updateSalary(r.id,e.target.value);}}
+                          style={{width:'100%',border:'1px solid var(--bd2)',borderRadius:5,padding:'5px 8px',fontSize:12,fontFamily:"'Noto Sans Mono',monospace",textAlign:'right',outline:'none'}}/>
+                      </td>
+                      <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--t1)'}}>{inrZ(r.salary*12)}</td>
+                      <td style={{padding:'7px 10px',textAlign:'center'}}>
+                        <span onClick={()=>togglePaid(r.id)}
+                          style={{display:'inline-block',background:r.paid?'var(--grnbg)':'var(--redbg)',color:r.paid?'var(--grntx)':'var(--redtx)',fontSize:11,fontWeight:600,padding:'3px 12px',borderRadius:12,cursor:'pointer',userSelect:'none',minWidth:70}}>
+                          {r.paid?'● Paid':'○ Unpaid'}
+                        </span>
+                      </td>
+                      <td style={{padding:'7px 10px',textAlign:'center'}}>
+                        <span onClick={()=>deleteStaff(r.id)} style={{cursor:'pointer',color:'var(--red)',fontSize:14}}>🗑</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// P&L TAB (Cash basis)
+// ═══════════════════════════════════════════════════════════════
+const PNL_KEY='vh-pnl-manual';
+const PNL_CATS=[
+  {key:'pharmaSales',label:'Pharma sales',type:'income'},
+  {key:'rent',label:'Rent',type:'expense'},
+  {key:'utilities',label:'Utilities',type:'expense'},
+  {key:'internet',label:'Internet',type:'expense'},
+  {key:'electricity',label:'Electricity',type:'expense'},
+  {key:'other',label:'Other',type:'expense'}
+];
+
+// Migrate old shape {pharmaSales: 1000} -> {pharmaSales: [{id, date, desc:'Migrated', amount:1000}]}
+function migratePnlMonth(rec,monthStr){
+  const out={};
+  for(const c of PNL_CATS){
+    const v=rec[c.key];
+    if(Array.isArray(v))out[c.key]=v;
+    else if(typeof v==='number'&&v>0)out[c.key]=[{id:uid(),date:monthStr+'-01',desc:'Migrated',amount:v}];
+    else out[c.key]=[];
+  }
+  return out;
+}
+function sumEntries(arr){return (arr||[]).reduce((s,e)=>s+n(e.amount),0);}
+
+function PnLView({ allData, ipRecords }){
+  const td=today(); const ty=parseInt(td.slice(0,4)); const tm=parseInt(td.slice(5,7))-1;
+  const [year,setYear]=useState(ty); const [month,setMonth]=useState(tm);
+  const [manual,setManual]=useState(()=>{try{return JSON.parse(localStorage.getItem(PNL_KEY)||'{}');}catch{return {};}});
+  const [staff,setStaff]=useState([]);
+  const [staffPaid,setStaffPaid]=useState({});
+  const [pharma,setPharma]=useState([]);
+  const [expanded,setExpanded]=useState({}); // {catKey: bool}
+
+  useEffect(()=>{
+    try{setStaff(JSON.parse(localStorage.getItem(STAFF_KEY)||'[]'));}catch{}
+    try{setStaffPaid(JSON.parse(localStorage.getItem(STAFF_PAID_KEY)||'{}'));}catch{}
+    try{setPharma(JSON.parse(localStorage.getItem(PHARMA_KEY)||'[]'));}catch{}
+  },[year,month]);
+
+  function saveManual(m){setManual(m);try{localStorage.setItem(PNL_KEY,JSON.stringify(m));}catch{}}
+  function getMonthRec(ms){return migratePnlMonth(manual[ms]||{},ms);}
+
+  function addEntry(ms,catKey,date,desc,amount){
+    if(!date||!amount||n(amount)<=0){alert('Date and amount required');return;}
+    const rec=getMonthRec(ms);
+    const list=[...(rec[catKey]||[]),{id:uid(),date,desc:desc||'',amount:n(amount)}];
+    saveManual({...manual,[ms]:{...rec,[catKey]:list}});
+  }
+  function deleteEntry(ms,catKey,id){
+    const rec=getMonthRec(ms);
+    const list=(rec[catKey]||[]).filter(e=>e.id!==id);
+    saveManual({...manual,[ms]:{...rec,[catKey]:list}});
+  }
+
+  function computeMonth(y,m){
+    const ms=`${y}-${String(m+1).padStart(2,'0')}`;
+    let opd=0;
+    Object.keys(allData).forEach(d=>{ if(d.startsWith(ms))(allData[d]||[]).forEach(r=>{opd+=calcTotal(r);}); });
+    let ip=0;
+    (ipRecords||[]).forEach(r=>{
+      const adm=r.admitDate||r.date||'';
+      if(adm.startsWith(ms))ip+=n(r.ipBill||r.bill)+n(r.ipMed||r.medicines);
+    });
+    let pharmaPaid=0;
+    pharma.forEach(e=>{ if(e.date&&e.date.startsWith(ms))pharmaPaid+=n(e.paid); });
+    let staffCash=0;
+    const monthPaidMap=staffPaid[ms]||{};
+    staff.forEach(s=>{ if(monthPaidMap[s.id])staffCash+=salaryFor(s,ms); });
+
+    const rec=getMonthRec(ms);
+    const pharmaSales=sumEntries(rec.pharmaSales);
+    const rent=sumEntries(rec.rent);
+    const utilities=sumEntries(rec.utilities);
+    const internet=sumEntries(rec.internet);
+    const electricity=sumEntries(rec.electricity);
+    const other=sumEntries(rec.other);
+
+    const totalIncome=opd+ip+pharmaSales;
+    const totalExp=pharmaPaid+staffCash+rent+utilities+internet+electricity+other;
+    const net=totalIncome-totalExp;
+    const margin=totalIncome>0?Math.round((net/totalIncome)*100):0;
+
+    return {ms,opd,ip,pharmaSales,pharmaPaid,staffCash,rent,utilities,internet,electricity,other,
+      totalIncome,totalExp,net,margin,rec};
+  }
+
+  function computeYTD(y,uptoM){
+    const acc={opd:0,ip:0,pharmaSales:0,pharmaPaid:0,staffCash:0,rent:0,utilities:0,internet:0,electricity:0,other:0,totalIncome:0,totalExp:0,net:0};
+    for(let m=0;m<=uptoM;m++){
+      const x=computeMonth(y,m);
+      ['opd','ip','pharmaSales','pharmaPaid','staffCash','rent','utilities','internet','electricity','other','totalIncome','totalExp','net'].forEach(k=>{acc[k]+=x[k];});
+    }
+    acc.margin=acc.totalIncome>0?Math.round((acc.net/acc.totalIncome)*100):0;
+    return acc;
+  }
+
+  const cur=computeMonth(year,month);
+  let prevY=year, prevM=month-1; if(prevM<0){prevM=11;prevY=year-1;}
+  const prev=computeMonth(prevY,prevM);
+  const ytd=computeYTD(year,month);
+
+  const T=({label,value,sub,color,bg})=>(
+    <div style={{background:bg||'var(--w)',border:`1px solid ${color||'var(--bd)'}`,borderRadius:7,padding:'8px 14px',flex:'1 1 0',minWidth:0}}>
+      <div style={{fontSize:9,fontWeight:700,color:color||'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',whiteSpace:'nowrap'}}>{label}</div>
+      <div style={{fontSize:20,fontWeight:700,fontFamily:"'Noto Sans Mono',monospace",color:color||'var(--t1)',lineHeight:1.2,marginTop:3}}>{value}</div>
+      {sub&&<div style={{fontSize:10,color:color||'var(--t3)',marginTop:2}}>{sub}</div>}
+    </div>
+  );
+
+  function row(label,curV,prevV,ytdV,opts={}){
+    return (
+      <tr style={{borderBottom:'1px solid var(--bd)'}}>
+        <td style={{padding:'6px 10px',paddingLeft:opts.indent?24:14,color:'var(--t1)',fontWeight:opts.bold?700:400,fontSize:12}}>
+          {label}{opts.muted&&<span style={{color:'var(--t3)',fontSize:10,marginLeft:4}}>(manual)</span>}
+        </td>
+        <td style={{padding:'6px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",borderLeft:'1px solid var(--bd)',color:opts.bold?'var(--t1)':'var(--t1)',fontWeight:opts.bold?700:400}}>{curV===0?'—':inrZ(curV)}</td>
+        <td style={{padding:'6px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",borderLeft:'1px solid var(--bd)',color:'var(--t3)',fontWeight:opts.bold?700:400}}>{prevV===0?'—':inrZ(prevV)}</td>
+        <td style={{padding:'6px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",borderLeft:'1px solid var(--bd)',fontWeight:opts.bold?700:400}}>{ytdV===0?'—':inrZ(ytdV)}</td>
+      </tr>
+    );
+  }
+
+  return (
+    <>
+      <MonthYearNav year={year} month={month} onChange={(y,m)=>{setYear(y);setMonth(m);}}>
+        <div style={{display:'flex',alignItems:'center',gap:14,fontSize:12}}>
+          <span style={{color:'var(--t2)'}}>Net: <b style={{color:cur.net>=0?'var(--grntx)':'var(--redtx)',fontFamily:"'Noto Sans Mono',monospace"}}>{cur.net>=0?'+':''}{inrZ(cur.net)}</b></span>
+          <span style={{color:'var(--t3)'}}>|</span>
+          <span style={{color:'var(--t2)'}}>Margin: <b style={{fontFamily:"'Noto Sans Mono',monospace",color:cur.margin>=0?'var(--t1)':'var(--redtx)'}}>{cur.margin}%</b></span>
+        </div>
+      </MonthYearNav>
+
+      {/* KPI tiles */}
+      <div style={{background:'var(--bg)',borderBottom:'1px solid var(--bd)',padding:'8px 12px',display:'flex',gap:8,flexShrink:0}}>
+        <T label="Income" value={inrZ(cur.totalIncome)} color="var(--grntx)" bg="var(--grnbg)"/>
+        <T label="Expenses" value={inrZ(cur.totalExp)} color="var(--redtx)" bg="var(--redbg)"/>
+        <T label="Net" value={(cur.net>=0?'+':'')+inrZ(cur.net)} color="var(--blutx)" bg="var(--blubg)"/>
+        <T label="Margin" value={cur.margin+'%'} color="var(--ambtx)" bg="var(--ambbg)"/>
+      </div>
+
+      {/* Manual entries — collapsible */}
+      <div style={{background:'var(--w)',borderBottom:'1px solid var(--bd)',padding:'10px 14px',flexShrink:0}}>
+        <div style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:6}}>Manual entries — {MONTHS_LONG[month]} {year} <span style={{color:'var(--t3)',fontWeight:400,textTransform:'none',letterSpacing:'normal',marginLeft:6}}>click row to expand</span></div>
+        <div style={{display:'flex',flexDirection:'column',gap:4}}>
+          {PNL_CATS.map(c=>{
+            const list=cur.rec[c.key]||[];
+            const total=sumEntries(list);
+            const isOpen=expanded[c.key];
+            return (
+              <PnLCategoryRow key={c.key} cat={c} entries={list} total={total} open={isOpen}
+                onToggle={()=>setExpanded({...expanded,[c.key]:!isOpen})}
+                onAdd={(d,desc,amt)=>addEntry(cur.ms,c.key,d,desc,amt)}
+                onDelete={id=>deleteEntry(cur.ms,c.key,id)}/>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main P&L table */}
+      <div style={{flex:1,overflowY:'auto',background:'var(--bg)',padding:12}}>
+        <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,overflow:'hidden'}}>
+          <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+            <thead>
+              <tr style={{background:'var(--g0)',borderBottom:'1px solid var(--bd)'}}>
+                <th style={{padding:'8px 14px',textAlign:'left',color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Category</th>
+                <th style={{padding:'8px 10px',textAlign:'right',color:'var(--t1)',fontWeight:700,fontSize:11,borderLeft:'1px solid var(--bd)',width:140}}>{MONTHS_LONG[month].slice(0,3)} {year}</th>
+                <th style={{padding:'8px 10px',textAlign:'right',color:'var(--t3)',fontWeight:700,fontSize:11,borderLeft:'1px solid var(--bd)',width:140}}>{MONTHS_LONG[prevM].slice(0,3)} {prevY}</th>
+                <th style={{padding:'8px 10px',textAlign:'right',color:'var(--t1)',fontWeight:700,fontSize:11,borderLeft:'1px solid var(--bd)',width:140}}>YTD {year}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style={{background:'var(--grnbg)'}}>
+                <td colSpan="4" style={{padding:'5px 14px',fontSize:10,fontWeight:700,color:'var(--grntx)',textTransform:'uppercase',letterSpacing:'0.5px',borderBottom:'1px solid var(--bd)'}}>Income</td>
+              </tr>
+              {row('OPD',cur.opd,prev.opd,ytd.opd,{indent:true})}
+              {row('IP',cur.ip,prev.ip,ytd.ip,{indent:true})}
+              {row('Pharma sales',cur.pharmaSales,prev.pharmaSales,ytd.pharmaSales,{indent:true,muted:true})}
+              <tr style={{background:'var(--g0)',borderBottom:'2px solid var(--bd2)'}}>
+                <td style={{padding:'7px 14px',fontWeight:700}}>Total Income</td>
+                <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:'var(--grntx)',borderLeft:'1px solid var(--bd)'}}>{inrZ(cur.totalIncome)}</td>
+                <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:'var(--t3)',borderLeft:'1px solid var(--bd)'}}>{inrZ(prev.totalIncome)}</td>
+                <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:'var(--grntx)',borderLeft:'1px solid var(--bd)'}}>{inrZ(ytd.totalIncome)}</td>
+              </tr>
+
+              <tr style={{background:'var(--redbg)'}}>
+                <td colSpan="4" style={{padding:'5px 14px',fontSize:10,fontWeight:700,color:'var(--redtx)',textTransform:'uppercase',letterSpacing:'0.5px',borderBottom:'1px solid var(--bd)'}}>Expenses</td>
+              </tr>
+              {row('Pharma purchases (paid)',cur.pharmaPaid,prev.pharmaPaid,ytd.pharmaPaid,{indent:true})}
+              {row('Staff salary (paid)',cur.staffCash,prev.staffCash,ytd.staffCash,{indent:true})}
+              {row('Rent',cur.rent,prev.rent,ytd.rent,{indent:true,muted:true})}
+              {row('Utilities',cur.utilities,prev.utilities,ytd.utilities,{indent:true,muted:true})}
+              {row('Internet',cur.internet,prev.internet,ytd.internet,{indent:true,muted:true})}
+              {row('Electricity',cur.electricity,prev.electricity,ytd.electricity,{indent:true,muted:true})}
+              {row('Other',cur.other,prev.other,ytd.other,{indent:true,muted:true})}
+              <tr style={{background:'var(--g0)',borderBottom:'2px solid var(--bd2)'}}>
+                <td style={{padding:'7px 14px',fontWeight:700}}>Total Expenses</td>
+                <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:'var(--redtx)',borderLeft:'1px solid var(--bd)'}}>{inrZ(cur.totalExp)}</td>
+                <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:'var(--t3)',borderLeft:'1px solid var(--bd)'}}>{inrZ(prev.totalExp)}</td>
+                <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:'var(--redtx)',borderLeft:'1px solid var(--bd)'}}>{inrZ(ytd.totalExp)}</td>
+              </tr>
+
+              <tr style={{background:'var(--blubg)'}}>
+                <td style={{padding:'10px 14px',fontWeight:700,color:'var(--blutx)',textTransform:'uppercase',letterSpacing:'0.5px',fontSize:11}}>Net</td>
+                <td style={{padding:'10px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:cur.net>=0?'var(--blutx)':'var(--redtx)',borderLeft:'1px solid var(--bd)'}}>{(cur.net>=0?'+':'')}{inrZ(cur.net)}</td>
+                <td style={{padding:'10px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:'var(--t3)',borderLeft:'1px solid var(--bd)'}}>{(prev.net>=0?'+':'')}{inrZ(prev.net)}</td>
+                <td style={{padding:'10px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:ytd.net>=0?'var(--blutx)':'var(--redtx)',borderLeft:'1px solid var(--bd)'}}>{(ytd.net>=0?'+':'')}{inrZ(ytd.net)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function PnLCategoryRow({ cat, entries, total, open, onToggle, onAdd, onDelete }){
+  const [date,setDate]=useState(today());
+  const [desc,setDesc]=useState('');
+  const [amount,setAmount]=useState('');
+  const isIncome=cat.type==='income';
+  const accent=isIncome?'var(--grntx)':'var(--t1)';
+  const cnt=entries.length;
+
+  function submit(){
+    onAdd(date,desc,amount);
+    setDesc(''); setAmount('');
+  }
+
+  return (
+    <div style={{border:'1px solid var(--bd)',borderRadius:6,background:open?'var(--g0)':'var(--w)',overflow:'hidden'}}>
+      <div onClick={onToggle} style={{display:'flex',alignItems:'center',gap:10,padding:'7px 12px',cursor:'pointer',userSelect:'none'}}>
+        <span style={{color:'var(--t3)',fontSize:10,width:10,display:'inline-block'}}>{open?'▼':'▶'}</span>
+        <span style={{flex:1,fontSize:12,fontWeight:600,color:accent}}>{cat.label}{isIncome&&<span style={{color:'var(--grntx)',fontSize:9,marginLeft:6,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px'}}>income</span>}</span>
+        <span style={{fontSize:10,color:'var(--t3)'}}>{cnt} entr{cnt===1?'y':'ies'}</span>
+        <span style={{fontFamily:"'Noto Sans Mono',monospace",fontSize:13,fontWeight:700,color:total>0?accent:'var(--t3)',minWidth:90,textAlign:'right'}}>{total===0?'—':inrZ(total)}</span>
+      </div>
+      {open&&(
+        <div style={{padding:'8px 12px 10px',borderTop:'1px solid var(--bd)',background:'var(--w)'}}>
+          {entries.length>0&&(
+            <div style={{marginBottom:8}}>
+              {entries.sort((a,b)=>a.date.localeCompare(b.date)).map(e=>(
+                <div key={e.id} style={{display:'grid',gridTemplateColumns:'80px 1fr 100px 24px',gap:8,alignItems:'center',padding:'3px 0',fontSize:11,borderBottom:'1px dashed var(--bd)'}}>
+                  <span style={{color:'var(--t3)'}}>{(()=>{const d=new Date(e.date+'T00:00:00');return `${String(d.getDate()).padStart(2,'0')} ${MONTHS_LONG[d.getMonth()].slice(0,3)}`;})()}</span>
+                  <span style={{color:'var(--t1)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{e.desc||<span style={{color:'var(--t3)',fontStyle:'italic'}}>—</span>}</span>
+                  <span style={{textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:accent}}>{inrZ(e.amount)}</span>
+                  <span onClick={()=>onDelete(e.id)} style={{cursor:'pointer',color:'var(--red)',fontSize:13,textAlign:'center'}}>×</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div style={{display:'grid',gridTemplateColumns:'130px 1fr 110px 32px',gap:6,alignItems:'center'}}>
+            <input type="date" value={date} onChange={e=>setDate(e.target.value)}
+              style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'5px 7px',fontSize:11,outline:'none'}}/>
+            <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Description (e.g. AC repair)"
+              style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'5px 7px',fontSize:11,outline:'none'}}/>
+            <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="₹" onKeyDown={e=>{if(e.key==='Enter'&&amount)submit();}}
+              style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'5px 7px',fontSize:11,fontFamily:"'Noto Sans Mono',monospace",textAlign:'right',outline:'none'}}/>
+            <button onClick={submit} disabled={!amount} style={{background:amount?'var(--g6)':'var(--dis)',color:'#fff',border:'none',borderRadius:5,padding:'5px 0',cursor:amount?'pointer':'not-allowed',fontSize:14,fontWeight:700,lineHeight:1}}>+</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // SETTINGS TAB
 // ═══════════════════════════════════════════════════════════════
 function SettingsView({ allData, ipRecords, syncStatus, setSyncStatus }) {
@@ -937,7 +1399,7 @@ function SettingsView({ allData, ipRecords, syncStatus, setSyncStatus }) {
 const TABS = ['Day','Month','IP','Pharma','Staff','P&L','Trends','Export','Personal','Statement','Annual','Settings'];
 
 function TabBar({ active, onTab, syncDot }) {
-  const built=['Day','Month','IP','Pharma','Settings'];
+  const built=['Day','Month','IP','Pharma','Staff','P&L','Settings'];
   return (
     <div style={{display:'flex',alignItems:'stretch',background:'var(--g7)',paddingLeft:14,gap:2,flexShrink:0,width:'100%'}}>
       <div style={{display:'flex',alignItems:'center',gap:7,paddingRight:16,borderRight:'1px solid rgba(255,255,255,0.15)',marginRight:6}}>
@@ -976,6 +1438,8 @@ function App() {
       {tab==='Month'&&<MonthView allData={allData} date={date} setDate={setDate} setTab={setTab}/>}
       {tab==='IP'&&<IpView ipRecords={ipRecords} setIpRecords={setIpRecords}/>}
       {tab==='Pharma'&&<PharmaView/>}
+      {tab==='Staff'&&<StaffView/>}
+      {tab==='P&L'&&<PnLView allData={allData} ipRecords={ipRecords}/>}
       {tab==='Settings'&&<SettingsView allData={allData} ipRecords={ipRecords} syncStatus={syncStatus} setSyncStatus={setSyncStatus}/>}
     </div>
   );
