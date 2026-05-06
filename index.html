@@ -114,7 +114,7 @@ function Num({ val, onChange, onKeyDown, inputRef, readOnly }) {
   const [foc, setFoc] = useState(false);
   return <input ref={inputRef} type="text" inputMode="decimal" value={val} onChange={e=>onChange&&onChange(e.target.value)}
     onKeyDown={onKeyDown} readOnly={readOnly} onFocus={()=>setFoc(true)} onBlur={()=>setFoc(false)}
-    style={{ ...cellBase, width:'100%', textAlign:'right', padding:'0 5px', background:readOnly?'var(--g0)':foc?'#F0FBF5':'transparent', color:readOnly?'var(--g7)':'var(--t1)', fontWeight:readOnly?700:400, cursor:readOnly?'default':'text' }} />;
+    style={{ ...cellBase, width:'100%', textAlign:'center', padding:'0 5px', background:readOnly?'var(--g0)':foc?'#F0FBF5':'transparent', color:readOnly?'var(--g7)':'var(--t1)', fontWeight:readOnly?700:400, cursor:readOnly?'default':'text' }} />;
 }
 function Txt({ val, onChange, onKeyDown, placeholder }) {
   const [foc, setFoc] = useState(false);
@@ -152,18 +152,18 @@ function MonthYearNav({ year, month, onChange, children }) {
 // DAY TAB
 // ═══════════════════════════════════════════════════════════════
 const DAY_COLS = [
-  {key:'#',w:28,label:'#',align:'center'},{key:'mrn',w:62,label:'MRN',align:'left'},
-  {key:'name',w:118,label:'Name',align:'left',grow:true},{key:'type',w:58,label:'Type',align:'center'},
-  {key:'opd',w:52,label:'OPD ₹',align:'right'},{key:'xray',w:56,label:'X-Ray ₹',align:'right'},
-  {key:'popd',w:58,label:'POP-D ₹',align:'right'},{key:'pt',w:46,label:'PT ₹',align:'right'},
-  {key:'lab',w:46,label:'Lab ₹',align:'right'},{key:'medicals',w:68,label:'Medicals ₹',align:'right'},
-  {key:'total',w:62,label:'Total ₹',align:'right',ro:true},{key:'mode',w:56,label:'Mode',align:'center'},
-  {key:'cash',w:54,label:'Cash ₹',align:'right'},{key:'gpay',w:54,label:'GPay ₹',align:'right'},
-  {key:'del',w:28,label:'',align:'center'},
+  {key:'#',w:36,label:'#',align:'center'},{key:'mrn',w:70,label:'MRN',align:'center'},
+  {key:'name',w:160,label:'Name',align:'left',grow:true},{key:'type',w:60,label:'Type',align:'center'},
+  {key:'opd',w:78,label:'OPD ₹',align:'center'},{key:'xray',w:84,label:'X-Ray ₹',align:'center'},
+  {key:'popd',w:84,label:'POP-D ₹',align:'center'},{key:'pt',w:74,label:'PT ₹',align:'center'},
+  {key:'lab',w:74,label:'Lab ₹',align:'center'},{key:'medicals',w:96,label:'Medicals ₹',align:'center'},
+  {key:'total',w:84,label:'Total ₹',align:'center',ro:true},{key:'mode',w:66,label:'Mode',align:'center'},
+  {key:'cash',w:84,label:'Cash ₹',align:'center'},{key:'gpay',w:84,label:'GPay ₹',align:'center'},
+  {key:'del',w:36,label:'',align:'center'},
 ];
 const RH = 30;
 
-function PatientTable({ rows, onUpdate, onDelete, onAdd }) {
+function PatientTable({ rows, onUpdate, onDelete, onAdd, closed }) {
   const inputRefs = useRef({});
   const getRef = (rowId, field) => { const k=`${rowId}_${field}`; if(!inputRefs.current[k]) inputRefs.current[k]=React.createRef(); return inputRefs.current[k]; };
   const focusCell = (idx, field) => { const r=rows[idx]; if(!r) return; const ref=inputRefs.current[`${r.id}_${field}`]; if(ref&&ref.current){ref.current.focus();ref.current.select();} };
@@ -173,11 +173,11 @@ function PatientTable({ rows, onUpdate, onDelete, onAdd }) {
   };
   const numCols=['opd','xray','popd','pt','lab','medicals','cash','gpay'];
   const tot={}; numCols.forEach(k=>tot[k]=rows.reduce((s,r)=>s+n(r[k]),0)); tot.total=rows.reduce((s,r)=>s+calcTotal(r),0);
-  const thS=c=>({width:c.grow?'auto':c.w,minWidth:c.w,textAlign:c.align,padding:'0 4px',fontWeight:600,fontSize:10,color:'rgba(255,255,255,0.85)',textTransform:'uppercase',letterSpacing:'0.5px',userSelect:'none'});
+  const thS=c=>({width:c.grow?'auto':c.w,minWidth:c.w,textAlign:c.align,padding:'0 4px',fontWeight:600,fontSize:10,color:'rgba(255,255,255,0.85)',textTransform:'uppercase',letterSpacing:'0.5px',userSelect:'none',whiteSpace:'nowrap'});
   const tdS=(c,ex={})=>({width:c.grow?'auto':c.w,minWidth:c.w,height:RH,borderBottom:'1px solid var(--bd)',padding:0,...ex});
   return (
     <div style={{ flex:1, overflowY:'auto', overflowX:'auto', background:'var(--w)', width:'100%' }}>
-      <table style={{ borderCollapse:'collapse', width:'100%', minWidth:760 }}>
+      <table style={{ borderCollapse:'collapse', width:'100%', minWidth:760, tableLayout:'fixed' }}>
         <colgroup>{DAY_COLS.map(c=><col key={c.key} style={c.grow?{}:{width:c.w}} />)}</colgroup>
         <thead style={{ position:'sticky', top:0, zIndex:10 }}>
           <tr style={{ background:'var(--g7)', height:30 }}>{DAY_COLS.map(c=><th key={c.key} style={thS(c)}>{c.label}</th>)}</tr>
@@ -185,7 +185,7 @@ function PatientTable({ rows, onUpdate, onDelete, onAdd }) {
         <tbody>
           {rows.map((r,i)=>{
             const tot2=calcTotal(r); const reconBad=tot2>0&&Math.abs(n(r.cash)+n(r.gpay)-tot2)>0.01;
-            const rowBg=reconBad?'#FFF8F7':i%2===0?'#fff':'#FAFCFA';
+            const rowBg=closed?'#F8FAFC':reconBad?'#FFF8F7':i%2===0?'#fff':'#FAFCFA';
             return (
               <tr key={r.id} style={{background:rowBg}}
                 onMouseEnter={e=>e.currentTarget.style.background=reconBad?'#FFF0EE':'var(--g0)'}
@@ -202,27 +202,27 @@ function PatientTable({ rows, onUpdate, onDelete, onAdd }) {
                 <td style={{...tdS(DAY_COLS[12]),background:reconBad?'#FFF0EE':undefined}}><Num val={r.cash} onChange={v=>onUpdate(r.id,'cash',v)} onKeyDown={e=>handleKey(e,i,'cash')} inputRef={getRef(r.id,'cash')}/></td>
                 <td style={{...tdS(DAY_COLS[13]),background:reconBad?'#FFF0EE':undefined}}><Num val={r.gpay} onChange={v=>onUpdate(r.id,'gpay',v)} onKeyDown={e=>handleKey(e,i,'gpay')} inputRef={getRef(r.id,'gpay')}/></td>
                 <td style={{...tdS(DAY_COLS[14]),textAlign:'center'}}>
-                  <button onClick={()=>onDelete(r.id)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--dis)',fontSize:14,lineHeight:1,padding:'4px 6px',borderRadius:3}}
-                    onMouseEnter={e=>e.currentTarget.style.color='var(--red)'} onMouseLeave={e=>e.currentTarget.style.color='var(--dis)'}>×</button>
+                  {!closed&&<button onClick={()=>onDelete(r.id)} style={{background:'none',border:'none',cursor:'pointer',color:'var(--dis)',fontSize:14,lineHeight:1,padding:'4px 6px',borderRadius:3}}
+                    onMouseEnter={e=>e.currentTarget.style.color='var(--red)'} onMouseLeave={e=>e.currentTarget.style.color='var(--dis)'}>×</button>}
                 </td>
               </tr>
             );
           })}
-          <tr>
+          {!closed&&<tr>
             <td colSpan={DAY_COLS.length} style={{padding:0}}>
               <button onClick={onAdd} style={{width:'100%',border:'none',background:'transparent',padding:'7px 12px',textAlign:'left',cursor:'pointer',color:'var(--g7)',fontSize:12,fontWeight:600,borderBottom:'1px solid var(--bd)'}}
                 onMouseEnter={e=>e.currentTarget.style.background='var(--g1)'} onMouseLeave={e=>e.currentTarget.style.background='transparent'}>+ Add patient</button>
             </td>
-          </tr>
+          </tr>}
           <tr style={{background:'#F0F7F3',position:'sticky',bottom:0}}>
             <td colSpan={4} style={{padding:'5px 8px',fontWeight:700,fontSize:11,color:'var(--t2)',borderTop:'2px solid var(--g7)'}}>TOTALS</td>
             {['opd','xray','popd','pt','lab','medicals'].map(k=>(
-              <td key={k} style={{padding:'5px 5px',textAlign:'right',fontFamily:'Noto Sans Mono,monospace',fontWeight:700,fontSize:12,color:'var(--t1)',borderTop:'2px solid var(--g7)'}}>{tot[k]>0?inr(tot[k]):''}</td>
+              <td key={k} style={{padding:'5px 5px',textAlign:'center',fontFamily:'Noto Sans Mono,monospace',fontWeight:700,fontSize:12,color:'var(--t1)',borderTop:'2px solid var(--g7)'}}>{tot[k]>0?inr(tot[k]):''}</td>
             ))}
-            <td style={{padding:'5px 5px',textAlign:'right',fontFamily:'Noto Sans Mono,monospace',fontWeight:700,fontSize:12,color:'var(--g7)',borderTop:'2px solid var(--g7)'}}>{inr(tot.total)}</td>
+            <td style={{padding:'5px 5px',textAlign:'center',fontFamily:'Noto Sans Mono,monospace',fontWeight:700,fontSize:12,color:'var(--g7)',borderTop:'2px solid var(--g7)'}}>{inr(tot.total)}</td>
             <td style={{borderTop:'2px solid var(--g7)'}}></td>
-            <td style={{padding:'5px 5px',textAlign:'right',fontFamily:'Noto Sans Mono,monospace',fontWeight:700,fontSize:12,borderTop:'2px solid var(--g7)'}}>{tot.cash>0?inr(tot.cash):''}</td>
-            <td style={{padding:'5px 5px',textAlign:'right',fontFamily:'Noto Sans Mono,monospace',fontWeight:700,fontSize:12,color:'var(--blutx)',borderTop:'2px solid var(--g7)'}}>{tot.gpay>0?inr(tot.gpay):''}</td>
+            <td style={{padding:'5px 5px',textAlign:'center',fontFamily:'Noto Sans Mono,monospace',fontWeight:700,fontSize:12,borderTop:'2px solid var(--g7)'}}>{tot.cash>0?inr(tot.cash):''}</td>
+            <td style={{padding:'5px 5px',textAlign:'center',fontFamily:'Noto Sans Mono,monospace',fontWeight:700,fontSize:12,color:'var(--blutx)',borderTop:'2px solid var(--g7)'}}>{tot.gpay>0?inr(tot.gpay):''}</td>
             <td style={{borderTop:'2px solid var(--g7)'}}></td>
           </tr>
         </tbody>
@@ -237,7 +237,7 @@ function DayKpis({ rows }) {
   const census=cnt.N+cnt.O+cnt.OGN+cnt.OGO;
   const rev={total:0,opd:0,xray:0,popd:0,pt:0,lab:0,med:0,cash:0,gpay:0};
   rows.forEach(r=>{rev.total+=calcTotal(r);rev.opd+=n(r.opd);rev.xray+=n(r.xray);rev.popd+=n(r.popd);rev.pt+=n(r.pt);rev.lab+=n(r.lab);rev.med+=n(r.medicals);rev.cash+=n(r.cash);rev.gpay+=n(r.gpay);});
-  rev.xpl=rev.xray+rev.popd+rev.lab;
+  rev.opdTile=rev.opd+rev.popd; rev.xpl=rev.xray+rev.pt+rev.lab;
   const collected=rev.cash+rev.gpay; const balanced=Math.abs(collected-rev.total)<0.01; const diff=collected-rev.total;
   const T=({label,value,sub,color,bg})=>(
     <div style={{background:bg||'var(--w)',border:`1px solid ${color||'var(--bd)'}`,borderRadius:7,padding:'7px 11px',flex:'1 1 0',minWidth:0}}>
@@ -266,10 +266,9 @@ function DayKpis({ rows }) {
       <div style={{display:'flex',gap:6,alignItems:'stretch',width:'100%'}}>
         <div style={{fontSize:9,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',alignSelf:'center',minWidth:50}}>Revenue</div>
         <T label="Total ₹" value={inrZ(rev.total)} color="var(--g7)" bg="var(--g1)"/>
-        <T label="OPD ₹" value={inrZ(rev.opd)}/>
+        <T label="OPD ₹" value={inrZ(rev.opdTile)} sub={[rev.opd>0?`OP:${inrZ(rev.opd)}`:'',rev.popd>0?`PD:${inrZ(rev.popd)}`:''].filter(Boolean).join(' ')||'—'}/>
+        <T label="XPL ₹" value={inrZ(rev.xpl)} color="var(--ambtx)" bg="var(--ambbg)" sub={[rev.xray>0?`X:${inrZ(rev.xray)}`:'',rev.pt>0?`PT:${inrZ(rev.pt)}`:'',rev.lab>0?`L:${inrZ(rev.lab)}`:''].filter(Boolean).join(' ')||'—'}/>
         <T label="Medicals ₹" value={inrZ(rev.med)} color="#6B21A8" bg="#F3E8FF"/>
-        <T label="XPL ₹" value={inrZ(rev.xpl)} sub={`X:${inrZ(rev.xray)} P:${inrZ(rev.popd)} L:${inrZ(rev.lab)}`}/>
-        <T label="PT ₹" value={inrZ(rev.pt)} color="#9F1239" bg="#FFE4E6"/>
         <div style={sep}/>
         <div style={{background:balanced?'#DCFCE7':'#FEE2E2',border:`1.5px solid ${balanced?'#16A34A':'#D93025'}`,borderRadius:7,padding:'7px 13px',display:'flex',flexDirection:'column',justifyContent:'center',minWidth:200,gap:2}}>
           <div style={{display:'flex',alignItems:'center',gap:5}}>
@@ -302,10 +301,104 @@ function DateNav({ date, onChange }) {
   );
 }
 
+const DAY_CLOSED_KEY='vh-day-closed';
+function isDayClosed(date){try{const m=JSON.parse(localStorage.getItem(DAY_CLOSED_KEY)||'{}');return !!m[date];}catch{return false;}}
+function setDayClosedState(date,closed){try{const m=JSON.parse(localStorage.getItem(DAY_CLOSED_KEY)||'{}');if(closed)m[date]=true;else delete m[date];localStorage.setItem(DAY_CLOSED_KEY,JSON.stringify(m));}catch{}}
+
+function buildDayReport(date,rows){
+  const stats=getDayStats(rows)||{cash:0,gpay:0,total:0,med:0,opd_rev:0,xray:0,popd:0,pt:0,lab:0,xpl:0,pts:0,N:0,O:0,OGN:0,OGO:0};
+  const op=rows.reduce((s,r)=>s+n(r.opd),0);
+  const popd=rows.reduce((s,r)=>s+n(r.popd),0);
+  const opdTile=op+popd;
+  const xray=rows.reduce((s,r)=>s+n(r.xray),0);
+  const pt=rows.reduce((s,r)=>s+n(r.pt),0);
+  const lab=rows.reduce((s,r)=>s+n(r.lab),0);
+  const xpl=xray+pt+lab;
+  const med=rows.reduce((s,r)=>s+n(r.medicals),0);
+  const total=rows.reduce((s,r)=>s+calcTotal(r),0);
+  const cash=rows.reduce((s,r)=>s+n(r.cash),0);
+  const gpay=rows.reduce((s,r)=>s+n(r.gpay),0);
+  const d=new Date(date+'T00:00:00');
+  const dStr=d.toLocaleDateString('en-IN',{weekday:'short',day:'2-digit',month:'short',year:'numeric'});
+  const fmt=v=>v.toLocaleString('en-IN');
+  const lines=[];
+  lines.push(`*VH Hospital — Day Report*`);
+  lines.push(`${dStr}`);
+  lines.push('');
+  lines.push(`*Patients:* ${stats.pts}  (N:${stats.N} O:${stats.O} OG-N:${stats.OGN} OG-O:${stats.OGO})`);
+  lines.push('');
+  lines.push(`*Revenue Breakdown*`);
+  lines.push(`OPD : ₹${fmt(opdTile)}  (OP:₹${fmt(op)}, PD:₹${fmt(popd)})`);
+  lines.push(`XPL : ₹${fmt(xpl)}  (X:₹${fmt(xray)}, PT:₹${fmt(pt)}, L:₹${fmt(lab)})`);
+  lines.push(`Medicals: ₹${fmt(med)}`);
+  lines.push(`-------------------------`);
+  lines.push(`*Total Revenue: ₹${fmt(total)}*`);
+  lines.push('');
+  lines.push(`*Collection*`);
+  lines.push(`Cash : ₹${fmt(cash)}`);
+  lines.push(`GPay : ₹${fmt(gpay)}`);
+  const collected=cash+gpay;
+  lines.push(`Total: ₹${fmt(collected)}`);
+  if(Math.abs(collected-total)>=1)lines.push(`⚠ Off by ₹${fmt(Math.abs(collected-total))}`);
+  else lines.push(`✓ Balanced`);
+  return lines.join('\n');
+}
+
+function downloadCsv(date,rows){
+  const head=['#','MRN','Name','Type','OPD','X-Ray','POP-D','PT','Lab','Medicals','Total','Mode','Cash','GPay'];
+  const lines=[head.join(',')];
+  rows.forEach((r,i)=>{
+    const row=[i+1,r.mrn||'',`"${(r.name||'').replace(/"/g,'""')}"`,r.type||'',n(r.opd),n(r.xray),n(r.popd),n(r.pt),n(r.lab),n(r.medicals),calcTotal(r),r.mode||'',n(r.cash),n(r.gpay)];
+    lines.push(row.join(','));
+  });
+  const blob=new Blob([lines.join('\n')],{type:'text/csv'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`VH-Day-${date}.csv`;a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+
+function DayActionBar({ date, rows, closed, onClose, onReopen, onAdd, onAddLate }){
+  function sendWhatsApp(){
+    const txt=buildDayReport(date,rows);
+    const url=`https://wa.me/?text=${encodeURIComponent(txt)}`;
+    window.open(url,'_blank');
+  }
+  function dayReport(){
+    const txt=buildDayReport(date,rows);
+    const w=window.open('','_blank');
+    if(!w)return;
+    w.document.write(`<html><head><title>Day Report ${date}</title><style>body{font-family:-apple-system,sans-serif;max-width:520px;margin:30px auto;padding:0 20px;color:#222;line-height:1.7;white-space:pre-wrap}h1{font-size:18px}button{margin-top:20px;padding:10px 18px;background:#1565c0;color:#fff;border:0;border-radius:6px;font-weight:600;cursor:pointer}@media print{button{display:none}}</style></head><body><pre style="font-family:inherit;font-size:14px">${txt.replace(/[<>]/g,'')}</pre><button onclick="window.print()">Print</button></body></html>`);
+  }
+  const btn=(bg,disabled)=>({background:disabled?'#cbd5e1':bg,color:'#fff',border:'none',borderRadius:6,padding:'7px 14px',fontSize:12,fontWeight:700,cursor:disabled?'not-allowed':'pointer',display:'inline-flex',alignItems:'center',gap:6,whiteSpace:'nowrap'});
+  return (
+    <div style={{background:'var(--w)',borderBottom:'1px solid var(--bd)',padding:'7px 12px',display:'flex',gap:7,alignItems:'center',flexWrap:'wrap',flexShrink:0}}>
+      {!closed?(
+        <>
+          <button style={btn('#16a34a')} onClick={onAdd}>+ Add Row</button>
+          <button style={btn('#dc2626')} onClick={onClose}>🔒 Close Day</button>
+        </>
+      ):(
+        <>
+          <button style={btn('#d97706')} onClick={onAddLate}>+ Add Late Patient</button>
+          <button style={btn('#64748b')} onClick={onReopen}>🔓 Reopen Day</button>
+          <span style={{fontSize:11,fontWeight:700,color:'#dc2626',padding:'4px 9px',background:'#fee2e2',borderRadius:5,marginLeft:4}}>DAY CLOSED</span>
+        </>
+      )}
+      <div style={{flex:1}}/>
+      <button style={btn('#1565c0')} onClick={dayReport}>📋 Day Report</button>
+      <button style={btn('#475569')} onClick={()=>downloadCsv(date,rows)}>⬇ CSV</button>
+      <button style={btn('#25D366')} onClick={sendWhatsApp}>📱 WhatsApp</button>
+    </div>
+  );
+}
+
 function DayView({ allData, setAllData, date, setDate }) {
   const rows=(allData[date]&&allData[date].length>0)?allData[date]:[makeRow()];
+  const [closed,setClosed]=useState(()=>isDayClosed(date));
+  useEffect(()=>{setClosed(isDayClosed(date));},[date]);
   function setRows(nr){const up={...allData,[date]:nr};setAllData(up);try{localStorage.setItem('vh-day-data',JSON.stringify(up));}catch{}}
   function updateRow(id,field,value){
+    if(closed)return;
     setRows(rows.map(r=>{
       if(r.id!==id) return r;
       const up={...r,[field]:value};
@@ -314,12 +407,35 @@ function DayView({ allData, setAllData, date, setDate }) {
       return up;
     }));
   }
+  function handleClose(){
+    const stats=getDayStats(rows);
+    const total=rows.reduce((s,r)=>s+calcTotal(r),0);
+    const collected=rows.reduce((s,r)=>s+n(r.cash)+n(r.gpay),0);
+    const off=Math.abs(total-collected);
+    let msg=`Close day for ${date}?\n\nPatients: ${stats?stats.pts:0}\nTotal: ₹${total.toLocaleString('en-IN')}\nCollected: ₹${collected.toLocaleString('en-IN')}`;
+    if(off>=1)msg+=`\n⚠ Reconciliation off by ₹${off.toLocaleString('en-IN')}`;
+    msg+='\n\nAfter closing, you can still add late patients but cannot edit existing rows.';
+    if(!confirm(msg))return;
+    setDayClosedState(date,true);setClosed(true);
+  }
+  function handleReopen(){
+    if(!confirm('Reopen this day? You will be able to edit all rows again.'))return;
+    setDayClosedState(date,false);setClosed(false);
+  }
+  function handleAdd(){setRows([...rows,makeRow()]);}
+  function handleAddLate(){
+    // allow adding even when closed
+    setRows([...rows,makeRow()]);
+  }
   return (
     <>
       <DateNav date={date} onChange={setDate}/>
-      <PatientTable rows={rows} onUpdate={updateRow}
-        onDelete={id=>{const nr=rows.filter(r=>r.id!==id);setRows(nr.length?nr:[makeRow()]);}}
-        onAdd={()=>setRows([...rows,makeRow()])}/>
+      <DayActionBar date={date} rows={rows} closed={closed}
+        onClose={handleClose} onReopen={handleReopen}
+        onAdd={handleAdd} onAddLate={handleAddLate}/>
+      <PatientTable rows={rows} closed={closed} onUpdate={updateRow}
+        onDelete={id=>{if(closed)return;const nr=rows.filter(r=>r.id!==id);setRows(nr.length?nr:[makeRow()]);}}
+        onAdd={handleAdd}/>
       <DayKpis rows={rows}/>
     </>
   );
@@ -330,9 +446,9 @@ function DayView({ allData, setAllData, date, setDate }) {
 // ═══════════════════════════════════════════════════════════════
 function getDayStats(rows){
   if(!rows||!rows.length) return null;
-  const s={cash:0,gpay:0,total:0,med:0,opd_rev:0,pt:0,lab:0,xray:0,popd:0,xpl:0,pts:0,N:0,O:0,OGN:0,OGO:0};
-  rows.forEach(r=>{s.cash+=n(r.cash);s.gpay+=n(r.gpay);const t=calcTotal(r);s.total+=t;s.med+=n(r.medicals);s.pt+=n(r.pt);s.lab+=n(r.lab);s.xray+=n(r.xray);s.popd+=n(r.popd);if(r.type==='N'){s.N++;s.pts++;}else if(r.type==='O'){s.O++;s.pts++;}else if(r.type==='OG-N'){s.OGN++;s.pts++;}else if(r.type==='OG-O'){s.OGO++;s.pts++;}});
-  s.opd_rev=s.total-s.med-s.pt-s.lab; s.xpl=s.xray+s.popd+s.lab;
+  const s={cash:0,gpay:0,total:0,med:0,opd_rev:0,opd:0,pt:0,lab:0,xray:0,popd:0,xpl:0,pts:0,N:0,O:0,OGN:0,OGO:0};
+  rows.forEach(r=>{s.cash+=n(r.cash);s.gpay+=n(r.gpay);const t=calcTotal(r);s.total+=t;s.med+=n(r.medicals);s.opd+=n(r.opd);s.pt+=n(r.pt);s.lab+=n(r.lab);s.xray+=n(r.xray);s.popd+=n(r.popd);if(r.type==='N'){s.N++;s.pts++;}else if(r.type==='O'){s.O++;s.pts++;}else if(r.type==='OG-N'){s.OGN++;s.pts++;}else if(r.type==='OG-O'){s.OGO++;s.pts++;}});
+  s.opd_rev=s.opd+s.popd; s.xpl=s.xray+s.pt+s.lab;
   return s;
 }
 const daysInMonth=(y,m)=>new Date(y,m+1,0).getDate();
@@ -353,7 +469,7 @@ function MonthKpis({ stats }) {
       <T label="Cash ₹" value={inrZ(agg.cash)} color="var(--grntx)" bg="var(--grnbg)"/>
       <T label="GPay ₹" value={inrZ(agg.gpay)} color="var(--blutx)" bg="var(--blubg)"/>
       <T label="Medicals ₹" value={inrZ(agg.med)} color="#6B21A8" bg="#F3E8FF"/>
-      <T label="OP Consult ₹" value={inrZ(agg.opd_rev)}/>
+      <T label="OPD ₹" value={inrZ(agg.opd_rev)}/>
       <T label="XPL ₹" value={inrZ(agg.xpl)} color="var(--ambtx)" bg="var(--ambbg)"/>
       <T label="Total Patients" value={agg.pts}/>
       <T label="New (N)" value={agg.N} color="var(--blutx)" bg="var(--blubg)"/>
@@ -474,15 +590,18 @@ function MonthView({ allData, setDate, setTab }) {
 // ═══════════════════════════════════════════════════════════════
 const IP_EMPTY = () => ({id:uid(),name:'',admitDate:today(),dischargeDate:'',ward:'General',status:'Admitted',diagnosis:'',bill:'',medicines:'',anaesthetist:'',notes:''});
 
-function AdmitModal({ record, onSave, onClose }) {
-  const [form, setForm] = useState(record ? {...record} : IP_EMPTY());
-  const set = (k,v) => setForm(f=>({...f,[k]:v}));
-  const F = ({label,children,full})=>(
+function IpFormField({label,children,full}){
+  return (
     <div className={`form-field${full?' form-full':''}`}>
       <label className="form-label">{label}</label>
       {children}
     </div>
   );
+}
+
+function AdmitModal({ record, onSave, onClose }) {
+  const [form, setForm] = useState(record ? {...record} : IP_EMPTY());
+  const set = (k,v) => setForm(f=>({...f,[k]:v}));
   return (
     <div className="modal-overlay" onClick={e=>{if(e.target===e.currentTarget)onClose();}}>
       <div className="modal-box">
@@ -492,24 +611,24 @@ function AdmitModal({ record, onSave, onClose }) {
         </div>
         <div className="modal-body">
           <div className="form-grid">
-            <F label="Patient Name" full><input className="form-input" value={form.name} onChange={e=>set('name',e.target.value)} placeholder="Full name" autoFocus/></F>
-            <F label="Admit Date"><input className="form-input mono" type="date" value={form.admitDate} onChange={e=>set('admitDate',e.target.value)}/></F>
-            <F label="Discharge Date"><input className="form-input mono" type="date" value={form.dischargeDate} onChange={e=>set('dischargeDate',e.target.value)}/></F>
-            <F label="Ward">
+            <IpFormField label="Patient Name" full><input className="form-input" value={form.name} onChange={e=>set('name',e.target.value)} placeholder="Full name" autoFocus/></IpFormField>
+            <IpFormField label="Admit Date"><input className="form-input mono" type="date" value={form.admitDate} onChange={e=>set('admitDate',e.target.value)}/></IpFormField>
+            <IpFormField label="Discharge Date"><input className="form-input mono" type="date" value={form.dischargeDate} onChange={e=>set('dischargeDate',e.target.value)}/></IpFormField>
+            <IpFormField label="Ward">
               <select className="form-input" value={form.ward} onChange={e=>set('ward',e.target.value)}>
                 <option>General</option><option>Private</option>
               </select>
-            </F>
-            <F label="Status">
+            </IpFormField>
+            <IpFormField label="Status">
               <select className="form-input" value={form.status} onChange={e=>set('status',e.target.value)}>
                 <option>Admitted</option><option>Discharged</option><option>LAMA</option>
               </select>
-            </F>
-            <F label="Diagnosis" full><input className="form-input" value={form.diagnosis} onChange={e=>set('diagnosis',e.target.value)} placeholder="Primary diagnosis"/></F>
-            <F label="Bill ₹"><input className="form-input mono" value={form.bill} onChange={e=>set('bill',e.target.value)} inputMode="decimal" placeholder="0"/></F>
-            <F label="Medicines ₹"><input className="form-input mono" value={form.medicines} onChange={e=>set('medicines',e.target.value)} inputMode="decimal" placeholder="0"/></F>
-            <F label="Anaesthetist" full><input className="form-input" value={form.anaesthetist} onChange={e=>set('anaesthetist',e.target.value)} placeholder="Name (if applicable)"/></F>
-            <F label="Notes" full><textarea className="form-input" value={form.notes} onChange={e=>set('notes',e.target.value)} placeholder="Additional notes…"/></F>
+            </IpFormField>
+            <IpFormField label="Diagnosis" full><input className="form-input" value={form.diagnosis} onChange={e=>set('diagnosis',e.target.value)} placeholder="Primary diagnosis"/></IpFormField>
+            <IpFormField label="Bill ₹"><input className="form-input mono" value={form.bill} onChange={e=>set('bill',e.target.value)} inputMode="decimal" placeholder="0"/></IpFormField>
+            <IpFormField label="Medicines ₹"><input className="form-input mono" value={form.medicines} onChange={e=>set('medicines',e.target.value)} inputMode="decimal" placeholder="0"/></IpFormField>
+            <IpFormField label="Anaesthetist" full><input className="form-input" value={form.anaesthetist} onChange={e=>set('anaesthetist',e.target.value)} placeholder="Name (if applicable)"/></IpFormField>
+            <IpFormField label="Notes" full><textarea className="form-input" value={form.notes} onChange={e=>set('notes',e.target.value)} placeholder="Additional notes…"/></IpFormField>
           </div>
         </div>
         <div className="modal-footer">
@@ -661,12 +780,21 @@ function IpView({ ipRecords, setIpRecords }) {
 // ═══════════════════════════════════════════════════════════════
 const PHARMA_KEY='vh-pharma-data';
 const PHARMA_AGENCIES_KEY='vh-pharma-agencies';
+const DEFAULT_AGENCIES=['Senthil','Karthikeya','NH Surgical','HR Surgical','Lakshmi','Geetha Dharmapuri','Thamaraikani','Senthil Balaji','Kumaran','Saravana','Cylinder','Geetha Salem','Sara','Dhanalakshmi','Senthil Murugan','Vishnu','Universal','Lifeline','Aanand','Latha','Salem','Jayshree','Ramesh G','Rathna','Bioremedies','Dharmapuri','Sunshine','Sri Balaji'];
 
 function PharmaView(){
   const td=today(); const ty=parseInt(td.slice(0,4)); const tm=parseInt(td.slice(5,7))-1;
   const [year,setYear]=useState(ty); const [month,setMonth]=useState(tm);
   const [entries,setEntries]=useState(()=>{try{return JSON.parse(localStorage.getItem(PHARMA_KEY)||'[]');}catch{return [];}});
-  const [agencies,setAgencies]=useState(()=>{try{return JSON.parse(localStorage.getItem(PHARMA_AGENCIES_KEY)||'[]');}catch{return [];}});
+  const [agencies,setAgencies]=useState(()=>{
+    try{
+      const s=localStorage.getItem(PHARMA_AGENCIES_KEY);
+      if(s===null){try{localStorage.setItem(PHARMA_AGENCIES_KEY,JSON.stringify(DEFAULT_AGENCIES));}catch{}return DEFAULT_AGENCIES;}
+      const p=JSON.parse(s);
+      if(Array.isArray(p)&&p.length>0)return p;
+      try{localStorage.setItem(PHARMA_AGENCIES_KEY,JSON.stringify(DEFAULT_AGENCIES));}catch{}return DEFAULT_AGENCIES;
+    }catch{return DEFAULT_AGENCIES;}
+  });
   const [newAgency,setNewAgency]=useState('');
 
   function saveEntries(e){setEntries(e);try{localStorage.setItem(PHARMA_KEY,JSON.stringify(e));}catch{}}
@@ -693,6 +821,15 @@ function PharmaView(){
   }
 
   function deleteEntry(id){if(confirm('Delete this entry?'))saveEntries(entries.filter(e=>e.id!==id));}
+
+  function bulkPayMonth(agency){
+    // Mark every entry in CURRENT month for this agency as fully paid
+    saveEntries(entries.map(e=>{
+      if(e.agency!==agency) return e;
+      if(!e.date||!e.date.startsWith(monthStr)) return e;
+      return {...e,paid:n(e.amount)};
+    }));
+  }
 
   function bulkSetPaid(agency,total){
     // Distribute oldest-first across this agency's entries (all months, oldest first)
@@ -739,7 +876,7 @@ function PharmaView(){
           <div style={{textAlign:'center',color:'var(--t3)',padding:'40px 0',fontSize:13}}>No agencies yet. Add one above to get started.</div>
         ) : (
           <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(260px,1fr))',gap:10}}>
-            {allAgencyNames.map(ag=><AgencyCard key={ag} agency={ag} monthEntries={monthEntries.filter(e=>e.agency===ag)} allEntries={entries.filter(e=>e.agency===ag)} onAdd={(d,a,p,m)=>addEntry(ag,d,a,p,m)} onDelete={deleteEntry} onBulkPaid={t=>bulkSetPaid(ag,t)}/>)}
+            {allAgencyNames.map(ag=><AgencyCard key={ag} agency={ag} monthStr={monthStr} monthEntries={monthEntries.filter(e=>e.agency===ag)} allEntries={entries.filter(e=>e.agency===ag)} onAdd={(d,a,p,m)=>addEntry(ag,d,a,p,m)} onDelete={deleteEntry} onBulkPaid={t=>bulkSetPaid(ag,t)} onPayAll={()=>bulkPayMonth(ag)}/>)}
           </div>
         )}
       </div>
@@ -747,22 +884,21 @@ function PharmaView(){
   );
 }
 
-function AgencyCard({ agency, monthEntries, allEntries, onAdd, onDelete, onBulkPaid }){
+function AgencyCard({ agency, monthStr, monthEntries, allEntries, onAdd, onDelete, onBulkPaid, onPayAll }){
   const [date,setDate]=useState(today());
   const [amount,setAmount]=useState('');
-  const [paid,setPaid]=useState('');
   const [mode,setMode]=useState('Cash');
   const [editingPaid,setEditingPaid]=useState(false);
   const [paidDraft,setPaidDraft]=useState('');
 
-  // Card shows month totals (matches header), but bulk paid edits across all months oldest-first
   const totAmt=monthEntries.reduce((s,e)=>s+n(e.amount),0);
   const totPaid=monthEntries.reduce((s,e)=>s+n(e.paid),0);
   const due=totAmt-totPaid;
+  const fullyPaid=totAmt>0&&due<=0;
 
   function submit(){
-    onAdd(date,amount,paid||0,mode);
-    setAmount(''); setPaid(''); // keep date+mode
+    onAdd(date,amount,0,mode);
+    setAmount('');
   }
 
   function savePaid(){
@@ -770,43 +906,54 @@ function AgencyCard({ agency, monthEntries, allEntries, onAdd, onDelete, onBulkP
     setEditingPaid(false);
   }
 
+  function payAll(){
+    if(totAmt<=0){alert('No entries to pay this month.');return;}
+    if(due<=0){alert('Already fully paid.');return;}
+    if(!confirm(`Pay all ${monthEntries.length} entries for ${agency} this month?\n\nTotal: ₹${totAmt.toLocaleString('en-IN')}\nAlready paid: ₹${totPaid.toLocaleString('en-IN')}\nWill mark paid: ₹${due.toLocaleString('en-IN')}`))return;
+    onPayAll();
+  }
+
   return (
-    <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,padding:12,display:'flex',flexDirection:'column',gap:10}}>
+    <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,padding:12,display:'flex',flexDirection:'column',gap:8,borderLeft:`3px solid ${fullyPaid?'var(--grntx)':due>0?'var(--redtx)':'var(--bd2)'}`}}>
       {/* Header */}
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:8}}>
+      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',gap:6}}>
         <div style={{minWidth:0,flex:1}}>
           <div style={{fontWeight:700,fontSize:13,color:'var(--t1)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{agency}</div>
-          <div style={{fontSize:11,color:'var(--t3)',fontFamily:"'Noto Sans Mono',monospace",marginTop:2}}>
-            {inrZ(totAmt)}{due>0&&<> · <span style={{color:'var(--redtx)'}}>Due {inrZ(due)}</span></>}
-          </div>
+          <div style={{fontSize:10,color:'var(--t3)',marginTop:1}}>Total <b style={{color:'var(--t1)',fontFamily:"'Noto Sans Mono',monospace"}}>{inrZ(totAmt)}</b></div>
         </div>
-        <div style={{textAlign:'right',fontSize:11,minWidth:80}}>
-          <div style={{color:'var(--t3)'}}>Paid</div>
+        <div style={{textAlign:'right',fontSize:10,minWidth:84}}>
           {editingPaid ? (
-            <div style={{display:'flex',gap:3,alignItems:'center',marginTop:2}}>
+            <div style={{display:'flex',gap:3,alignItems:'center'}}>
               <input type="number" value={paidDraft} onChange={e=>setPaidDraft(e.target.value)} autoFocus
-                style={{width:70,border:'1px solid var(--bd2)',borderRadius:5,padding:'2px 5px',fontSize:11,fontFamily:"'Noto Sans Mono',monospace",textAlign:'right'}}/>
+                style={{width:60,border:'1px solid var(--bd2)',borderRadius:4,padding:'2px 4px',fontSize:11,fontFamily:"'Noto Sans Mono',monospace",textAlign:'right'}}/>
               <button onClick={savePaid} style={{background:'var(--g7)',color:'#fff',border:'none',borderRadius:4,padding:'2px 6px',fontSize:10,cursor:'pointer'}}>✓</button>
               <button onClick={()=>setEditingPaid(false)} style={{background:'var(--w)',border:'1px solid var(--bd2)',borderRadius:4,padding:'2px 6px',fontSize:10,cursor:'pointer'}}>×</button>
             </div>
           ) : (
-            <div style={{display:'flex',gap:4,alignItems:'center',justifyContent:'flex-end',marginTop:2}}>
-              <span style={{color:'var(--grntx)',fontWeight:700,fontFamily:"'Noto Sans Mono',monospace"}}>{inrZ(totPaid)}</span>
-              <span onClick={()=>{setPaidDraft(String(totPaid));setEditingPaid(true);}} style={{cursor:'pointer',color:'var(--t3)',fontSize:11}} title="Bulk set paid (distributes oldest-first)">✎</span>
-            </div>
+            <>
+              <div>Paid <b style={{color:'var(--grntx)',fontFamily:"'Noto Sans Mono',monospace"}}>{inrZ(totPaid)}</b> <span onClick={()=>{setPaidDraft(String(totPaid));setEditingPaid(true);}} style={{cursor:'pointer',color:'var(--t3)',marginLeft:2}} title="Set custom paid amount (FIFO)">✎</span></div>
+              {due>0&&<div style={{color:'var(--redtx)',fontWeight:700,marginTop:2}}>Due <span style={{fontFamily:"'Noto Sans Mono',monospace"}}>{inrZ(due)}</span></div>}
+              {fullyPaid&&<div style={{color:'var(--grntx)',fontWeight:700,marginTop:2}}>✓ Cleared</div>}
+            </>
           )}
         </div>
       </div>
 
+      {/* Pay All button */}
+      <button onClick={payAll} disabled={due<=0}
+        style={{background:due>0?'var(--grntx)':'var(--g0)',color:due>0?'#fff':'var(--t3)',border:due>0?'none':'1px solid var(--bd)',borderRadius:6,padding:'7px 0',fontSize:12,fontWeight:700,cursor:due>0?'pointer':'not-allowed'}}>
+        {fullyPaid?'✓ Fully Paid':due>0?`Pay All — ₹${due.toLocaleString('en-IN')}`:'No entries'}
+      </button>
+
       {/* Entries list */}
-      <div style={{borderTop:'1px solid var(--bd)',paddingTop:8,minHeight:30}}>
+      <div style={{borderTop:'1px solid var(--bd)',paddingTop:6,minHeight:24}}>
         {monthEntries.length===0 ? (
-          <div style={{textAlign:'center',color:'var(--dis)',fontSize:11,padding:'8px 0'}}>No entries this month</div>
+          <div style={{textAlign:'center',color:'var(--dis)',fontSize:11,padding:'4px 0'}}>No entries this month</div>
         ) : (
           monthEntries.sort((a,b)=>a.date.localeCompare(b.date)).map(e=>{
             const eDue=n(e.amount)-n(e.paid);
             return (
-              <div key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11,padding:'3px 0',gap:6}}>
+              <div key={e.id} style={{display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:11,padding:'2px 0',gap:6}}>
                 <span style={{color:'var(--t3)',whiteSpace:'nowrap'}}>{fmtDateShort(e.date).slice(0,5)} · {e.mode==='Bank Transfer'?'BT':'Cash'}</span>
                 <span style={{display:'flex',alignItems:'center',gap:6,fontFamily:"'Noto Sans Mono',monospace"}}>
                   <span style={{color:eDue>0?'var(--redtx)':'var(--t1)'}}>{inrZ(e.amount)}</span>
@@ -832,11 +979,6 @@ function AgencyCard({ agency, monthEntries, allEntries, onAdd, onDelete, onBulkP
         </select>
         <button onClick={submit} disabled={!amount} style={{background:amount?'var(--g6)':'var(--dis)',color:'#fff',border:'none',borderRadius:5,padding:'5px 0',cursor:amount?'pointer':'not-allowed',fontSize:14,fontWeight:700,lineHeight:1}}>+</button>
       </div>
-      <div style={{display:'grid',gridTemplateColumns:'1fr 80px',gap:4,marginTop:-6}}>
-        <span style={{fontSize:10,color:'var(--t3)',paddingLeft:2}}>Optional: paid now</span>
-        <input type="number" placeholder="Paid" value={paid} onChange={e=>setPaid(e.target.value)}
-          style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'4px 6px',fontSize:11,fontFamily:"'Noto Sans Mono',monospace",textAlign:'right'}}/>
-      </div>
     </div>
   );
 }
@@ -846,6 +988,8 @@ function AgencyCard({ agency, monthEntries, allEntries, onAdd, onDelete, onBulkP
 // ═══════════════════════════════════════════════════════════════
 const STAFF_KEY='vh-staff-data';
 const STAFF_PAID_KEY='vh-staff-paid';
+const DEFAULT_STAFF_RAW=[['Bathroom',3000],['Chinnarasu',14000],['Flower & Milk',2400],['Housekeeping night',9000],['Iyer',5000],['Jayaprabhu',19000],['Kaja',8000],['Kanimozhi',11000],['Karthik',9000],['Kesavan',17000],['Parvathi',8500],['Rekha',8000],['Salammal',8500],['Sylvi',8000],['Balaji',14500]];
+function buildDefaultStaff(){const t=today();const m=t.slice(0,7);return DEFAULT_STAFF_RAW.map(([name,sal])=>({id:uid(),name,joinDate:t,salaryHistory:[{effectiveMonth:m,amount:sal}]}));}
 
 // Get salary effective for a given month (YYYY-MM) by walking salaryHistory
 function salaryFor(staff,monthStr){
@@ -870,7 +1014,15 @@ function monthsBetween(fromYM,toYM){
 function StaffView(){
   const td=today(); const ty=parseInt(td.slice(0,4)); const tm=parseInt(td.slice(5,7))-1;
   const [year,setYear]=useState(ty); const [month,setMonth]=useState(tm);
-  const [staff,setStaff]=useState(()=>{try{return JSON.parse(localStorage.getItem(STAFF_KEY)||'[]');}catch{return [];}});
+  const [staff,setStaff]=useState(()=>{
+    try{
+      const s=localStorage.getItem(STAFF_KEY);
+      if(s===null){const seed=buildDefaultStaff();try{localStorage.setItem(STAFF_KEY,JSON.stringify(seed));}catch{}return seed;}
+      const p=JSON.parse(s);
+      if(Array.isArray(p)&&p.length>0)return p;
+      const seed=buildDefaultStaff();try{localStorage.setItem(STAFF_KEY,JSON.stringify(seed));}catch{}return seed;
+    }catch{const seed=buildDefaultStaff();try{localStorage.setItem(STAFF_KEY,JSON.stringify(seed));}catch{}return seed;}
+  });
   const [paidMap,setPaidMap]=useState(()=>{try{return JSON.parse(localStorage.getItem(STAFF_PAID_KEY)||'{}');}catch{return {};}});
   const [newName,setNewName]=useState('');
   const [newSalary,setNewSalary]=useState('');
@@ -908,6 +1060,17 @@ function StaffView(){
       if(existing>=0)hist[existing]={effectiveMonth:monthStr,amount:amt};
       else hist.push({effectiveMonth:monthStr,amount:amt});
       return {...s,salaryHistory:hist};
+    }));
+  }
+
+  function updateJoinDate(id,newDate){
+    if(!newDate)return;
+    saveStaff(staff.map(s=>{
+      if(s.id!==id)return s;
+      const newMonth=newDate.slice(0,7);
+      const hist=[...(s.salaryHistory||[])].sort((a,b)=>a.effectiveMonth.localeCompare(b.effectiveMonth));
+      if(hist.length>0)hist[0]={...hist[0],effectiveMonth:newMonth};
+      return {...s,joinDate:newDate,salaryHistory:hist};
     }));
   }
 
@@ -1009,7 +1172,10 @@ function StaffView(){
                         {r.name}
                         {hike&&<span style={{background:'var(--ambbg)',color:'var(--ambtx)',fontSize:9,padding:'1px 6px',borderRadius:3,marginLeft:6,fontWeight:700,letterSpacing:'0.3px'}}>HIKE?</span>}
                       </td>
-                      <td style={{padding:'7px 10px',color:'var(--t3)',fontSize:11}}>{joinShort}</td>
+                      <td style={{padding:'4px 8px',color:'var(--t3)',fontSize:11}}>
+                        <input type="date" defaultValue={r.joinDate||''} onBlur={e=>{if(e.target.value&&e.target.value!==r.joinDate)updateJoinDate(r.id,e.target.value);}}
+                          style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'4px 6px',fontSize:11,fontFamily:"'Noto Sans Mono',monospace",outline:'none',color:'var(--t2)',background:'var(--w)',width:'100%',minWidth:0}} title={`Joined: ${joinShort}`}/>
+                      </td>
                       <td style={{padding:'4px 10px',textAlign:'right'}}>
                         <input type="number" defaultValue={r.salary} onBlur={e=>{if(n(e.target.value)!==r.salary)updateSalary(r.id,e.target.value);}}
                           style={{width:'100%',border:'1px solid var(--bd2)',borderRadius:5,padding:'5px 8px',fontSize:12,fontFamily:"'Noto Sans Mono',monospace",textAlign:'right',outline:'none'}}/>
@@ -1347,7 +1513,9 @@ function computePnlMonth(y,m,deps){
 }
 
 function TrendsView({ allData, ipRecords }){
-  const [win,setWin]=useState('12mo');
+  const td=today(); const ty=parseInt(td.slice(0,4)); const tm=parseInt(td.slice(5,7))-1;
+  const [year,setYear]=useState(ty);
+  const [month,setMonth]=useState(tm);
   const [staff,setStaff]=useState([]);
   const [staffPaid,setStaffPaid]=useState({});
   const [pharma,setPharma]=useState([]);
@@ -1360,178 +1528,246 @@ function TrendsView({ allData, ipRecords }){
     try{setManual(JSON.parse(localStorage.getItem(PNL_KEY)||'{}'));}catch{}
   },[]);
 
-  const td=today(); const ty=parseInt(td.slice(0,4)); const tm=parseInt(td.slice(5,7))-1;
-  function buildMonths(){
-    const out=[];
-    if(win==='all'){
-      let minMs='9999-99';
-      Object.keys(allData||{}).forEach(d=>{ const ms=d.slice(0,7); if(ms<minMs)minMs=ms; });
-      (ipRecords||[]).forEach(r=>{ const ms=(r.admitDate||r.date||'').slice(0,7); if(ms&&ms<minMs)minMs=ms; });
-      if(minMs==='9999-99'){minMs=`${ty}-${String(tm+1).padStart(2,'0')}`;}
-      const [sy,sm]=minMs.split('-').map(Number);
-      let y=sy, m=sm-1;
-      while(y<ty||(y===ty&&m<=tm)){ out.push({y,m}); m++; if(m>11){m=0;y++;} }
-    }else if(win==='ytd'){
-      for(let m=0;m<=tm;m++)out.push({y:ty,m});
-    }else{
-      const count=win==='6mo'?6:12;
-      let y=ty,m=tm;
-      const buf=[];
-      for(let i=0;i<count;i++){buf.push({y,m});m--;if(m<0){m=11;y--;}}
-      buf.reverse();
-      out.push(...buf);
-    }
-    return out;
+  function prevMonth(){let y=year,m=month-1;if(m<0){m=11;y--;}setYear(y);setMonth(m);}
+  function nextMonth(){let y=year,m=month+1;if(m>11){m=0;y++;}setYear(y);setMonth(m);}
+
+  const monthStr=`${year}-${String(month+1).padStart(2,'0')}`;
+  const daysInMonth=new Date(year,month+1,0).getDate();
+
+  // Build per-day breakdown
+  const daily=[];
+  for(let d=1;d<=daysInMonth;d++){
+    const ds=`${monthStr}-${String(d).padStart(2,'0')}`;
+    let cons=0, proc=0, med=0, pts=0;
+    (allData[ds]||[]).forEach(r=>{
+      cons+=n(r.opd)+n(r.popd);
+      proc+=n(r.xray)+n(r.pt)+n(r.lab);
+      med+=n(r.medicals);
+      pts++;
+    });
+    daily.push({day:d,cons,proc,med,pts,total:cons+proc+med});
   }
-  const months=buildMonths();
-  const data=months.map(({y,m})=>{
-    const x=computePnlMonth(y,m,{allData,ipRecords,pharma,staff,staffPaid,manual});
-    return {label:`${MONTHS_LONG[m].slice(0,3)} '${String(y).slice(2)}`,Income:x.totalIncome,Expenses:x.totalExp,Net:x.net};
+
+  // Working days = days with any patient
+  const workingDays=daily.filter(d=>d.pts>0).length;
+
+  // IP revenue for the month
+  let ipRev=0;
+  (ipRecords||[]).forEach(r=>{
+    const adm=r.admitDate||r.date||'';
+    if(adm.startsWith(monthStr))ipRev+=n(r.ipBill||r.bill)+n(r.ipMed||r.medicines);
   });
 
-  const totIncome=data.reduce((s,d)=>s+d.Income,0);
-  const totExp=data.reduce((s,d)=>s+d.Expenses,0);
-  const totNet=data.reduce((s,d)=>s+d.Net,0);
-  const avgIncome=data.length?Math.round(totIncome/data.length):0;
-  const avgExp=data.length?Math.round(totExp/data.length):0;
-  const avgNet=data.length?Math.round(totNet/data.length):0;
-  const latest=data[data.length-1]||{Income:0,Expenses:0,Net:0};
+  // Aggregates
+  const sumCons=daily.reduce((s,d)=>s+d.cons,0);
+  const sumProc=daily.reduce((s,d)=>s+d.proc,0);
+  const sumMed=daily.reduce((s,d)=>s+d.med,0);
+  const grossRev=sumCons+sumProc+sumMed+ipRev;
 
-  // Trend %: latest vs prior (last data point vs second-to-last)
-  function trendPct(key){
-    if(data.length<2)return null;
-    const a=data[data.length-2][key]; const b=data[data.length-1][key];
-    if(a===0)return null;
-    return Math.round(((b-a)/Math.abs(a))*100);
-  }
-  const tIn=trendPct('Income'), tEx=trendPct('Expenses'), tNet=trendPct('Net');
+  // Expenses
+  let pharmaPaid=0;
+  (pharma||[]).forEach(e=>{ if(e.date&&e.date.startsWith(monthStr))pharmaPaid+=n(e.paid); });
+  let staffCash=0;
+  const monthPaidMap=(staffPaid||{})[monthStr]||{};
+  (staff||[]).forEach(s=>{ if(monthPaidMap[s.id])staffCash+=salaryFor(s,monthStr); });
+  const rec=migratePnlMonth((manual||{})[monthStr]||{},monthStr);
+  const otherExp=sumEntries(rec.rent)+sumEntries(rec.utilities)+sumEntries(rec.internet)+sumEntries(rec.electricity)+sumEntries(rec.other);
+  const totalExp=pharmaPaid+staffCash+otherExp;
+  const netProfit=grossRev-totalExp;
 
-  // Sparkline path generator
-  function sparkPath(values,w,h,pad=4){
-    if(values.length===0)return '';
-    const min=Math.min(...values,0);
-    const max=Math.max(...values,1);
-    const range=max-min||1;
-    return values.map((v,i)=>{
-      const x=pad+(i/(values.length-1||1))*(w-2*pad);
-      const y=h-pad-((v-min)/range)*(h-2*pad);
-      return `${i===0?'M':'L'}${x.toFixed(1)},${y.toFixed(1)}`;
-    }).join(' ');
-  }
-  function sparkLastPoint(values,w,h,pad=4){
-    if(values.length===0)return null;
-    const min=Math.min(...values,0);
-    const max=Math.max(...values,1);
-    const range=max-min||1;
-    const v=values[values.length-1];
-    const x=pad+(w-2*pad);
-    const y=h-pad-((v-min)/range)*(h-2*pad);
-    return {x,y};
-  }
-  const incVals=data.map(d=>d.Income);
-  const expVals=data.map(d=>d.Expenses);
-  const netVals=data.map(d=>d.Net);
-  const SW=300, SH=44;
-  const lpIn=sparkLastPoint(incVals,SW,SH);
-  const lpEx=sparkLastPoint(expVals,SW,SH);
-  const lpNet=sparkLastPoint(netVals,SW,SH);
+  // Colors
+  const C_CONS='#1565c0';   // blue
+  const C_PROC='#7c3aed';   // purple
+  const C_MED='#0d9488';    // teal
+  const C_IP='#d97706';     // amber for IP slice
+  const C_PTS='#ea580c';    // orange line
+  const C_SAL='#dc2626';    // red
+  const C_PHARM='#9333ea';  // violet
+  const C_NET='#16a34a';    // green
 
-  const PillBtn=({active,onClick,children})=>(
-    <button onClick={onClick} style={{background:active?'var(--g7)':'var(--w)',color:active?'#fff':'var(--t2)',border:`1px solid ${active?'var(--g7)':'var(--bd2)'}`,borderRadius:5,padding:'5px 12px',fontSize:11,fontWeight:600,cursor:'pointer'}}>{children}</button>
+  // KPI tile
+  const KPI=({label,value,sub,color,bg})=>(
+    <div style={{background:bg||'var(--w)',border:'1px solid var(--bd)',borderRadius:8,padding:'10px 12px',flex:1,minWidth:130}}>
+      <div style={{fontSize:9,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.6px'}}>{label}</div>
+      <div style={{fontSize:17,fontWeight:700,color:color||'var(--t1)',fontFamily:"'Noto Sans Mono',monospace",marginTop:3}}>{value}</div>
+      {sub&&<div style={{fontSize:10,color:'var(--t3)',marginTop:2}}>{sub}</div>}
+    </div>
   );
 
-  function trendBadge(pct,invert){
-    if(pct===null)return <span style={{color:'var(--t3)',fontSize:13,fontWeight:700}}>—</span>;
-    const positive=invert?pct<0:pct>0;
-    const color=positive?'var(--grntx)':(pct===0?'var(--t3)':'var(--redtx)');
-    const arrow=pct>0?'↑':(pct<0?'↓':'');
-    return <span style={{color,fontSize:13,fontWeight:700}}>{arrow} {Math.abs(pct)}%</span>;
+  // Stacked bar chart dimensions
+  const BW=Math.max(700,daysInMonth*22);
+  const BH=240;
+  const BPAD={t:14,r:14,b:24,l:46};
+  const maxStack=Math.max(1,...daily.map(d=>d.total));
+  const niceMax=Math.ceil(maxStack/1000)*1000||1000;
+  const xFor=i=>BPAD.l+(i+0.5)*((BW-BPAD.l-BPAD.r)/daysInMonth);
+  const yFor=v=>BPAD.t+(BH-BPAD.t-BPAD.b)*(1-v/niceMax);
+  const barW=Math.min(18,(BW-BPAD.l-BPAD.r)/daysInMonth-2);
+
+  // Patient line chart
+  const LH=160;
+  const LPAD={t:12,r:14,b:24,l:36};
+  const maxPts=Math.max(1,...daily.map(d=>d.pts));
+  const niceMaxP=Math.ceil(maxPts/5)*5||5;
+  const lyFor=v=>LPAD.t+(LH-LPAD.t-LPAD.b)*(1-v/niceMaxP);
+  const lxFor=i=>LPAD.l+(i+0.5)*((BW-LPAD.l-LPAD.r)/daysInMonth);
+  const ptsPath=daily.map((d,i)=>`${i===0?'M':'L'}${lxFor(i).toFixed(1)},${lyFor(d.pts).toFixed(1)}`).join(' ');
+
+  // Pie chart helper
+  function pieSlices(items,cx,cy,r){
+    const total=items.reduce((s,i)=>s+i.value,0);
+    if(total<=0)return [];
+    let a=-Math.PI/2;
+    return items.map(it=>{
+      const frac=it.value/total;
+      const a2=a+frac*Math.PI*2;
+      const x1=cx+r*Math.cos(a),y1=cy+r*Math.sin(a);
+      const x2=cx+r*Math.cos(a2),y2=cy+r*Math.sin(a2);
+      const large=frac>0.5?1:0;
+      const path=`M${cx},${cy} L${x1.toFixed(2)},${y1.toFixed(2)} A${r},${r} 0 ${large} 1 ${x2.toFixed(2)},${y2.toFixed(2)} Z`;
+      const mid=(a+a2)/2;
+      const lx=cx+(r*0.6)*Math.cos(mid),ly=cy+(r*0.6)*Math.sin(mid);
+      a=a2;
+      return {...it,path,frac,lx,ly};
+    });
   }
+
+  const pie1=pieSlices([
+    {label:'Consultation',value:sumCons,color:C_CONS},
+    {label:'Procedures',value:sumProc,color:C_PROC},
+    {label:'Medical',value:sumMed,color:C_MED},
+    {label:'IP Revenue',value:ipRev,color:C_IP}
+  ],90,90,80);
+  const pie2=pieSlices([
+    {label:'Salary',value:staffCash,color:C_SAL},
+    {label:'Pharma',value:pharmaPaid,color:C_PHARM},
+    {label:'Other Exp',value:otherExp,color:'#f59e0b'},
+    {label:'Net Profit',value:Math.max(0,netProfit),color:C_NET}
+  ],90,90,80);
+
+  const Legend=({items})=>(
+    <div style={{display:'flex',flexDirection:'column',gap:5,fontSize:11,minWidth:0}}>
+      {items.map(it=>(
+        <div key={it.label} style={{display:'flex',alignItems:'center',gap:6,minWidth:0}}>
+          <div style={{width:10,height:10,background:it.color,borderRadius:2,flexShrink:0}}/>
+          <div style={{color:'var(--t2)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{it.label}</div>
+          <div style={{color:'var(--t1)',fontWeight:700,fontFamily:"'Noto Sans Mono',monospace",marginLeft:'auto'}}>{Math.round(it.frac*100)||0}%</div>
+        </div>
+      ))}
+    </div>
+  );
+
+  const ChartCard=({title,children})=>(
+    <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,padding:12,marginBottom:12}}>
+      <div style={{fontSize:11,fontWeight:700,color:'var(--t2)',textTransform:'uppercase',letterSpacing:'0.6px',marginBottom:10}}>{title}</div>
+      {children}
+    </div>
+  );
 
   return (
     <>
-      <div style={{background:'var(--w)',borderBottom:'1px solid var(--bd)',padding:'10px 14px',display:'flex',alignItems:'center',gap:6,flexShrink:0,flexWrap:'wrap'}}>
-        <span style={{fontSize:10,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',fontWeight:700,marginRight:4}}>Window</span>
-        <PillBtn active={win==='6mo'} onClick={()=>setWin('6mo')}>6 mo</PillBtn>
-        <PillBtn active={win==='12mo'} onClick={()=>setWin('12mo')}>12 mo</PillBtn>
-        <PillBtn active={win==='ytd'} onClick={()=>setWin('ytd')}>YTD</PillBtn>
-        <PillBtn active={win==='all'} onClick={()=>setWin('all')}>All</PillBtn>
+      {/* Month nav */}
+      <div style={{background:'var(--w)',borderBottom:'1px solid var(--bd)',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'center',gap:10,flexShrink:0}}>
+        <button onClick={prevMonth} style={{background:'var(--w)',border:'1px solid var(--bd2)',borderRadius:6,padding:'6px 12px',fontSize:13,fontWeight:700,cursor:'pointer',color:'var(--t1)'}}>‹</button>
+        <div style={{fontWeight:700,fontSize:14,color:'var(--t1)',minWidth:160,textAlign:'center'}}>{MONTHS_LONG[month]} {year}</div>
+        <button onClick={nextMonth} style={{background:'var(--w)',border:'1px solid var(--bd2)',borderRadius:6,padding:'6px 12px',fontSize:13,fontWeight:700,cursor:'pointer',color:'var(--t1)'}}>›</button>
       </div>
 
       <div style={{flex:1,overflowY:'auto',background:'var(--bg)',padding:12}}>
-        {data.length===0 ? (
-          <div style={{textAlign:'center',color:'var(--t3)',padding:40,fontSize:13}}>No data in this window</div>
-        ) : (
-          <>
-            {/* Sparkline KPI card */}
-            <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,padding:14,marginBottom:12}}>
-              <div style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:6}}>
-                {win==='6mo'?'Last 6 Months':win==='12mo'?'Last 12 Months':win==='ytd'?`YTD ${ty}`:'All Time'} ({data.length} mo)
-              </div>
+        {/* KPI tiles */}
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
+          <KPI label="Gross Revenue" value={inrZ(grossRev)} color="var(--grntx)" bg="var(--grnbg)"/>
+          <KPI label="Total Expenses" value={inrZ(totalExp)} color="var(--redtx)" bg="var(--redbg)"/>
+          <KPI label="Net Profit" value={(netProfit>=0?'+':'')+inrZ(netProfit)} color={netProfit>=0?'var(--blutx)':'var(--redtx)'} bg={netProfit>=0?'var(--blubg)':'var(--redbg)'}/>
+          <KPI label="Working Days" value={workingDays} sub={`of ${daysInMonth}`}/>
+        </div>
 
-              {[
-                {label:'Income',color:'var(--grntx)',stroke:'#2e7d32',vals:incVals,latest:latest.Income,avg:avgIncome,pct:tIn,invert:false,lp:lpIn},
-                {label:'Expenses',color:'var(--redtx)',stroke:'#c62828',vals:expVals,latest:latest.Expenses,avg:avgExp,pct:tEx,invert:true,lp:lpEx},
-                {label:'Net',color:'var(--blutx)',stroke:'#1565c0',vals:netVals,latest:latest.Net,avg:avgNet,pct:tNet,invert:false,lp:lpNet}
-              ].map((r,i,arr)=>(
-                <div key={r.label} style={{display:'grid',gridTemplateColumns:'90px 1fr 110px 70px',gap:10,alignItems:'center',padding:'10px 0',borderBottom:i<arr.length-1?'1px solid var(--bd)':'none'}}>
-                  <div>
-                    <div style={{fontSize:13,fontWeight:700,color:r.color}}>{r.label}</div>
-                    <div style={{fontSize:9,color:'var(--t3)'}}>avg {(r.avg>=0?'':'')+inrZ(r.avg)}/mo</div>
-                  </div>
-                  <svg viewBox={`0 0 ${SW} ${SH}`} preserveAspectRatio="none" style={{width:'100%',height:44}}>
-                    <path d={sparkPath(r.vals,SW,SH)} fill="none" stroke={r.stroke} strokeWidth="2" strokeLinejoin="round"/>
-                    {r.lp&&<circle cx={r.lp.x} cy={r.lp.y} r="3" fill={r.stroke}/>}
-                  </svg>
-                  <div style={{fontFamily:"'Noto Sans Mono',monospace",fontSize:14,fontWeight:700,color:r.color,textAlign:'right'}}>{(r.label==='Net'&&r.latest>=0?'+':'')+inrZ(r.latest)}</div>
-                  <div style={{textAlign:'right'}}>{trendBadge(r.pct,r.invert)}<div style={{fontSize:9,color:'var(--t3)'}}>vs prior</div></div>
-                </div>
+        {/* Daily Revenue Breakdown - stacked bars */}
+        <ChartCard title="Daily Revenue Breakdown">
+          <div style={{overflowX:'auto'}}>
+            <svg viewBox={`0 0 ${BW} ${BH}`} style={{width:BW,height:BH,display:'block'}}>
+              {/* gridlines */}
+              {[0,0.25,0.5,0.75,1].map(g=>{
+                const y=BPAD.t+(BH-BPAD.t-BPAD.b)*g;
+                const v=Math.round(niceMax*(1-g));
+                return (
+                  <g key={g}>
+                    <line x1={BPAD.l} y1={y} x2={BW-BPAD.r} y2={y} stroke="var(--bd)" strokeWidth="1"/>
+                    <text x={BPAD.l-4} y={y+3} textAnchor="end" fontSize="9" fill="var(--t3)" fontFamily="'Noto Sans Mono',monospace">{v>=1000?(v/1000).toFixed(0)+'k':v}</text>
+                  </g>
+                );
+              })}
+              {/* bars */}
+              {daily.map((d,i)=>{
+                const x=xFor(i)-barW/2;
+                const yC=yFor(d.cons);
+                const hC=BH-BPAD.b-yC;
+                const yP=yFor(d.cons+d.proc);
+                const hP=yFor(d.cons)-yP;
+                const yM=yFor(d.cons+d.proc+d.med);
+                const hM=yFor(d.cons+d.proc)-yM;
+                return (
+                  <g key={d.day}>
+                    {d.cons>0&&<rect x={x} y={yC} width={barW} height={hC} fill={C_CONS}/>}
+                    {d.proc>0&&<rect x={x} y={yP} width={barW} height={hP} fill={C_PROC}/>}
+                    {d.med>0&&<rect x={x} y={yM} width={barW} height={hM} fill={C_MED}/>}
+                    <text x={xFor(i)} y={BH-BPAD.b+12} textAnchor="middle" fontSize="9" fill="var(--t3)" fontFamily="'Noto Sans Mono',monospace">{d.day}</text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+          <div style={{display:'flex',gap:14,fontSize:11,marginTop:8,flexWrap:'wrap'}}>
+            <div style={{display:'flex',alignItems:'center',gap:5}}><div style={{width:11,height:11,background:C_CONS,borderRadius:2}}/><span style={{color:'var(--t2)'}}>Consultation</span></div>
+            <div style={{display:'flex',alignItems:'center',gap:5}}><div style={{width:11,height:11,background:C_PROC,borderRadius:2}}/><span style={{color:'var(--t2)'}}>Procedures</span></div>
+            <div style={{display:'flex',alignItems:'center',gap:5}}><div style={{width:11,height:11,background:C_MED,borderRadius:2}}/><span style={{color:'var(--t2)'}}>Medical</span></div>
+          </div>
+        </ChartCard>
+
+        {/* Daily Patient Count - line */}
+        <ChartCard title="Daily Patient Count">
+          <div style={{overflowX:'auto'}}>
+            <svg viewBox={`0 0 ${BW} ${LH}`} style={{width:BW,height:LH,display:'block'}}>
+              {[0,0.5,1].map(g=>{
+                const y=LPAD.t+(LH-LPAD.t-LPAD.b)*g;
+                const v=Math.round(niceMaxP*(1-g));
+                return (
+                  <g key={g}>
+                    <line x1={LPAD.l} y1={y} x2={BW-LPAD.r} y2={y} stroke="var(--bd)" strokeWidth="1"/>
+                    <text x={LPAD.l-4} y={y+3} textAnchor="end" fontSize="9" fill="var(--t3)" fontFamily="'Noto Sans Mono',monospace">{v}</text>
+                  </g>
+                );
+              })}
+              <path d={ptsPath} fill="none" stroke={C_PTS} strokeWidth="2" strokeLinejoin="round"/>
+              {daily.map((d,i)=>(
+                <g key={d.day}>
+                  {d.pts>0&&<circle cx={lxFor(i)} cy={lyFor(d.pts)} r="2.5" fill={C_PTS}/>}
+                  {i%2===0&&<text x={lxFor(i)} y={LH-LPAD.b+12} textAnchor="middle" fontSize="9" fill="var(--t3)" fontFamily="'Noto Sans Mono',monospace">{d.day}</text>}
+                </g>
               ))}
-            </div>
+            </svg>
+          </div>
+        </ChartCard>
 
-            {/* Numbers table */}
-            <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,overflow:'hidden'}}>
-              <div style={{background:'var(--g7)',color:'#fff',padding:'9px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:12,fontWeight:700}}>
-                <span>Monthly Detail</span>
-                <span style={{fontWeight:400,fontSize:11,opacity:0.85}}>latest first</span>
-              </div>
-              <div style={{overflowX:'auto'}}>
-                <table style={{width:'100%',borderCollapse:'collapse',fontSize:12,minWidth:480}}>
-                  <thead>
-                    <tr style={{background:'var(--g0)',borderBottom:'1px solid var(--bd)'}}>
-                      <th style={{padding:'8px 12px',textAlign:'left',color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Month</th>
-                      <th style={{padding:'8px 12px',textAlign:'right',color:'var(--grntx)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Income</th>
-                      <th style={{padding:'8px 12px',textAlign:'right',color:'var(--redtx)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Expenses</th>
-                      <th style={{padding:'8px 12px',textAlign:'right',color:'var(--blutx)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Net</th>
-                      <th style={{padding:'8px 12px',textAlign:'right',color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Margin</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...data].reverse().map((d,i)=>{
-                      const margin=d.Income>0?Math.round((d.Net/d.Income)*100):0;
-                      return (
-                        <tr key={d.label} style={{borderBottom:'1px solid var(--bd)',background:i===0?'var(--blubg)':'transparent'}}>
-                          <td style={{padding:'7px 12px',fontWeight:i===0?700:400,color:i===0?'var(--t1)':'var(--t2)'}}>{d.label}</td>
-                          <td style={{padding:'7px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--grntx)',fontWeight:i===0?700:400}}>{inrZ(d.Income)}</td>
-                          <td style={{padding:'7px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--redtx)'}}>{inrZ(d.Expenses)}</td>
-                          <td style={{padding:'7px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--blutx)',fontWeight:600}}>{(d.Net>=0?'+':'')+inrZ(d.Net)}</td>
-                          <td style={{padding:'7px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--t1)'}}>{margin}%</td>
-                        </tr>
-                      );
-                    })}
-                    <tr style={{background:'var(--g0)',fontWeight:700}}>
-                      <td style={{padding:'9px 12px'}}>Total / Avg</td>
-                      <td style={{padding:'9px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--grntx)'}}>{inrZ(totIncome)}</td>
-                      <td style={{padding:'9px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--redtx)'}}>{inrZ(totExp)}</td>
-                      <td style={{padding:'9px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--blutx)'}}>{(totNet>=0?'+':'')+inrZ(totNet)}</td>
-                      <td style={{padding:'9px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace"}}>{totIncome>0?Math.round((totNet/totIncome)*100):0}%</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+        {/* Two pies side-by-side */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12}}>
+          <ChartCard title="Revenue Split">
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <svg viewBox="0 0 180 180" style={{width:130,height:130,flexShrink:0}}>
+                {pie1.length>0?pie1.map((s,i)=><path key={i} d={s.path} fill={s.color} stroke="var(--w)" strokeWidth="1"/>):<circle cx="90" cy="90" r="80" fill="var(--g0)"/>}
+              </svg>
+              <Legend items={pie1}/>
             </div>
-          </>
-        )}
+          </ChartCard>
+          <ChartCard title="Revenue vs Expenses">
+            <div style={{display:'flex',alignItems:'center',gap:10}}>
+              <svg viewBox="0 0 180 180" style={{width:130,height:130,flexShrink:0}}>
+                {pie2.length>0?pie2.map((s,i)=><path key={i} d={s.path} fill={s.color} stroke="var(--w)" strokeWidth="1"/>):<circle cx="90" cy="90" r="80" fill="var(--g0)"/>}
+              </svg>
+              <Legend items={pie2}/>
+            </div>
+          </ChartCard>
+        </div>
       </div>
     </>
   );
@@ -2557,6 +2793,156 @@ function ExportView({ allData, setAllData, ipRecords, setIpRecords }){
 // ═══════════════════════════════════════════════════════════════
 // SETTINGS TAB
 // ═══════════════════════════════════════════════════════════════
+function BackupImporter(){
+  const [backup,setBackup]=useState(null);
+  const [plan,setPlan]=useState(null);
+  const [log,setLog]=useState([]);
+  const [busy,setBusy]=useState(false);
+
+  function add(line){setLog(L=>[line,...L].slice(0,15));}
+
+  function transformRow(r){
+    const modeMap={C:'Cash',G:'Gpay',CG:'Cash'};
+    return {
+      id:uid(),mrn:r.mrn||'',name:r.name||'',type:r.type||'N',
+      opd:r.opd||'',xray:r.xray||'',popd:r.pop||'',pt:r.pt||'',lab:r.lab||'',
+      medicals:r.med||'',
+      mode:modeMap[r.mode]||r.mode||'Cash',
+      cash:r.cash||'',gpay:r.gpay||''
+    };
+  }
+
+  async function onFile(e){
+    const f=e.target.files[0]; if(!f)return;
+    try{
+      const txt=await f.text();
+      const data=JSON.parse(txt);
+      if(!data.opd||!data.pharma){alert('Not a valid VH backup file (missing opd/pharma keys).');return;}
+      setBackup(data);
+      buildPlan(data);
+      add(`Loaded: ${f.name}`);
+    }catch(err){alert('Invalid JSON: '+err.message);}
+  }
+
+  function buildPlan(data){
+    const CUTOFF='2026-04-24';
+    const opdDates=Object.keys(data.opd||{}).filter(d=>d>=CUTOFF).sort();
+    let existingOpd={};try{existingOpd=JSON.parse(localStorage.getItem('vh-day-data')||'{}');}catch{}
+    let existingPharma=[];try{existingPharma=JSON.parse(localStorage.getItem(PHARMA_KEY)||'[]');}catch{}
+    const overlap=opdDates.filter(d=>existingOpd[d]&&existingOpd[d].length>0);
+    const newDates=opdDates.filter(d=>!(existingOpd[d]&&existingOpd[d].length>0));
+    let rowCount=0;newDates.forEach(d=>rowCount+=(data.opd[d].rows||[]).length);
+    let pharmaCount=0;const ags=new Set();
+    Object.keys(data.pharma||{}).forEach(ms=>{
+      Object.keys(data.pharma[ms]).forEach(ag=>{
+        if(ag.endsWith('_paid'))return;
+        const e=data.pharma[ms][ag];
+        if(Array.isArray(e)){pharmaCount+=e.length;ags.add(ag);}
+      });
+    });
+    setPlan({opdDates,overlap,newDates,rowCount,pharmaCount,agencyCount:ags.size,existingPharmaCount:existingPharma.length,existingOpdCount:Object.keys(existingOpd).length,sourceRange:opdDates.length?`${opdDates[0]} → ${opdDates[opdDates.length-1]}`:'—'});
+  }
+
+  function applyOpd(){
+    if(!backup||!plan)return;
+    if(!confirm(`Add ${plan.newDates.length} new dates (${plan.rowCount} rows) to OPD?\n\nExisting dates will NOT be overwritten.`))return;
+    setBusy(true);
+    try{
+      let existing={};try{existing=JSON.parse(localStorage.getItem('vh-day-data')||'{}');}catch{}
+      const updated={...existing};
+      let added=0,skipped=0,rowsAdded=0;
+      plan.opdDates.forEach(d=>{
+        if(existing[d]&&existing[d].length>0){skipped++;return;}
+        const rows=(backup.opd[d].rows||[]).map(transformRow);
+        updated[d]=rows; added++; rowsAdded+=rows.length;
+      });
+      localStorage.setItem('vh-day-data',JSON.stringify(updated));
+      add(`✓ OPD: added ${added} dates, ${rowsAdded} rows. Skipped ${skipped}.`);
+      buildPlan(backup); // refresh plan
+    }catch(err){add('✗ OPD error: '+err.message);}
+    setBusy(false);
+  }
+
+  function applyPharma(){
+    if(!backup||!plan)return;
+    if(!confirm(`Load ${plan.pharmaCount} pharma entries from JSON?\n\nExisting pharma data will be REPLACED.\nAgencies will be merged with existing list.`))return;
+    setBusy(true);
+    try{
+      const flat=[];const ags=new Set();
+      Object.keys(backup.pharma||{}).forEach(ms=>{
+        const m=backup.pharma[ms];
+        Object.keys(m).forEach(ag=>{
+          if(ag.endsWith('_paid'))return;
+          const e=m[ag];if(!Array.isArray(e))return;
+          ags.add(ag);
+          e.forEach(x=>flat.push({id:uid(),date:x.date,agency:ag,amount:n(x.amt),paid:0,mode:''}));
+        });
+      });
+      flat.sort((a,b)=>a.date.localeCompare(b.date));
+      let existingAgs=[];try{existingAgs=JSON.parse(localStorage.getItem(PHARMA_AGENCIES_KEY)||'[]');}catch{}
+      const merged=Array.from(new Set([...existingAgs,...ags])).sort();
+      localStorage.setItem(PHARMA_KEY,JSON.stringify(flat));
+      localStorage.setItem(PHARMA_AGENCIES_KEY,JSON.stringify(merged));
+      add(`✓ Pharma: wrote ${flat.length} entries, ${merged.length} agencies. Refresh recommended.`);
+      buildPlan(backup);
+    }catch(err){add('✗ Pharma error: '+err.message);}
+    setBusy(false);
+  }
+
+  function reload(){window.location.reload();}
+
+  const card={background:'var(--w)',border:'1px solid var(--bd)',borderRadius:10,padding:'16px 18px',marginBottom:14,borderLeft:'4px solid #d97706'};
+  const btn=(bg,disabled)=>({background:disabled?'#ccc':bg,color:'#fff',border:'none',borderRadius:7,padding:'9px 16px',fontSize:12,fontWeight:700,cursor:disabled?'not-allowed':'pointer',marginRight:8});
+
+  return (
+    <div style={card}>
+      <div style={{fontWeight:700,fontSize:13,color:'#b45309',marginBottom:4}}>📥 Import Backup JSON</div>
+      <p style={{fontSize:12,color:'var(--t3)',marginBottom:12,lineHeight:1.6}}>
+        One-click loader. Pick a backup JSON file → review what will change → apply.
+        OPD existing dates are protected (skipped). Pharma is fully replaced.
+      </p>
+
+      <input type="file" accept=".json,application/json" onChange={onFile}
+        style={{fontSize:12,padding:'7px 10px',border:'1px dashed var(--bd2)',borderRadius:6,background:'var(--g0)',width:'100%',cursor:'pointer'}}/>
+
+      {plan&&(
+        <div style={{marginTop:12,padding:'12px 14px',background:'var(--g0)',borderRadius:7,fontSize:12,lineHeight:1.7}}>
+          <div style={{fontWeight:700,marginBottom:6,color:'var(--t1)'}}>Merge plan</div>
+          <table style={{width:'100%',fontSize:12,borderCollapse:'collapse'}}>
+            <tbody>
+              <tr><td style={{color:'var(--t3)',padding:'3px 0'}}>OPD source dates (Apr 24+)</td><td style={{textAlign:'right',fontWeight:600}}>{plan.opdDates.length} <span style={{color:'var(--t3)',fontWeight:400}}>({plan.sourceRange})</span></td></tr>
+              <tr><td style={{color:'var(--t3)',padding:'3px 0'}}>Already in storage (will skip)</td><td style={{textAlign:'right',fontWeight:600,color:plan.overlap.length?'var(--redtx)':'var(--grntx)'}}>{plan.overlap.length}</td></tr>
+              <tr><td style={{color:'var(--t3)',padding:'3px 0'}}>New OPD dates to add</td><td style={{textAlign:'right',fontWeight:700,color:'var(--grntx)'}}>{plan.newDates.length} ({plan.rowCount} rows)</td></tr>
+              <tr><td style={{color:'var(--t3)',padding:'3px 0'}}>Existing OPD total</td><td style={{textAlign:'right'}}>{plan.existingOpdCount}</td></tr>
+              <tr><td style={{color:'var(--t3)',padding:'3px 0',paddingTop:8,borderTop:'1px solid var(--bd)'}}>Pharma entries to load</td><td style={{textAlign:'right',fontWeight:700,color:'var(--blutx)',paddingTop:8,borderTop:'1px solid var(--bd)'}}>{plan.pharmaCount} ({plan.agencyCount} agencies)</td></tr>
+              <tr><td style={{color:'var(--t3)',padding:'3px 0'}}>Existing pharma (will replace)</td><td style={{textAlign:'right',fontWeight:600,color:plan.existingPharmaCount?'var(--redtx)':'var(--t3)'}}>{plan.existingPharmaCount}</td></tr>
+            </tbody>
+          </table>
+          {plan.overlap.length>0&&<div style={{marginTop:8,fontSize:11,color:'var(--redtx)'}}>Overlap dates skipped: {plan.overlap.join(', ')}</div>}
+
+          <div style={{marginTop:14,display:'flex',flexWrap:'wrap',alignItems:'center'}}>
+            <button style={btn('#1565c0',busy||plan.newDates.length===0)} onClick={applyOpd} disabled={busy||plan.newDates.length===0}>
+              ① Apply OPD merge
+            </button>
+            <button style={btn('#7c3aed',busy)} onClick={applyPharma} disabled={busy}>
+              ② Apply Pharma load
+            </button>
+            <button style={btn('#16a34a',busy)} onClick={reload} disabled={busy}>
+              ③ Refresh page
+            </button>
+          </div>
+        </div>
+      )}
+
+      {log.length>0&&(
+        <div style={{marginTop:12,padding:'10px 12px',background:'#0f172a',color:'#e2e8f0',borderRadius:6,fontSize:11,fontFamily:"'Noto Sans Mono',monospace",lineHeight:1.6,maxHeight:140,overflowY:'auto'}}>
+          {log.map((l,i)=><div key={i}>{l}</div>)}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function SettingsView({ allData, ipRecords, syncStatus, setSyncStatus }) {
   const [url, setUrl] = useState(getGsUrl);
   const [syncing, setSyncing] = useState(false);
@@ -2589,6 +2975,8 @@ function SettingsView({ allData, ipRecords, syncStatus, setSyncStatus }) {
     <div style={{ flex:1, overflowY:'auto', padding:'16px 20px', background:'var(--bg)' }}>
       <div style={{ maxWidth:640 }}>
         <div style={{ fontWeight:700, fontSize:15, color:'var(--t1)', marginBottom:14 }}>⚙ Settings</div>
+
+        <BackupImporter/>
 
         {/* Google Sheets Sync */}
         <div style={{ ...cardStyle, borderLeft:'4px solid #34A853' }}>
