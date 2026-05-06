@@ -1813,6 +1813,748 @@ function AnnualView({ allData, ipRecords }){
 }
 
 // ═══════════════════════════════════════════════════════════════
+// STATEMENT TAB (Monthly Financial Statement)
+// ═══════════════════════════════════════════════════════════════
+function StatementView({ allData, ipRecords }){
+  const td=today(); const ty=parseInt(td.slice(0,4)); const tm=parseInt(td.slice(5,7))-1;
+  const [year,setYear]=useState(ty);
+  const [month,setMonth]=useState(tm);
+  const [staff,setStaff]=useState([]);
+  const [staffPaid,setStaffPaid]=useState({});
+  const [pharma,setPharma]=useState([]);
+  const [manual,setManual]=useState({});
+
+  useEffect(()=>{
+    try{setStaff(JSON.parse(localStorage.getItem(STAFF_KEY)||'[]'));}catch{}
+    try{setStaffPaid(JSON.parse(localStorage.getItem(STAFF_PAID_KEY)||'{}'));}catch{}
+    try{setPharma(JSON.parse(localStorage.getItem(PHARMA_KEY)||'[]'));}catch{}
+    try{setManual(JSON.parse(localStorage.getItem(PNL_KEY)||'{}'));}catch{}
+  },[]);
+
+  const ms=`${year}-${String(month+1).padStart(2,'0')}`;
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  // Build daily register: every day of month
+  const dailyRows=[];
+  let totConsult=0, totXpl=0, totMedical=0, totDayTotal=0, totPatients=0;
+  for(let d=1;d<=daysInMonth;d++){
+    const dateStr=`${ms}-${String(d).padStart(2,'0')}`;
+    const rows=allData[dateStr]||[];
+    let consult=0, xpl=0, medical=0;
+    rows.forEach(r=>{
+      consult+=n(r.opd)+n(r.popd);
+      xpl+=n(r.xray)+n(r.pt)+n(r.lab);
+      medical+=n(r.medicals);
+    });
+    const total=consult+xpl+medical;
+    const patients=rows.length;
+    const dt=new Date(dateStr+'T00:00:00');
+    dailyRows.push({date:dateStr,day:DAYS[dt.getDay()],consult,xpl,medical,total,patients});
+    totConsult+=consult; totXpl+=xpl; totMedical+=medical; totDayTotal+=total; totPatients+=patients;
+  }
+
+  // IP for the month
+  let ipRev=0, ipCount=0;
+  (ipRecords||[]).forEach(r=>{
+    const adm=r.admitDate||r.date||'';
+    if(adm.startsWith(ms)){ipRev+=n(r.ipBill||r.bill)+n(r.ipMed||r.medicines);ipCount++;}
+  });
+
+  // Expenses (cash basis matches P&L)
+  let pharmaCost=0;
+  pharma.forEach(e=>{ if(e.date&&e.date.startsWith(ms))pharmaCost+=n(e.paid); });
+  let staffCost=0;
+  const monthPaidMap=staffPaid[ms]||{};
+  staff.forEach(s=>{ if(monthPaidMap[s.id])staffCost+=salaryFor(s,ms); });
+  const rec=migratePnlMonth(manual[ms]||{},ms);
+  const otherExp=sumEntries(rec.rent)+sumEntries(rec.utilities)+sumEntries(rec.internet)+sumEntries(rec.electricity)+sumEntries(rec.other);
+  const totalExp=pharmaCost+staffCost+otherExp;
+
+  // Income summary
+  const opdIncome=totDayTotal; // all OPD activity (consult+xpl+medical)
+  const grossRev=opdIncome+ipRev;
+  const netProfit=grossRev-totalExp;
+  const margin=grossRev>0?Math.round((netProfit/grossRev)*100):0;
+  const totPatientsAll=totPatients+ipCount;
+
+  function doPrint(){window.print();}
+
+  const Tile=({label,value,sub,color,bg})=>(
+    <div style={{background:bg,color:'#fff',borderRadius:8,padding:'12px 16px',flex:'1 1 0',minWidth:140}}>
+      <div style={{fontSize:9,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.7px',whiteSpace:'nowrap',opacity:0.95}}>{label}</div>
+      <div style={{fontSize:22,fontWeight:700,fontFamily:"'Noto Sans Mono',monospace",lineHeight:1.2,marginTop:3}}>{value}</div>
+      {sub&&<div style={{fontSize:10,marginTop:2,opacity:0.9}}>{sub}</div>}
+    </div>
+  );
+
+  return (
+    <>
+      <style>{`@media print {
+        .vh-no-print { display: none !important; }
+        body { background: #fff !important; }
+        table { page-break-inside: auto; }
+        tr { page-break-inside: avoid; }
+      }`}</style>
+
+      <div style={{background:'var(--w)',borderBottom:'1px solid var(--bd)',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexShrink:0}} className="vh-no-print">
+        <MonthYearNav year={year} month={month} onChange={(y,m)=>{setYear(y);setMonth(m);}}/>
+        <button onClick={doPrint} style={{background:'var(--blu)',color:'#fff',border:'none',borderRadius:5,padding:'7px 16px',fontSize:12,fontWeight:600,cursor:'pointer',whiteSpace:'nowrap'}}>🖨 Print / PDF</button>
+      </div>
+
+      <div style={{flex:1,overflowY:'auto',background:'#dde8f5',padding:14}}>
+        {/* Header card */}
+        <div style={{padding:'4px 4px 14px'}}>
+          <div style={{fontSize:22,fontWeight:700,color:'var(--t1)'}}>VH Hospital — {MONTHS_LONG[month]} {year}</div>
+          <div style={{fontSize:12,color:'var(--t3)',marginTop:2}}>Monthly Financial Statement | Dr. Ram</div>
+        </div>
+
+        {/* KPI tiles */}
+        <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:14}}>
+          <Tile label="Gross Revenue" value={inrZ(grossRev)} sub="OP + IP" bg="#0f7553"/>
+          <Tile label="OPD Income" value={inrZ(opdIncome)} sub={`${totPatients} patients`} bg="#1565c0"/>
+          <Tile label="IP Revenue" value={inrZ(ipRev)} sub={`${ipCount} admissions`} bg="#6a1b9a"/>
+          <Tile label="Total Expenses" value={inrZ(totalExp)} bg="#c62828"/>
+          <Tile label="Net Profit" value={inrZ(netProfit)} sub={`Margin: ${margin}%`} bg="#2e7d32"/>
+        </div>
+
+        {/* Income / Expenditure cards */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:14,marginBottom:14}}>
+          <div style={{background:'var(--w)',borderRadius:8,padding:18}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:14}}>Income</div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--bd)',fontSize:13}}>
+              <span>Consultation (Census)</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--blutx)',fontWeight:600}}>{inrZ(totConsult)}</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--bd)',fontSize:13}}>
+              <span>Procedures / XPL</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--blutx)',fontWeight:600}}>{inrZ(totXpl)}</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--bd)',fontSize:13}}>
+              <span>Medical Sales</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--blutx)',fontWeight:600}}>{inrZ(totMedical)}</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--bd)',fontSize:13}}>
+              <span>IP Revenue</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--blutx)',fontWeight:600}}>{inrZ(ipRev)}</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0 0',fontSize:14,fontWeight:700}}>
+              <span>Gross Total</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--grntx)'}}>{inrZ(grossRev)}</span>
+            </div>
+          </div>
+
+          <div style={{background:'var(--w)',borderRadius:8,padding:18}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:14}}>Expenditure</div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--bd)',fontSize:13}}>
+              <span>Pharma & Supplies</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--redtx)',fontWeight:600}}>{inrZ(pharmaCost)}</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--bd)',fontSize:13}}>
+              <span>Staff Salaries</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--redtx)',fontWeight:600}}>{inrZ(staffCost)}</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0',borderBottom:'1px solid var(--bd)',fontSize:13}}>
+              <span>Other (Rent, EB etc.)</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--redtx)',fontWeight:600}}>{inrZ(otherExp)}</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'10px 0 0',fontSize:14,fontWeight:700}}>
+              <span>Total Expenses</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--redtx)'}}>{inrZ(totalExp)}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Daily Register */}
+        <div style={{background:'var(--w)',borderRadius:8,overflow:'hidden',marginBottom:14}}>
+          <div style={{background:'#1a1a1a',color:'#fff',padding:'10px 16px',fontSize:12,fontWeight:700}}>
+            Daily Register — {MONTHS_LONG[month]} {year}
+          </div>
+          <div style={{overflowX:'auto'}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:12,minWidth:680}}>
+              <thead>
+                <tr style={{background:'#1a1a1a',color:'#fff'}}>
+                  <th style={{padding:'8px 14px',textAlign:'left',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Date</th>
+                  <th style={{padding:'8px 14px',textAlign:'left',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Day</th>
+                  <th style={{padding:'8px 14px',textAlign:'right',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Consult ₹</th>
+                  <th style={{padding:'8px 14px',textAlign:'right',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>XPL ₹</th>
+                  <th style={{padding:'8px 14px',textAlign:'right',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Medical ₹</th>
+                  <th style={{padding:'8px 14px',textAlign:'right',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Total ₹</th>
+                  <th style={{padding:'8px 14px',textAlign:'right',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Patients</th>
+                </tr>
+              </thead>
+              <tbody>
+                {dailyRows.map(r=>{
+                  const isWeekend=r.day==='Sat'||r.day==='Sun';
+                  const isEmpty=r.total===0&&r.patients===0;
+                  return (
+                    <tr key={r.date} style={{borderBottom:'1px solid var(--bd)',background:isWeekend?'rgba(0,0,0,0.02)':'transparent'}}>
+                      <td style={{padding:'7px 14px',color:isEmpty?'var(--t3)':'var(--t1)'}}>{r.date}</td>
+                      <td style={{padding:'7px 14px',color:isEmpty?'var(--t3)':'var(--t2)'}}>{r.day}</td>
+                      <td style={{padding:'7px 14px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:r.consult>0?'var(--t1)':'var(--t3)'}}>{r.consult>0?inrZ(r.consult):'—'}</td>
+                      <td style={{padding:'7px 14px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:r.xpl>0?'var(--t1)':'var(--t3)'}}>{r.xpl>0?inrZ(r.xpl):'—'}</td>
+                      <td style={{padding:'7px 14px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:r.medical>0?'var(--t1)':'var(--t3)'}}>{r.medical>0?inrZ(r.medical):'—'}</td>
+                      <td style={{padding:'7px 14px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:r.total>0?'var(--t1)':'var(--t3)'}}>{r.total>0?inrZ(r.total):'—'}</td>
+                      <td style={{padding:'7px 14px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:r.patients>0?'var(--t1)':'var(--t3)'}}>{r.patients>0?r.patients:'—'}</td>
+                    </tr>
+                  );
+                })}
+                <tr style={{background:'var(--g0)',borderTop:'2px solid var(--bd2)'}}>
+                  <td colSpan="2" style={{padding:'10px 14px',fontWeight:700,fontSize:13}}>Total</td>
+                  <td style={{padding:'10px 14px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,fontSize:13}}>{inrZ(totConsult)}</td>
+                  <td style={{padding:'10px 14px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,fontSize:13}}>{inrZ(totXpl)}</td>
+                  <td style={{padding:'10px 14px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,fontSize:13}}>{inrZ(totMedical)}</td>
+                  <td style={{padding:'10px 14px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,fontSize:13}}>{inrZ(totDayTotal)}</td>
+                  <td style={{padding:'10px 14px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,fontSize:13}}>{totPatients}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Net Profit footer banner */}
+        <div style={{background:netProfit>=0?'var(--grn)':'var(--red)',color:'#fff',padding:'18px 22px',borderRadius:8,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div style={{fontSize:13,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.7px'}}>Net Profit — {MONTHS_LONG[month]} {year}</div>
+          <div style={{fontSize:30,fontWeight:700,fontFamily:"'Noto Sans Mono',monospace"}}>{inrZ(netProfit)}</div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PERSONAL TAB
+// ═══════════════════════════════════════════════════════════════
+const PERSONAL_KEY='vh-personal';
+const PERSONAL_CATS=[
+  {key:'groceries',label:'Groceries',icon:'🛒',color:'#2e7d32'},
+  {key:'fuel',label:'Fuel',icon:'⛽',color:'#e65100'},
+  {key:'dining',label:'Dining',icon:'🍽️',color:'#c62828'},
+  {key:'bills',label:'Bills',icon:'📄',color:'#1565c0'},
+  {key:'health',label:'Health',icon:'🏥',color:'#6a1b9a'},
+  {key:'education',label:'Education',icon:'📚',color:'#00838f'},
+  {key:'travel',label:'Travel',icon:'✈️',color:'#0277bd'},
+  {key:'shopping',label:'Shopping',icon:'🛍️',color:'#ad1457'},
+  {key:'other',label:'Other',icon:'📌',color:'#5d4037'}
+];
+
+function PersonalView(){
+  const td=today(); const ty=parseInt(td.slice(0,4)); const tm=parseInt(td.slice(5,7))-1;
+  const [year,setYear]=useState(ty); const [month,setMonth]=useState(tm);
+  const [entries,setEntries]=useState(()=>{try{return JSON.parse(localStorage.getItem(PERSONAL_KEY)||'[]');}catch{return [];}});
+  const [date,setDate]=useState(today());
+  const [cat,setCat]=useState('groceries');
+  const [desc,setDesc]=useState('');
+  const [amount,setAmount]=useState('');
+
+  function save(arr){setEntries(arr);try{localStorage.setItem(PERSONAL_KEY,JSON.stringify(arr));}catch{}}
+
+  const ms=`${year}-${String(month+1).padStart(2,'0')}`;
+  const monthEntries=entries.filter(e=>e.date&&e.date.startsWith(ms));
+  const total=monthEntries.reduce((s,e)=>s+n(e.amount),0);
+
+  // Per-category totals
+  const catTotals={};
+  PERSONAL_CATS.forEach(c=>{catTotals[c.key]=0;});
+  monthEntries.forEach(e=>{ catTotals[e.cat]=(catTotals[e.cat]||0)+n(e.amount); });
+
+  function add(){
+    if(!date||!amount||n(amount)<=0){alert('Date and amount required');return;}
+    save([...entries,{id:uid(),date,cat,desc:desc.trim(),amount:n(amount)}]);
+    setDesc(''); setAmount(''); // keep date+cat
+  }
+  function del(id){if(confirm('Delete this entry?'))save(entries.filter(e=>e.id!==id));}
+
+  const catObj=Object.fromEntries(PERSONAL_CATS.map(c=>[c.key,c]));
+
+  return (
+    <>
+      <MonthYearNav year={year} month={month} onChange={(y,m)=>{setYear(y);setMonth(m);}}>
+        <span style={{fontSize:14,fontWeight:700,marginLeft:8}}>💼 Personal</span>
+      </MonthYearNav>
+
+      <div style={{flex:1,overflowY:'auto',background:'#dcf0e0',padding:14}}>
+        {/* Total tile */}
+        <div style={{background:'var(--red)',color:'#fff',borderRadius:8,padding:'14px 18px',display:'inline-block',minWidth:200,marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.7px',opacity:0.9}}>Total Spend</div>
+          <div style={{fontSize:28,fontWeight:700,fontFamily:"'Noto Sans Mono',monospace",marginTop:4}}>{inrZ(total)}</div>
+          <div style={{fontSize:11,opacity:0.9,marginTop:2}}>{monthEntries.length} {monthEntries.length===1?'entry':'entries'}</div>
+        </div>
+
+        {/* Category breakdown */}
+        {monthEntries.length>0&&(
+          <div style={{background:'var(--w)',borderRadius:8,padding:14,marginBottom:14}}>
+            <div style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:10}}>Category Breakdown</div>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:8}}>
+              {PERSONAL_CATS.filter(c=>catTotals[c.key]>0).map(c=>{
+                const pct=total>0?Math.round((catTotals[c.key]/total)*100):0;
+                return (
+                  <div key={c.key} style={{padding:'8px 10px',border:'1px solid var(--bd)',borderRadius:6,background:'var(--g0)'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:4}}>
+                      <span style={{fontSize:11,fontWeight:600,color:c.color}}>{c.icon} {c.label}</span>
+                      <span style={{fontSize:9,color:'var(--t3)',fontWeight:700}}>{pct}%</span>
+                    </div>
+                    <div style={{fontFamily:"'Noto Sans Mono',monospace",fontSize:13,fontWeight:700,color:'var(--t1)'}}>{inrZ(catTotals[c.key])}</div>
+                    {/* progress bar */}
+                    <div style={{height:4,background:'var(--bd)',borderRadius:2,marginTop:4,overflow:'hidden'}}>
+                      <div style={{height:'100%',background:c.color,width:`${pct}%`,transition:'width 0.3s'}}></div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Add expense form */}
+        <div style={{background:'var(--w)',borderRadius:8,padding:14,marginBottom:14}}>
+          <div style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:8}}>Add Expense</div>
+          <div style={{display:'grid',gridTemplateColumns:'140px 150px 1fr 110px 70px',gap:6,alignItems:'center'}}>
+            <input type="date" value={date} onChange={e=>setDate(e.target.value)}
+              style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'7px 9px',fontSize:12,outline:'none'}}/>
+            <select value={cat} onChange={e=>setCat(e.target.value)}
+              style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'7px 9px',fontSize:12,outline:'none',background:'var(--w)'}}>
+              {PERSONAL_CATS.map(c=><option key={c.key} value={c.key}>{c.icon} {c.label}</option>)}
+            </select>
+            <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Description (optional)"
+              style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'7px 9px',fontSize:12,outline:'none'}}/>
+            <input type="number" value={amount} onChange={e=>setAmount(e.target.value)} placeholder="Amount ₹" onKeyDown={e=>{if(e.key==='Enter'&&amount)add();}}
+              style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'7px 9px',fontSize:12,fontFamily:"'Noto Sans Mono',monospace",textAlign:'right',outline:'none'}}/>
+            <button onClick={add} disabled={!amount} style={{background:amount?'var(--g7)':'var(--dis)',color:'#fff',border:'none',borderRadius:5,padding:'7px 0',cursor:amount?'pointer':'not-allowed',fontSize:13,fontWeight:700}}>+ Add</button>
+          </div>
+        </div>
+
+        {/* Entries list */}
+        <div style={{background:'var(--w)',borderRadius:8,overflow:'hidden'}}>
+          {monthEntries.length===0 ? (
+            <div style={{textAlign:'center',color:'var(--t3)',padding:'40px 0',fontSize:13,border:'2px dashed var(--bd)',borderRadius:8,margin:0}}>No personal expenses for {MONTHS_LONG[month]} {year}</div>
+          ) : (
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:12}}>
+              <thead>
+                <tr style={{background:'var(--g0)',borderBottom:'1px solid var(--bd)'}}>
+                  <th style={{padding:'8px 14px',textAlign:'left',color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px',width:90}}>Date</th>
+                  <th style={{padding:'8px 14px',textAlign:'left',color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px',width:130}}>Category</th>
+                  <th style={{padding:'8px 14px',textAlign:'left',color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Description</th>
+                  <th style={{padding:'8px 14px',textAlign:'right',color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px',width:120}}>Amount ₹</th>
+                  <th style={{padding:'8px 14px',width:40}}></th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...monthEntries].sort((a,b)=>b.date.localeCompare(a.date)||(b.id||'').localeCompare(a.id||'')).map(e=>{
+                  const c=catObj[e.cat]||{label:e.cat,icon:'',color:'var(--t1)'};
+                  const dt=new Date(e.date+'T00:00:00');
+                  const dStr=`${String(dt.getDate()).padStart(2,'0')} ${MONTHS_LONG[dt.getMonth()].slice(0,3)}`;
+                  return (
+                    <tr key={e.id} style={{borderBottom:'1px solid var(--bd)'}}>
+                      <td style={{padding:'7px 14px',color:'var(--t2)'}}>{dStr}</td>
+                      <td style={{padding:'7px 14px'}}><span style={{color:c.color,fontWeight:600}}>{c.icon} {c.label}</span></td>
+                      <td style={{padding:'7px 14px',color:e.desc?'var(--t1)':'var(--t3)',fontStyle:e.desc?'normal':'italic'}}>{e.desc||'—'}</td>
+                      <td style={{padding:'7px 14px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:600,color:'var(--redtx)'}}>{inrZ(e.amount)}</td>
+                      <td style={{padding:'7px 14px',textAlign:'center'}}><span onClick={()=>del(e.id)} style={{cursor:'pointer',color:'var(--red)',fontSize:13}}>×</span></td>
+                    </tr>
+                  );
+                })}
+                <tr style={{background:'var(--g0)',borderTop:'2px solid var(--bd2)'}}>
+                  <td colSpan="3" style={{padding:'10px 14px',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px',fontSize:11}}>Total</td>
+                  <td style={{padding:'10px 14px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,fontSize:13,color:'var(--redtx)'}}>{inrZ(total)}</td>
+                  <td></td>
+                </tr>
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXPORT TAB
+// ═══════════════════════════════════════════════════════════════
+function ExportView({ allData, setAllData, ipRecords, setIpRecords }){
+  const td=today(); const ty=parseInt(td.slice(0,4)); const tm=parseInt(td.slice(5,7))-1;
+  const [year,setYear]=useState(ty); const [month,setMonth]=useState(tm);
+  const [fromYM,setFromYM]=useState(`${ty}-${String(tm+1).padStart(2,'0')}`);
+  const [toYM,setToYM]=useState(`${ty}-${String(tm+1).padStart(2,'0')}`);
+  const [dayDate,setDayDate]=useState(today());
+  const [importMsg,setImportMsg]=useState('');
+  const [importErr,setImportErr]=useState(false);
+
+  const ms=`${year}-${String(month+1).padStart(2,'0')}`;
+
+  // CSV utilities
+  function csvCell(v){
+    if(v===null||v===undefined)return '';
+    const s=String(v);
+    if(s.includes(',')||s.includes('"')||s.includes('\n'))return '"'+s.replace(/"/g,'""')+'"';
+    return s;
+  }
+  function downloadCsv(name,rows){
+    if(!rows||rows.length===0){alert('No data to export');return;}
+    const csv=rows.map(r=>r.map(csvCell).join(',')).join('\n');
+    const blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=name; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // ─── Builders ───
+  function buildDayRegister(monthStr){
+    const rows=[['Date','Day','MRN','Name','Type','OPD','XRay','POPD','PT','Lab','Medicals','Mode','Cash','GPay','Total']];
+    Object.keys(allData).filter(d=>d.startsWith(monthStr)).sort().forEach(d=>{
+      const dt=new Date(d+'T00:00:00');
+      const day=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dt.getDay()];
+      (allData[d]||[]).forEach(r=>{
+        rows.push([d,day,r.mrn,r.name,r.type,n(r.opd),n(r.xray),n(r.popd),n(r.pt),n(r.lab),n(r.medicals),r.mode,n(r.cash),n(r.gpay),calcTotal(r)]);
+      });
+    });
+    return rows;
+  }
+  function buildMonthlySummary(monthStr){
+    const rows=[['Date','Day','Patients','Consult','XPL','Medical','Total']];
+    const [y,m]=monthStr.split('-').map(Number);
+    const days=new Date(y,m,0).getDate();
+    for(let d=1;d<=days;d++){
+      const ds=`${monthStr}-${String(d).padStart(2,'0')}`;
+      const list=allData[ds]||[];
+      const consult=list.reduce((s,r)=>s+n(r.opd)+n(r.popd),0);
+      const xpl=list.reduce((s,r)=>s+n(r.xray)+n(r.pt)+n(r.lab),0);
+      const medical=list.reduce((s,r)=>s+n(r.medicals),0);
+      const dt=new Date(ds+'T00:00:00');
+      rows.push([ds,['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dt.getDay()],list.length,consult,xpl,medical,consult+xpl+medical]);
+    }
+    return rows;
+  }
+  function buildIp(monthStr){
+    const rows=[['MRN','Name','AdmitDate','DischargeDate','Diagnosis','IPBill','IPMed','Total']];
+    (ipRecords||[]).forEach(r=>{
+      const adm=r.admitDate||r.date||'';
+      if(adm.startsWith(monthStr)){
+        rows.push([r.mrn||'',r.name||'',adm,r.dischargeDate||'',r.diagnosis||'',n(r.ipBill||r.bill),n(r.ipMed||r.medicines),n(r.ipBill||r.bill)+n(r.ipMed||r.medicines)]);
+      }
+    });
+    return rows;
+  }
+  function buildPharma(monthStr){
+    const rows=[['Date','Agency','Amount','Paid','Due','Mode']];
+    let pharma=[]; try{pharma=JSON.parse(localStorage.getItem(PHARMA_KEY)||'[]');}catch{}
+    pharma.filter(e=>e.date&&e.date.startsWith(monthStr)).sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+      rows.push([e.date,e.agency,n(e.amount),n(e.paid),n(e.amount)-n(e.paid),e.mode||'']);
+    });
+    return rows;
+  }
+  function buildStaff(){
+    const rows=[['Name','JoinDate','CurrentSalary','SalaryHistory']];
+    let staff=[]; try{staff=JSON.parse(localStorage.getItem(STAFF_KEY)||'[]');}catch{}
+    const cur=`${ty}-${String(tm+1).padStart(2,'0')}`;
+    staff.forEach(s=>{
+      const hist=(s.salaryHistory||[]).map(h=>`${h.effectiveMonth}:${h.amount}`).join('; ');
+      rows.push([s.name,s.joinDate||'',salaryFor(s,cur),hist]);
+    });
+    return rows;
+  }
+  function buildPnl(monthStr){
+    let staff=[],staffPaid={},pharma=[],manual={};
+    try{staff=JSON.parse(localStorage.getItem(STAFF_KEY)||'[]');}catch{}
+    try{staffPaid=JSON.parse(localStorage.getItem(STAFF_PAID_KEY)||'{}');}catch{}
+    try{pharma=JSON.parse(localStorage.getItem(PHARMA_KEY)||'[]');}catch{}
+    try{manual=JSON.parse(localStorage.getItem(PNL_KEY)||'{}');}catch{}
+    const [y,m]=monthStr.split('-').map(Number);
+    const x=computePnlMonth(y,m-1,{allData,ipRecords,pharma,staff,staffPaid,manual});
+    const rec=migratePnlMonth(manual[monthStr]||{},monthStr);
+    return [
+      ['Category','Type','Amount'],
+      ['OPD','Income',x.opd],
+      ['IP','Income',x.ip],
+      ['Pharma sales','Income',x.pharmaSales],
+      ['Total Income','Income',x.totalIncome],
+      ['Pharma purchases (paid)','Expense',x.pharmaPaid],
+      ['Staff salary (paid)','Expense',x.staffCash],
+      ['Rent','Expense',sumEntries(rec.rent)],
+      ['Utilities','Expense',sumEntries(rec.utilities)],
+      ['Internet','Expense',sumEntries(rec.internet)],
+      ['Electricity','Expense',sumEntries(rec.electricity)],
+      ['Other','Expense',sumEntries(rec.other)],
+      ['Total Expenses','Expense',x.totalExp],
+      ['Net Profit','Net',x.net]
+    ];
+  }
+  function buildPersonal(monthStr){
+    const rows=[['Date','Category','Description','Amount']];
+    let entries=[]; try{entries=JSON.parse(localStorage.getItem(PERSONAL_KEY)||'[]');}catch{}
+    entries.filter(e=>e.date&&e.date.startsWith(monthStr)).sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+      rows.push([e.date,e.cat,e.desc||'',n(e.amount)]);
+    });
+    return rows;
+  }
+  function buildAnnual(yr){
+    let staff=[],staffPaid={},pharma=[],manual={};
+    try{staff=JSON.parse(localStorage.getItem(STAFF_KEY)||'[]');}catch{}
+    try{staffPaid=JSON.parse(localStorage.getItem(STAFF_PAID_KEY)||'{}'); }catch{}
+    try{pharma=JSON.parse(localStorage.getItem(PHARMA_KEY)||'[]');}catch{}
+    try{manual=JSON.parse(localStorage.getItem(PNL_KEY)||'{}');}catch{}
+    const rows=[['Month','OPD','IP','PharmaSales','GrossRev','PharmaCost','StaffCost','Rent','Util','Internet','Electricity','Other','TotalExp','Net']];
+    for(let m=0;m<12;m++){
+      const ms=`${yr}-${String(m+1).padStart(2,'0')}`;
+      const x=computePnlMonth(yr,m,{allData,ipRecords,pharma,staff,staffPaid,manual});
+      const rec=migratePnlMonth(manual[ms]||{},ms);
+      const r=sumEntries(rec.rent),u=sumEntries(rec.utilities),i=sumEntries(rec.internet),e=sumEntries(rec.electricity),o=sumEntries(rec.other);
+      rows.push([`${MONTHS_LONG[m]} ${yr}`,x.opd,x.ip,x.pharmaSales,x.totalIncome,x.pharmaPaid,x.staffCash,r,u,i,e,o,x.totalExp,x.net]);
+    }
+    return rows;
+  }
+
+  // ─── Quarterly: combine multiple months ───
+  function exportQuarterly(){
+    if(fromYM>toYM){alert('From must be ≤ To');return;}
+    // walk months
+    const out=[['Date','Day','MRN','Name','Type','OPD','XRay','POPD','PT','Lab','Medicals','Mode','Cash','GPay','Total']];
+    Object.keys(allData).sort().forEach(d=>{
+      const ms2=d.slice(0,7);
+      if(ms2>=fromYM&&ms2<=toYM){
+        const dt=new Date(d+'T00:00:00');
+        const day=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][dt.getDay()];
+        (allData[d]||[]).forEach(r=>{
+          out.push([d,day,r.mrn,r.name,r.type,n(r.opd),n(r.xray),n(r.popd),n(r.pt),n(r.lab),n(r.medicals),r.mode,n(r.cash),n(r.gpay),calcTotal(r)]);
+        });
+      }
+    });
+    if(out.length<=1){alert('No data in range');return;}
+    downloadCsv(`vh-day-register_${fromYM}_to_${toYM}.csv`,out);
+  }
+
+  // ─── Day-specific ───
+  function exportDay(){
+    if(!dayDate){alert('Pick a date');return;}
+    const rows=[['MRN','Name','Type','OPD','XRay','POPD','PT','Lab','Medicals','Mode','Cash','GPay','Total']];
+    (allData[dayDate]||[]).forEach(r=>{
+      rows.push([r.mrn,r.name,r.type,n(r.opd),n(r.xray),n(r.popd),n(r.pt),n(r.lab),n(r.medicals),r.mode,n(r.cash),n(r.gpay),calcTotal(r)]);
+    });
+    if(rows.length<=1){alert('No data for this date');return;}
+    downloadCsv(`vh-day_${dayDate}.csv`,rows);
+  }
+
+  // ─── Full data export (everything combined) ───
+  function exportFull(){
+    const ts=today();
+    const sections={
+      day:{},ip:[],pharma:[],staff:[],staffPaid:{},personal:[],pnlManual:{},pharmaAgencies:[]
+    };
+    sections.day=allData;
+    sections.ip=ipRecords;
+    try{sections.pharma=JSON.parse(localStorage.getItem(PHARMA_KEY)||'[]');}catch{}
+    try{sections.pharmaAgencies=JSON.parse(localStorage.getItem(PHARMA_AGENCIES_KEY)||'[]');}catch{}
+    try{sections.staff=JSON.parse(localStorage.getItem(STAFF_KEY)||'[]');}catch{}
+    try{sections.staffPaid=JSON.parse(localStorage.getItem(STAFF_PAID_KEY)||'{}');}catch{}
+    try{sections.personal=JSON.parse(localStorage.getItem(PERSONAL_KEY)||'[]');}catch{}
+    try{sections.pnlManual=JSON.parse(localStorage.getItem(PNL_KEY)||'{}');}catch{}
+    // build combined CSV with section markers
+    const lines=[];
+    lines.push(['== DAY DATA ==']);
+    lines.push(['Date','MRN','Name','Type','OPD','XRay','POPD','PT','Lab','Medicals','Mode','Cash','GPay','Total']);
+    Object.keys(sections.day).sort().forEach(d=>{
+      (sections.day[d]||[]).forEach(r=>lines.push([d,r.mrn,r.name,r.type,n(r.opd),n(r.xray),n(r.popd),n(r.pt),n(r.lab),n(r.medicals),r.mode,n(r.cash),n(r.gpay),calcTotal(r)]));
+    });
+    lines.push(['']); lines.push(['== IP RECORDS ==']);
+    lines.push(['MRN','Name','AdmitDate','DischargeDate','Diagnosis','IPBill','IPMed']);
+    sections.ip.forEach(r=>lines.push([r.mrn||'',r.name||'',r.admitDate||r.date||'',r.dischargeDate||'',r.diagnosis||'',n(r.ipBill||r.bill),n(r.ipMed||r.medicines)]));
+    lines.push(['']); lines.push(['== PHARMA ==']);
+    lines.push(['Date','Agency','Amount','Paid','Mode']);
+    sections.pharma.forEach(e=>lines.push([e.date,e.agency,n(e.amount),n(e.paid),e.mode||'']));
+    lines.push(['']); lines.push(['== STAFF ==']);
+    lines.push(['Name','JoinDate','CurrentSalary','SalaryHistory']);
+    const cur=`${ty}-${String(tm+1).padStart(2,'0')}`;
+    sections.staff.forEach(s=>lines.push([s.name,s.joinDate||'',salaryFor(s,cur),(s.salaryHistory||[]).map(h=>`${h.effectiveMonth}:${h.amount}`).join('; ')]));
+    lines.push(['']); lines.push(['== PERSONAL ==']);
+    lines.push(['Date','Category','Description','Amount']);
+    sections.personal.forEach(e=>lines.push([e.date,e.cat,e.desc||'',n(e.amount)]));
+    downloadCsv(`vh-full-export_${ts}.csv`,lines);
+  }
+
+  // ─── JSON Backup / Restore ───
+  function downloadJsonBackup(){
+    const ts=today();
+    const payload={
+      version:'v8',
+      exportedAt:new Date().toISOString(),
+      data:{
+        'vh-day-data':allData,
+        'vh-ip-records':ipRecords,
+      }
+    };
+    // Pull all VH localStorage keys generically
+    const keys=[PHARMA_KEY,PHARMA_AGENCIES_KEY,STAFF_KEY,STAFF_PAID_KEY,PERSONAL_KEY,PNL_KEY];
+    keys.forEach(k=>{
+      try{const v=localStorage.getItem(k); if(v!==null)payload.data[k]=JSON.parse(v);}catch{}
+    });
+    const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download=`vh-backup_${ts}.json`; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImport(file){
+    if(!file)return;
+    setImportMsg(''); setImportErr(false);
+    if(!confirm('Importing will REPLACE all current data. Continue?'))return;
+    const reader=new FileReader();
+    reader.onload=e=>{
+      try{
+        const obj=JSON.parse(e.target.result);
+        const data=obj.data||obj; // support both wrapped and bare
+        // Day data
+        if(data['vh-day-data']){
+          localStorage.setItem('vh-day-data',JSON.stringify(data['vh-day-data']));
+          setAllData(data['vh-day-data']);
+        }
+        // IP
+        if(data['vh-ip-records']){
+          localStorage.setItem('vh-ip-records',JSON.stringify(data['vh-ip-records']));
+          setIpRecords(data['vh-ip-records']);
+        }
+        // Other keys
+        [PHARMA_KEY,PHARMA_AGENCIES_KEY,STAFF_KEY,STAFF_PAID_KEY,PERSONAL_KEY,PNL_KEY].forEach(k=>{
+          if(data[k]!==undefined)localStorage.setItem(k,JSON.stringify(data[k]));
+        });
+        setImportMsg(`✓ Imported successfully on ${new Date().toLocaleString()}. Reloading…`);
+        setTimeout(()=>window.location.reload(),1500);
+      }catch(err){
+        setImportMsg('Import failed: '+err.message);
+        setImportErr(true);
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // Card component
+  const Card=({icon,title,sub,bg,iconColor,onClick})=>(
+    <div style={{background:'var(--w)',borderRadius:8,padding:14,minWidth:180,flex:'1 1 200px',display:'flex',flexDirection:'column',gap:8}}>
+      <div style={{width:36,height:36,borderRadius:8,background:bg,color:iconColor||'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>{icon}</div>
+      <div>
+        <div style={{fontSize:14,fontWeight:700,color:'var(--t1)'}}>{title}</div>
+        <div style={{fontSize:11,color:'var(--t3)',marginTop:2,lineHeight:1.4}}>{sub}</div>
+      </div>
+      <button onClick={onClick} style={{background:'transparent',border:'none',padding:0,color:bg,fontSize:11,fontWeight:700,cursor:'pointer',textAlign:'left',marginTop:'auto',textTransform:'uppercase',letterSpacing:'0.5px'}}>⬇ Download CSV</button>
+    </div>
+  );
+
+  // Year options for annual
+  const yearOpts=(()=>{
+    let min=ty;
+    Object.keys(allData||{}).forEach(d=>{const y=parseInt(d.slice(0,4));if(y<min)min=y;});
+    const arr=[]; for(let y=min;y<=ty+1;y++)arr.push(y); return arr;
+  })();
+
+  // Month options (last 24 months)
+  const monthOpts=(()=>{
+    const arr=[]; let y=ty,m=tm;
+    for(let i=0;i<24;i++){arr.push(`${y}-${String(m+1).padStart(2,'0')}`);m--;if(m<0){m=11;y--;}}
+    return arr;
+  })();
+  function fmtMs(ms){const [y,m]=ms.split('-').map(Number);return `${MONTHS_LONG[m-1]} ${y}`;}
+
+  return (
+    <div style={{flex:1,overflowY:'auto',background:'#dde8f5',padding:14}}>
+      {/* Header */}
+      <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14,flexWrap:'wrap'}}>
+        <span style={{fontSize:18,fontWeight:700}}>📤 Export & Backup</span>
+        <select value={ms} onChange={e=>{const [y,m]=e.target.value.split('-').map(Number);setYear(y);setMonth(m-1);}}
+          style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'7px 10px',fontSize:12,background:'var(--w)',outline:'none'}}>
+          {monthOpts.map(o=><option key={o} value={o}>{fmtMs(o)}</option>)}
+        </select>
+      </div>
+
+      {/* CSV Cards */}
+      <div style={{display:'flex',gap:10,flexWrap:'wrap',marginBottom:14}}>
+        <Card icon="📋" title="Day Register" sub="All patient entries for selected month" bg="#1565c0" onClick={()=>downloadCsv(`vh-day-register_${ms}.csv`,buildDayRegister(ms))}/>
+        <Card icon="📅" title="Monthly Summary" sub="Day-wise revenue summary" bg="#6a1b9a" onClick={()=>downloadCsv(`vh-monthly_${ms}.csv`,buildMonthlySummary(ms))}/>
+        <Card icon="🏥" title="IP Patients" sub="All inpatient records for month" bg="#0f7553" onClick={()=>downloadCsv(`vh-ip_${ms}.csv`,buildIp(ms))}/>
+        <Card icon="💊" title="Pharma Tracker" sub="Pharma purchase entries for month" bg="#c62828" onClick={()=>downloadCsv(`vh-pharma_${ms}.csv`,buildPharma(ms))}/>
+        <Card icon="📊" title="P&L Summary" sub="Full P&L breakdown for month" bg="#e65100" onClick={()=>downloadCsv(`vh-pnl_${ms}.csv`,buildPnl(ms))}/>
+        <Card icon="👥" title="Staff Salaries" sub="Complete staff salary list" bg="#2e7d32" onClick={()=>downloadCsv(`vh-staff_${ms}.csv`,buildStaff())}/>
+        <Card icon="💼" title="Personal Expenses" sub="Personal entries for month" bg="#5d4037" onClick={()=>downloadCsv(`vh-personal_${ms}.csv`,buildPersonal(ms))}/>
+        <Card icon="📈" title="Annual Report" sub={`Full year breakdown for ${year}`} bg="#00838f" onClick={()=>downloadCsv(`vh-annual_${year}.csv`,buildAnnual(year))}/>
+      </div>
+
+      {/* Quarterly */}
+      <div style={{background:'var(--w)',borderRadius:8,padding:14,marginBottom:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:10}}>📅 Quarterly Export</div>
+        <div style={{display:'flex',gap:10,alignItems:'flex-end',flexWrap:'wrap'}}>
+          <label style={{display:'flex',flexDirection:'column',gap:3}}>
+            <span style={{fontSize:10,color:'var(--t3)',fontWeight:600}}>From Month</span>
+            <select value={fromYM} onChange={e=>setFromYM(e.target.value)} style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'7px 10px',fontSize:12,background:'var(--w)',outline:'none'}}>
+              {monthOpts.map(o=><option key={o} value={o}>{fmtMs(o)}</option>)}
+            </select>
+          </label>
+          <label style={{display:'flex',flexDirection:'column',gap:3}}>
+            <span style={{fontSize:10,color:'var(--t3)',fontWeight:600}}>To Month</span>
+            <select value={toYM} onChange={e=>setToYM(e.target.value)} style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'7px 10px',fontSize:12,background:'var(--w)',outline:'none'}}>
+              {monthOpts.map(o=><option key={o} value={o}>{fmtMs(o)}</option>)}
+            </select>
+          </label>
+          <button onClick={exportQuarterly} style={{background:'#1a1a1a',color:'#fff',border:'none',borderRadius:5,padding:'8px 16px',fontSize:12,fontWeight:600,cursor:'pointer'}}>⬇ Export Quarterly CSV</button>
+        </div>
+      </div>
+
+      {/* Day-specific */}
+      <div style={{background:'var(--w)',borderRadius:8,padding:14,marginBottom:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:10}}>📆 Day-Specific Export</div>
+        <div style={{display:'flex',gap:10,alignItems:'center',flexWrap:'wrap'}}>
+          <input type="date" value={dayDate} onChange={e=>setDayDate(e.target.value)} style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'7px 10px',fontSize:12,outline:'none'}}/>
+          <button onClick={exportDay} style={{background:'#1a1a1a',color:'#fff',border:'none',borderRadius:5,padding:'8px 16px',fontSize:12,fontWeight:600,cursor:'pointer'}}>⬇ Export Day CSV</button>
+        </div>
+      </div>
+
+      {/* Full export */}
+      <div style={{background:'var(--w)',borderRadius:8,padding:14,marginBottom:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:8}}>📦 Full Data Export</div>
+        <div style={{fontSize:12,color:'var(--t2)',marginBottom:10}}>Export all data (Day, IP, Pharma, Staff, Personal) in a single combined CSV file with section markers.</div>
+        <button onClick={exportFull} style={{background:'#1a1a1a',color:'#fff',border:'none',borderRadius:5,padding:'8px 16px',fontSize:12,fontWeight:600,cursor:'pointer'}}>⬇ Download Complete Export</button>
+      </div>
+
+      {/* JSON Backup & Restore */}
+      <div style={{background:'var(--w)',borderRadius:8,padding:14,marginBottom:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:8}}>🔄 Backup & Restore (JSON)</div>
+        <div style={{fontSize:12,color:'var(--t2)',marginBottom:10}}>Download a complete JSON backup of all your hospital data, or upload a previous backup to restore it. Use this regularly — store the file on Google Drive for cross-device access.</div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          <button onClick={downloadJsonBackup} style={{background:'#5e35b1',color:'#fff',border:'none',borderRadius:5,padding:'8px 16px',fontSize:12,fontWeight:600,cursor:'pointer'}}>⬇ Download Backup JSON</button>
+          <label style={{background:'#5e35b1',color:'#fff',border:'none',borderRadius:5,padding:'8px 16px',fontSize:12,fontWeight:600,cursor:'pointer'}}>
+            ⬆ Import from JSON
+            <input type="file" accept=".json,application/json" onChange={e=>handleImport(e.target.files[0])} style={{display:'none'}}/>
+          </label>
+        </div>
+        {importMsg&&<div style={{marginTop:8,fontSize:11,color:importErr?'var(--redtx)':'var(--grntx)',fontWeight:600}}>{importMsg}</div>}
+        <div style={{fontSize:10,color:'var(--ambtx)',marginTop:8}}>⚠ Importing will replace all current data with the backup contents.</div>
+      </div>
+
+      {/* Where is data saved */}
+      <div style={{background:'#e3f2fd',border:'1px solid #1565c0',borderRadius:8,padding:14}}>
+        <div style={{fontSize:11,fontWeight:700,color:'var(--blutx)',textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:12}}>ℹ Where is your data saved?</div>
+        <div style={{display:'grid',gridTemplateColumns:'1fr',gap:10}}>
+          <div style={{background:'var(--w)',borderRadius:6,padding:'10px 12px'}}>
+            <div style={{fontSize:12,fontWeight:700,color:'var(--blutx)',marginBottom:4}}>📱 This Device (Local Storage)</div>
+            <div style={{fontSize:11,color:'var(--t2)',lineHeight:1.5}}>All data is saved in your browser's local storage. It stays even after closing the tab, but is tied to <b>this device and browser</b>.</div>
+            <div style={{fontSize:10,color:'var(--t3)',marginTop:6,fontFamily:"'Noto Sans Mono',monospace",background:'var(--g0)',padding:'4px 8px',borderRadius:4,display:'inline-block'}}>Keys: vh-day-data, vh-ip-records, vh-pharma-data, vh-staff-data, vh-personal, vh-pnl-manual</div>
+          </div>
+          <div style={{background:'var(--w)',borderRadius:6,padding:'10px 12px'}}>
+            <div style={{fontSize:12,fontWeight:700,color:'var(--ambtx)',marginBottom:4}}>☁ Cross-Device Strategy</div>
+            <div style={{fontSize:11,color:'var(--t2)',lineHeight:1.5}}>Cloud auto-sync (Firebase) is planned for Phase 2. <b>For now</b>:</div>
+            <ul style={{fontSize:11,color:'var(--t2)',lineHeight:1.6,marginTop:4,paddingLeft:18}}>
+              <li>Download Backup JSON every Sunday</li>
+              <li>Save it in your <b>Google Drive folder</b> (auto-syncs across devices)</li>
+              <li>On a new device → Import from JSON → fully restored</li>
+            </ul>
+          </div>
+        </div>
+        <div style={{fontSize:11,color:'var(--t2)',marginTop:10,paddingTop:10,borderTop:'1px solid var(--bd)'}}>
+          <b>Tip:</b> Use <i>Download Backup JSON</i> button regularly. If you switch devices, just import that JSON on the new device and everything is restored instantly.
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // SETTINGS TAB
 // ═══════════════════════════════════════════════════════════════
 function SettingsView({ allData, ipRecords, syncStatus, setSyncStatus }) {
@@ -1908,7 +2650,7 @@ function SettingsView({ allData, ipRecords, syncStatus, setSyncStatus }) {
 const TABS = ['Day','Month','IP','Pharma','Staff','P&L','Trends','Export','Personal','Statement','Annual','Settings'];
 
 function TabBar({ active, onTab, syncDot }) {
-  const built=['Day','Month','IP','Pharma','Staff','P&L','Trends','Annual','Settings'];
+  const built=['Day','Month','IP','Pharma','Staff','P&L','Trends','Annual','Statement','Personal','Export','Settings'];
   return (
     <div style={{display:'flex',alignItems:'stretch',background:'var(--g7)',paddingLeft:14,gap:2,flexShrink:0,width:'100%'}}>
       <div style={{display:'flex',alignItems:'center',gap:7,paddingRight:16,borderRight:'1px solid rgba(255,255,255,0.15)',marginRight:6}}>
@@ -1951,6 +2693,9 @@ function App() {
       {tab==='P&L'&&<PnLView allData={allData} ipRecords={ipRecords}/>}
       {tab==='Trends'&&<TrendsView allData={allData} ipRecords={ipRecords}/>}
       {tab==='Annual'&&<AnnualView allData={allData} ipRecords={ipRecords}/>}
+      {tab==='Statement'&&<StatementView allData={allData} ipRecords={ipRecords}/>}
+      {tab==='Personal'&&<PersonalView/>}
+      {tab==='Export'&&<ExportView allData={allData} setAllData={setAllData} ipRecords={ipRecords} setIpRecords={setIpRecords}/>}
       {tab==='Settings'&&<SettingsView allData={allData} ipRecords={ipRecords} syncStatus={syncStatus} setSyncStatus={setSyncStatus}/>}
     </div>
   );
