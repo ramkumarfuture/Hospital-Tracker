@@ -53,7 +53,6 @@ textarea.form-input { resize: vertical; min-height: 70px; line-height: 1.5; }
   } catch(e) {}
 })();
 </script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.12.7/Recharts.min.js"></script>
 </head>
 <body>
 <div id="root"></div>
@@ -1348,8 +1347,7 @@ function computePnlMonth(y,m,deps){
 }
 
 function TrendsView({ allData, ipRecords }){
-  const [win,setWin]=useState('12mo'); // '6mo' | '12mo' | 'ytd' | 'all'
-  const [view,setView]=useState('totals'); // 'totals' | 'breakdown'
+  const [win,setWin]=useState('12mo');
   const [staff,setStaff]=useState([]);
   const [staffPaid,setStaffPaid]=useState({});
   const [pharma,setPharma]=useState([]);
@@ -1362,12 +1360,10 @@ function TrendsView({ allData, ipRecords }){
     try{setManual(JSON.parse(localStorage.getItem(PNL_KEY)||'{}'));}catch{}
   },[]);
 
-  // Build month list based on win
   const td=today(); const ty=parseInt(td.slice(0,4)); const tm=parseInt(td.slice(5,7))-1;
   function buildMonths(){
     const out=[];
     if(win==='all'){
-      // find earliest data month
       let minMs='9999-99';
       Object.keys(allData||{}).forEach(d=>{ const ms=d.slice(0,7); if(ms<minMs)minMs=ms; });
       (ipRecords||[]).forEach(r=>{ const ms=(r.admitDate||r.date||'').slice(0,7); if(ms&&ms<minMs)minMs=ms; });
@@ -1390,150 +1386,426 @@ function TrendsView({ allData, ipRecords }){
   const months=buildMonths();
   const data=months.map(({y,m})=>{
     const x=computePnlMonth(y,m,{allData,ipRecords,pharma,staff,staffPaid,manual});
-    return {
-      label: `${MONTHS_LONG[m].slice(0,3)} '${String(y).slice(2)}`,
-      Income: x.totalIncome,
-      Expenses: x.totalExp,
-      Net: x.net,
-      OPD: x.opd, IP: x.ip, Pharma: x.pharmaSales,
-      Staff: x.staffCash, PharmaCost: x.pharmaPaid, Other: x.otherExp
-    };
+    return {label:`${MONTHS_LONG[m].slice(0,3)} '${String(y).slice(2)}`,Income:x.totalIncome,Expenses:x.totalExp,Net:x.net};
   });
 
-  // KPIs
   const totIncome=data.reduce((s,d)=>s+d.Income,0);
+  const totExp=data.reduce((s,d)=>s+d.Expenses,0);
   const totNet=data.reduce((s,d)=>s+d.Net,0);
-  const avgNet=data.length>0?Math.round(totNet/data.length):0;
+  const avgIncome=data.length?Math.round(totIncome/data.length):0;
+  const avgExp=data.length?Math.round(totExp/data.length):0;
+  const avgNet=data.length?Math.round(totNet/data.length):0;
+  const latest=data[data.length-1]||{Income:0,Expenses:0,Net:0};
 
-  // Growth: compare first half to second half
-  let growthPct=null;
-  if(data.length>=2){
-    const mid=Math.floor(data.length/2);
-    const firstHalf=data.slice(0,mid).reduce((s,d)=>s+d.Income,0);
-    const secondHalf=data.slice(mid).reduce((s,d)=>s+d.Income,0);
-    if(firstHalf>0)growthPct=Math.round(((secondHalf-firstHalf)/firstHalf)*100);
+  // Trend %: latest vs prior (last data point vs second-to-last)
+  function trendPct(key){
+    if(data.length<2)return null;
+    const a=data[data.length-2][key]; const b=data[data.length-1][key];
+    if(a===0)return null;
+    return Math.round(((b-a)/Math.abs(a))*100);
   }
+  const tIn=trendPct('Income'), tEx=trendPct('Expenses'), tNet=trendPct('Net');
 
-  // Best/worst
-  let best=null,worst=null;
-  data.forEach(d=>{
-    if(!best||d.Net>best.Net)best=d;
-    if(!worst||d.Net<worst.Net)worst=d;
-  });
-
-  // Recharts
-  const R=typeof Recharts!=='undefined'?Recharts:null;
-
-  const T=({label,value,sub,color,bg})=>(
-    <div style={{background:bg||'var(--w)',border:`1px solid ${color||'var(--bd)'}`,borderRadius:7,padding:'8px 14px',flex:'1 1 0',minWidth:0}}>
-      <div style={{fontSize:9,fontWeight:700,color:color||'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',whiteSpace:'nowrap'}}>{label}</div>
-      <div style={{fontSize:20,fontWeight:700,fontFamily:"'Noto Sans Mono',monospace",color:color||'var(--t1)',lineHeight:1.2,marginTop:3}}>{value}</div>
-      {sub&&<div style={{fontSize:10,color:color||'var(--t3)',marginTop:2}}>{sub}</div>}
-    </div>
-  );
+  // Sparkline path generator
+  function sparkPath(values,w,h,pad=4){
+    if(values.length===0)return '';
+    const min=Math.min(...values,0);
+    const max=Math.max(...values,1);
+    const range=max-min||1;
+    return values.map((v,i)=>{
+      const x=pad+(i/(values.length-1||1))*(w-2*pad);
+      const y=h-pad-((v-min)/range)*(h-2*pad);
+      return `${i===0?'M':'L'}${x.toFixed(1)},${y.toFixed(1)}`;
+    }).join(' ');
+  }
+  function sparkLastPoint(values,w,h,pad=4){
+    if(values.length===0)return null;
+    const min=Math.min(...values,0);
+    const max=Math.max(...values,1);
+    const range=max-min||1;
+    const v=values[values.length-1];
+    const x=pad+(w-2*pad);
+    const y=h-pad-((v-min)/range)*(h-2*pad);
+    return {x,y};
+  }
+  const incVals=data.map(d=>d.Income);
+  const expVals=data.map(d=>d.Expenses);
+  const netVals=data.map(d=>d.Net);
+  const SW=300, SH=44;
+  const lpIn=sparkLastPoint(incVals,SW,SH);
+  const lpEx=sparkLastPoint(expVals,SW,SH);
+  const lpNet=sparkLastPoint(netVals,SW,SH);
 
   const PillBtn=({active,onClick,children})=>(
     <button onClick={onClick} style={{background:active?'var(--g7)':'var(--w)',color:active?'#fff':'var(--t2)',border:`1px solid ${active?'var(--g7)':'var(--bd2)'}`,borderRadius:5,padding:'5px 12px',fontSize:11,fontWeight:600,cursor:'pointer'}}>{children}</button>
   );
 
-  // Format number for axis (₹L)
-  function fmtAxis(v){
-    if(v>=10000000)return `₹${(v/10000000).toFixed(1)}Cr`;
-    if(v>=100000)return `₹${(v/100000).toFixed(1)}L`;
-    if(v>=1000)return `₹${(v/1000).toFixed(0)}K`;
-    return `₹${v}`;
-  }
-
-  // Tooltip content
-  function CustomTooltip({active,payload,label}){
-    if(!active||!payload||payload.length===0)return null;
-    return (
-      <div style={{background:'var(--w)',border:'1px solid var(--bd2)',borderRadius:6,padding:'8px 12px',fontSize:11,boxShadow:'0 2px 8px rgba(0,0,0,0.1)'}}>
-        <div style={{fontWeight:700,marginBottom:4,color:'var(--t1)'}}>{label}</div>
-        {payload.map(p=>(
-          <div key={p.dataKey} style={{display:'flex',justifyContent:'space-between',gap:14,color:p.color}}>
-            <span>{p.name}:</span>
-            <span style={{fontFamily:"'Noto Sans Mono',monospace",fontWeight:600}}>{(p.value>=0?'':'')+inrZ(p.value)}</span>
-          </div>
-        ))}
-      </div>
-    );
+  function trendBadge(pct,invert){
+    if(pct===null)return <span style={{color:'var(--t3)',fontSize:13,fontWeight:700}}>—</span>;
+    const positive=invert?pct<0:pct>0;
+    const color=positive?'var(--grntx)':(pct===0?'var(--t3)':'var(--redtx)');
+    const arrow=pct>0?'↑':(pct<0?'↓':'');
+    return <span style={{color,fontSize:13,fontWeight:700}}>{arrow} {Math.abs(pct)}%</span>;
   }
 
   return (
     <>
-      <div style={{background:'var(--w)',borderBottom:'1px solid var(--bd)',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:10,flexShrink:0}}>
-        <div style={{display:'flex',gap:6,alignItems:'center'}}>
-          <span style={{fontSize:10,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',fontWeight:700,marginRight:4}}>Window</span>
-          <PillBtn active={win==='6mo'} onClick={()=>setWin('6mo')}>6 mo</PillBtn>
-          <PillBtn active={win==='12mo'} onClick={()=>setWin('12mo')}>12 mo</PillBtn>
-          <PillBtn active={win==='ytd'} onClick={()=>setWin('ytd')}>YTD</PillBtn>
-          <PillBtn active={win==='all'} onClick={()=>setWin('all')}>All</PillBtn>
-        </div>
-        <div style={{display:'flex',gap:6,alignItems:'center'}}>
-          <span style={{fontSize:10,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',fontWeight:700,marginRight:4}}>View</span>
-          <PillBtn active={view==='totals'} onClick={()=>setView('totals')}>Totals</PillBtn>
-          <PillBtn active={view==='breakdown'} onClick={()=>setView('breakdown')}>Breakdown</PillBtn>
-        </div>
+      <div style={{background:'var(--w)',borderBottom:'1px solid var(--bd)',padding:'10px 14px',display:'flex',alignItems:'center',gap:6,flexShrink:0,flexWrap:'wrap'}}>
+        <span style={{fontSize:10,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',fontWeight:700,marginRight:4}}>Window</span>
+        <PillBtn active={win==='6mo'} onClick={()=>setWin('6mo')}>6 mo</PillBtn>
+        <PillBtn active={win==='12mo'} onClick={()=>setWin('12mo')}>12 mo</PillBtn>
+        <PillBtn active={win==='ytd'} onClick={()=>setWin('ytd')}>YTD</PillBtn>
+        <PillBtn active={win==='all'} onClick={()=>setWin('all')}>All</PillBtn>
       </div>
 
-      {/* KPIs */}
-      <div style={{background:'var(--bg)',borderBottom:'1px solid var(--bd)',padding:'8px 12px',display:'flex',gap:8,flexShrink:0}}>
-        <T label="Avg Monthly Net" value={(avgNet>=0?'+':'')+inrZ(avgNet)} sub={`${data.length} months`} color="var(--blutx)" bg="var(--blubg)"/>
-        <T label="Income Growth" value={growthPct===null?'—':(growthPct>=0?'+':'')+growthPct+'%'} sub="2nd half vs 1st" color="var(--grntx)" bg="var(--grnbg)"/>
-        <T label="Best Month" value={best?(best.Net>=0?'+':'')+inrZ(best.Net):'—'} sub={best?best.label:''} color="var(--ambtx)" bg="var(--ambbg)"/>
-        <T label="Worst Month" value={worst?(worst.Net>=0?'+':'')+inrZ(worst.Net):'—'} sub={worst?worst.label:''} color="var(--redtx)" bg="var(--redbg)"/>
-      </div>
-
-      {/* Chart */}
       <div style={{flex:1,overflowY:'auto',background:'var(--bg)',padding:12}}>
-        <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,padding:14}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
-            <div style={{fontSize:12,fontWeight:700,color:'var(--t1)'}}>
-              Monthly Performance — {win==='6mo'?'Last 6 Months':win==='12mo'?'Last 12 Months':win==='ytd'?`YTD ${ty}`:'All Time'}
-              {view==='breakdown'&&' — Breakdown'}
+        {data.length===0 ? (
+          <div style={{textAlign:'center',color:'var(--t3)',padding:40,fontSize:13}}>No data in this window</div>
+        ) : (
+          <>
+            {/* Sparkline KPI card */}
+            <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,padding:14,marginBottom:12}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:6}}>
+                {win==='6mo'?'Last 6 Months':win==='12mo'?'Last 12 Months':win==='ytd'?`YTD ${ty}`:'All Time'} ({data.length} mo)
+              </div>
+
+              {[
+                {label:'Income',color:'var(--grntx)',stroke:'#2e7d32',vals:incVals,latest:latest.Income,avg:avgIncome,pct:tIn,invert:false,lp:lpIn},
+                {label:'Expenses',color:'var(--redtx)',stroke:'#c62828',vals:expVals,latest:latest.Expenses,avg:avgExp,pct:tEx,invert:true,lp:lpEx},
+                {label:'Net',color:'var(--blutx)',stroke:'#1565c0',vals:netVals,latest:latest.Net,avg:avgNet,pct:tNet,invert:false,lp:lpNet}
+              ].map((r,i,arr)=>(
+                <div key={r.label} style={{display:'grid',gridTemplateColumns:'90px 1fr 110px 70px',gap:10,alignItems:'center',padding:'10px 0',borderBottom:i<arr.length-1?'1px solid var(--bd)':'none'}}>
+                  <div>
+                    <div style={{fontSize:13,fontWeight:700,color:r.color}}>{r.label}</div>
+                    <div style={{fontSize:9,color:'var(--t3)'}}>avg {(r.avg>=0?'':'')+inrZ(r.avg)}/mo</div>
+                  </div>
+                  <svg viewBox={`0 0 ${SW} ${SH}`} preserveAspectRatio="none" style={{width:'100%',height:44}}>
+                    <path d={sparkPath(r.vals,SW,SH)} fill="none" stroke={r.stroke} strokeWidth="2" strokeLinejoin="round"/>
+                    {r.lp&&<circle cx={r.lp.x} cy={r.lp.y} r="3" fill={r.stroke}/>}
+                  </svg>
+                  <div style={{fontFamily:"'Noto Sans Mono',monospace",fontSize:14,fontWeight:700,color:r.color,textAlign:'right'}}>{(r.label==='Net'&&r.latest>=0?'+':'')+inrZ(r.latest)}</div>
+                  <div style={{textAlign:'right'}}>{trendBadge(r.pct,r.invert)}<div style={{fontSize:9,color:'var(--t3)'}}>vs prior</div></div>
+                </div>
+              ))}
+            </div>
+
+            {/* Numbers table */}
+            <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,overflow:'hidden'}}>
+              <div style={{background:'var(--g7)',color:'#fff',padding:'9px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:12,fontWeight:700}}>
+                <span>Monthly Detail</span>
+                <span style={{fontWeight:400,fontSize:11,opacity:0.85}}>latest first</span>
+              </div>
+              <div style={{overflowX:'auto'}}>
+                <table style={{width:'100%',borderCollapse:'collapse',fontSize:12,minWidth:480}}>
+                  <thead>
+                    <tr style={{background:'var(--g0)',borderBottom:'1px solid var(--bd)'}}>
+                      <th style={{padding:'8px 12px',textAlign:'left',color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Month</th>
+                      <th style={{padding:'8px 12px',textAlign:'right',color:'var(--grntx)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Income</th>
+                      <th style={{padding:'8px 12px',textAlign:'right',color:'var(--redtx)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Expenses</th>
+                      <th style={{padding:'8px 12px',textAlign:'right',color:'var(--blutx)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Net</th>
+                      <th style={{padding:'8px 12px',textAlign:'right',color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Margin</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[...data].reverse().map((d,i)=>{
+                      const margin=d.Income>0?Math.round((d.Net/d.Income)*100):0;
+                      return (
+                        <tr key={d.label} style={{borderBottom:'1px solid var(--bd)',background:i===0?'var(--blubg)':'transparent'}}>
+                          <td style={{padding:'7px 12px',fontWeight:i===0?700:400,color:i===0?'var(--t1)':'var(--t2)'}}>{d.label}</td>
+                          <td style={{padding:'7px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--grntx)',fontWeight:i===0?700:400}}>{inrZ(d.Income)}</td>
+                          <td style={{padding:'7px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--redtx)'}}>{inrZ(d.Expenses)}</td>
+                          <td style={{padding:'7px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--blutx)',fontWeight:600}}>{(d.Net>=0?'+':'')+inrZ(d.Net)}</td>
+                          <td style={{padding:'7px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--t1)'}}>{margin}%</td>
+                        </tr>
+                      );
+                    })}
+                    <tr style={{background:'var(--g0)',fontWeight:700}}>
+                      <td style={{padding:'9px 12px'}}>Total / Avg</td>
+                      <td style={{padding:'9px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--grntx)'}}>{inrZ(totIncome)}</td>
+                      <td style={{padding:'9px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--redtx)'}}>{inrZ(totExp)}</td>
+                      <td style={{padding:'9px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:'var(--blutx)'}}>{(totNet>=0?'+':'')+inrZ(totNet)}</td>
+                      <td style={{padding:'9px 12px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace"}}>{totIncome>0?Math.round((totNet/totIncome)*100):0}%</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ANNUAL TAB
+// ═══════════════════════════════════════════════════════════════
+
+// Compute month with both cash & gross views
+function computePnlMonthDual(y,m,deps){
+  const {allData,ipRecords,pharma,staff,staffPaid,manual}=deps;
+  const ms=`${y}-${String(m+1).padStart(2,'0')}`;
+  let opd=0; let medsAuto=0; let patientCount=0;
+  Object.keys(allData||{}).forEach(d=>{
+    if(d.startsWith(ms))(allData[d]||[]).forEach(r=>{
+      opd+=n(r.opd)+n(r.xray)+n(r.popd)+n(r.pt)+n(r.lab);
+      medsAuto+=n(r.medicals);
+      patientCount++;
+    });
+  });
+  let ip=0; let ipCount=0;
+  (ipRecords||[]).forEach(r=>{
+    const adm=r.admitDate||r.date||'';
+    if(adm.startsWith(ms)){ip+=n(r.ipBill||r.bill)+n(r.ipMed||r.medicines);ipCount++;}
+  });
+  // Cash vs gross for Pharma & Staff
+  let pharmaCash=0, pharmaGross=0;
+  (pharma||[]).forEach(e=>{ if(e.date&&e.date.startsWith(ms)){pharmaCash+=n(e.paid);pharmaGross+=n(e.amount);} });
+  let staffCash=0, staffGross=0;
+  const monthPaidMap=(staffPaid||{})[ms]||{};
+  (staff||[]).forEach(s=>{
+    const sal=salaryFor(s,ms);
+    staffGross+=sal;
+    if(monthPaidMap[s.id])staffCash+=sal;
+  });
+  const rec=migratePnlMonth((manual||{})[ms]||{},ms);
+  const pharmaSalesManual=sumEntries(rec.pharmaSales);
+  const pharmaSales=medsAuto+pharmaSalesManual;
+  const rent=sumEntries(rec.rent);
+  const utilities=sumEntries(rec.utilities);
+  const internet=sumEntries(rec.internet);
+  const electricity=sumEntries(rec.electricity);
+  const other=sumEntries(rec.other);
+
+  return {ms,y,m,opd,ip,pharmaSales,medsAuto,
+    pharmaCash,pharmaGross,staffCash,staffGross,
+    rent,utilities,internet,electricity,other,
+    patientCount:patientCount+ipCount};
+}
+
+function AnnualView({ allData, ipRecords }){
+  const td=today(); const ty=parseInt(td.slice(0,4));
+  const [yearMode,setYearMode]=useState('cy'); // 'cy' | 'fy'
+  const [year,setYear]=useState(ty);
+  const [basis,setBasis]=useState('cash'); // 'cash' | 'gross'
+
+  const [staff,setStaff]=useState([]);
+  const [staffPaid,setStaffPaid]=useState({});
+  const [pharma,setPharma]=useState([]);
+  const [manual,setManual]=useState({});
+
+  useEffect(()=>{
+    try{setStaff(JSON.parse(localStorage.getItem(STAFF_KEY)||'[]'));}catch{}
+    try{setStaffPaid(JSON.parse(localStorage.getItem(STAFF_PAID_KEY)||'{}'));}catch{}
+    try{setPharma(JSON.parse(localStorage.getItem(PHARMA_KEY)||'[]'));}catch{}
+    try{setManual(JSON.parse(localStorage.getItem(PNL_KEY)||'{}'));}catch{}
+  },[]);
+
+  // Determine 12 months for year
+  function monthsForYear(){
+    const out=[];
+    if(yearMode==='cy'){
+      for(let m=0;m<12;m++)out.push({y:year,m,label:`${MONTHS_LONG[m].slice(0,3)} '${String(year).slice(2)}`});
+    }else{
+      // FY = Apr year → Mar (year+1)
+      for(let m=3;m<12;m++)out.push({y:year,m,label:`${MONTHS_LONG[m].slice(0,3)} '${String(year).slice(2)}`});
+      for(let m=0;m<3;m++)out.push({y:year+1,m,label:`${MONTHS_LONG[m].slice(0,3)} '${String(year+1).slice(2)}`});
+    }
+    return out;
+  }
+  const months=monthsForYear();
+  const rows=months.map(({y,m,label})=>{
+    const x=computePnlMonthDual(y,m,{allData,ipRecords,pharma,staff,staffPaid,manual});
+    const pharmaCost=basis==='cash'?x.pharmaCash:x.pharmaGross;
+    const staffCost=basis==='cash'?x.staffCash:x.staffGross;
+    const grossRev=x.opd+x.ip+x.pharmaSales;
+    const totalExp=pharmaCost+staffCost+x.rent+x.utilities+x.internet+x.electricity+x.other;
+    const net=grossRev-totalExp;
+    return {label,...x,pharmaCost,staffCost,grossRev,totalExp,net};
+  });
+
+  // Totals
+  const T=(k)=>rows.reduce((s,r)=>s+(r[k]||0),0);
+  const tot={
+    opd:T('opd'),ip:T('ip'),pharmaSales:T('pharmaSales'),
+    pharmaCost:T('pharmaCost'),staffCost:T('staffCost'),
+    rent:T('rent'),utilities:T('utilities'),internet:T('internet'),electricity:T('electricity'),other:T('other'),
+    grossRev:T('grossRev'),totalExp:T('totalExp'),net:T('net'),patientCount:T('patientCount')
+  };
+  const otherExpTot=tot.rent+tot.utilities+tot.internet+tot.electricity+tot.other;
+
+  function doPrint(){
+    window.print();
+  }
+
+  const Tile=({label,value,sub,color,bg})=>(
+    <div style={{background:bg||'var(--w)',border:`1px solid ${color||'var(--bd)'}`,borderRadius:7,padding:'10px 14px',flex:'1 1 0',minWidth:120}}>
+      <div style={{fontSize:9,fontWeight:700,color:color||'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',whiteSpace:'nowrap'}}>{label}</div>
+      <div style={{fontSize:18,fontWeight:700,fontFamily:"'Noto Sans Mono',monospace",color:color||'var(--t1)',lineHeight:1.2,marginTop:3}}>{value}</div>
+      {sub&&<div style={{fontSize:10,color:color||'var(--t3)',marginTop:2}}>{sub}</div>}
+    </div>
+  );
+
+  const PillBtn=({active,onClick,children,color})=>(
+    <button onClick={onClick} style={{background:active?(color||'var(--g7)'):'var(--w)',color:active?'#fff':'var(--t2)',border:`1px solid ${active?(color||'var(--g7)'):'var(--bd2)'}`,borderRadius:5,padding:'6px 14px',fontSize:11,fontWeight:600,cursor:'pointer'}}>{children}</button>
+  );
+
+  // Year options: range from earliest data year to current+1
+  const yearOpts=(()=>{
+    let min=ty;
+    Object.keys(allData||{}).forEach(d=>{const y=parseInt(d.slice(0,4));if(y<min)min=y;});
+    (ipRecords||[]).forEach(r=>{const d=r.admitDate||r.date||'';if(d){const y=parseInt(d.slice(0,4));if(y<min)min=y;}});
+    const arr=[]; for(let y=min;y<=ty+1;y++)arr.push(y); return arr;
+  })();
+
+  return (
+    <>
+      <style>{`@media print {
+        .vh-no-print { display: none !important; }
+        body { background: #fff !important; }
+        table { page-break-inside: auto; }
+        tr { page-break-inside: avoid; }
+      }`}</style>
+
+      {/* Header */}
+      <div style={{background:'var(--w)',borderBottom:'1px solid var(--bd)',padding:'10px 14px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10,flexWrap:'wrap',flexShrink:0}} className="vh-no-print">
+        <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+          <span style={{fontSize:14,fontWeight:700}}>📊 Annual Report</span>
+          <PillBtn active={yearMode==='cy'} onClick={()=>setYearMode('cy')} color="var(--amb)">Calendar Year (Jan–Dec)</PillBtn>
+          <PillBtn active={yearMode==='fy'} onClick={()=>setYearMode('fy')} color="var(--blu)">Financial Year (Apr–Mar)</PillBtn>
+          <select value={year} onChange={e=>setYear(parseInt(e.target.value))}
+            style={{border:'1px solid var(--bd2)',borderRadius:5,padding:'5px 10px',fontSize:12,background:'var(--w)',outline:'none'}}>
+            {yearOpts.map(y=><option key={y} value={y}>{yearMode==='fy'?`FY ${y}-${String(y+1).slice(2)}`:y}</option>)}
+          </select>
+        </div>
+        <div style={{display:'flex',gap:6,alignItems:'center'}}>
+          <span style={{fontSize:10,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',fontWeight:700,marginRight:4}}>Basis</span>
+          <PillBtn active={basis==='cash'} onClick={()=>setBasis('cash')}>Cash</PillBtn>
+          <PillBtn active={basis==='gross'} onClick={()=>setBasis('gross')}>Gross</PillBtn>
+          <button onClick={doPrint} style={{background:'var(--blu)',color:'#fff',border:'none',borderRadius:5,padding:'6px 14px',fontSize:12,fontWeight:600,cursor:'pointer',marginLeft:6}}>🖨 Print / PDF</button>
+        </div>
+      </div>
+
+      <div style={{flex:1,overflowY:'auto',background:'var(--bg)',padding:12}}>
+        {/* Print title (hidden in screen, shown in print) */}
+        <div style={{display:'none'}} className="vh-print-title">
+          <h1>VH Hospital — Annual Report</h1>
+          <h3>{yearMode==='cy'?`Calendar Year ${year}`:`Financial Year ${year}-${String(year+1).slice(2)}`} ({basis} basis)</h3>
+        </div>
+
+        {/* KPI tiles */}
+        <div style={{display:'flex',gap:8,flexWrap:'wrap',marginBottom:12}}>
+          <Tile label="OPD Revenue" value={inrZ(tot.opd)} sub="Consult + ancillary" color="var(--blutx)" bg="var(--blubg)"/>
+          <Tile label="IP Revenue" value={inrZ(tot.ip)} sub="Inpatient billing" color="#6a1b9a" bg="#f3e5f5"/>
+          <Tile label="Pharma Sales" value={inrZ(tot.pharmaSales)} sub="Auto + manual" color="var(--grntx)" bg="var(--grnbg)"/>
+          <Tile label="Gross Revenue" value={inrZ(tot.grossRev)} sub="Top Line" color="var(--g7)" bg="var(--g0)"/>
+          <Tile label="Pharma Cost" value={inrZ(tot.pharmaCost)} color="var(--redtx)" bg="var(--redbg)"/>
+          <Tile label="Staff Cost" value={inrZ(tot.staffCost)} color="var(--ambtx)" bg="var(--ambbg)"/>
+          <Tile label="Net Profit" value={(tot.net>=0?'+':'')+inrZ(tot.net)} sub="Bottom Line ✓" color="#fff" bg={tot.net>=0?'var(--grn)':'var(--red)'}/>
+        </div>
+
+        {/* Monthly breakdown table */}
+        <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,overflow:'hidden',marginBottom:12}}>
+          <div style={{background:'var(--g7)',color:'#fff',padding:'9px 14px',display:'flex',justifyContent:'space-between',alignItems:'center',fontSize:12,fontWeight:700}}>
+            <span>Monthly Breakdown — {yearMode==='cy'?year:`FY ${year}-${String(year+1).slice(2)}`}</span>
+            <span style={{fontWeight:400,fontSize:11,opacity:0.85}}>Top Line = Gross Revenue · Bottom Line = Net Profit</span>
+          </div>
+          <div style={{overflowX:'auto'}}>
+            <table style={{width:'100%',borderCollapse:'collapse',fontSize:12,minWidth:800}}>
+              <thead>
+                <tr style={{background:'var(--g0)',borderBottom:'1px solid var(--bd)'}}>
+                  <th style={{padding:'8px 12px',textAlign:'left',color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Month</th>
+                  <th style={{padding:'8px 10px',textAlign:'right',color:'var(--blutx)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>OPD ₹</th>
+                  <th style={{padding:'8px 10px',textAlign:'right',color:'#6a1b9a',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>IP ₹</th>
+                  <th style={{padding:'8px 10px',textAlign:'right',color:'var(--grntx)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Pharma ₹</th>
+                  <th style={{padding:'8px 10px',textAlign:'right',color:'var(--g7)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px',background:'var(--g0)'}}>Gross Rev ₹</th>
+                  <th style={{padding:'8px 10px',textAlign:'right',color:'var(--redtx)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Pharma Cost</th>
+                  <th style={{padding:'8px 10px',textAlign:'right',color:'var(--ambtx)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Staff ₹</th>
+                  <th style={{padding:'8px 10px',textAlign:'right',color:'var(--blutx)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px',background:'var(--blubg)'}}>Net ₹</th>
+                  <th style={{padding:'8px 10px',textAlign:'right',color:'var(--t3)',fontWeight:700,fontSize:10,textTransform:'uppercase',letterSpacing:'0.5px'}}>Patients</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r,i)=>(
+                  <tr key={i} style={{borderBottom:'1px solid var(--bd)'}}>
+                    <td style={{padding:'7px 12px',fontWeight:600,color:'var(--t1)'}}>{r.label}</td>
+                    <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:r.opd>0?'var(--t1)':'var(--t3)'}}>{r.opd>0?inrZ(r.opd):'—'}</td>
+                    <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:r.ip>0?'var(--t1)':'var(--t3)'}}>{r.ip>0?inrZ(r.ip):'—'}</td>
+                    <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:r.pharmaSales>0?'var(--t1)':'var(--t3)'}}>{r.pharmaSales>0?inrZ(r.pharmaSales):'—'}</td>
+                    <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:r.grossRev>0?'var(--grntx)':'var(--t3)',background:'rgba(46,125,50,0.04)',fontWeight:600}}>{r.grossRev>0?inrZ(r.grossRev):'—'}</td>
+                    <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:r.pharmaCost>0?'var(--t1)':'var(--t3)'}}>{r.pharmaCost>0?inrZ(r.pharmaCost):'—'}</td>
+                    <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:r.staffCost>0?'var(--t1)':'var(--t3)'}}>{r.staffCost>0?inrZ(r.staffCost):'—'}</td>
+                    <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:r.net>=0?'var(--blutx)':'var(--redtx)',background:'rgba(21,101,192,0.05)',fontWeight:700}}>{r.grossRev>0||r.totalExp>0?(r.net>=0?'+':'')+inrZ(r.net):'—'}</td>
+                    <td style={{padding:'7px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",color:r.patientCount>0?'var(--t1)':'var(--t3)'}}>{r.patientCount>0?r.patientCount:'—'}</td>
+                  </tr>
+                ))}
+                <tr style={{background:'var(--g0)',borderTop:'2px solid var(--bd2)'}}>
+                  <td style={{padding:'9px 12px',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px',fontSize:11}}>Total</td>
+                  <td style={{padding:'9px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:'var(--blutx)'}}>{inrZ(tot.opd)}</td>
+                  <td style={{padding:'9px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:'#6a1b9a'}}>{inrZ(tot.ip)}</td>
+                  <td style={{padding:'9px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:'var(--grntx)'}}>{inrZ(tot.pharmaSales)}</td>
+                  <td style={{padding:'9px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:'var(--g7)',background:'var(--g0)'}}>{inrZ(tot.grossRev)}</td>
+                  <td style={{padding:'9px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:'var(--redtx)'}}>{inrZ(tot.pharmaCost)}</td>
+                  <td style={{padding:'9px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:'var(--ambtx)'}}>{inrZ(tot.staffCost)}</td>
+                  <td style={{padding:'9px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700,color:tot.net>=0?'var(--blutx)':'var(--redtx)',background:'var(--blubg)'}}>{(tot.net>=0?'+':'')+inrZ(tot.net)}</td>
+                  <td style={{padding:'9px 10px',textAlign:'right',fontFamily:"'Noto Sans Mono',monospace",fontWeight:700}}>{tot.patientCount}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Revenue + Expenditure breakdown */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:12,marginBottom:12}}>
+          <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,padding:14}}>
+            <div style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:10}}>Revenue Breakdown</div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:13,borderBottom:'1px solid var(--bd)'}}>
+              <span>OPD Consultations</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--blutx)',fontWeight:600}}>{inrZ(tot.opd)}</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:13,borderBottom:'1px solid var(--bd)'}}>
+              <span>IP Revenue</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'#6a1b9a',fontWeight:600}}>{inrZ(tot.ip)}</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:13,borderBottom:'1px solid var(--bd)'}}>
+              <span>Pharma Sales</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--grntx)',fontWeight:600}}>{inrZ(tot.pharmaSales)}</span>
+            </div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0 0',fontSize:13,fontWeight:700}}>
+              <span>Gross Revenue (Top Line)</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--g7)'}}>{inrZ(tot.grossRev)}</span>
             </div>
           </div>
-          {!R ? (
-            <div style={{textAlign:'center',color:'var(--t3)',padding:40,fontSize:13}}>Loading chart library…</div>
-          ) : data.length===0 ? (
-            <div style={{textAlign:'center',color:'var(--t3)',padding:40,fontSize:13}}>No data in this win</div>
-          ) : (
-            <div style={{width:'100%',height:380}}>
-              <R.ResponsiveContainer width="100%" height="100%">
-                {view==='totals' ? (
-                  <R.ComposedChart data={data} margin={{top:10,right:20,left:10,bottom:10}}>
-                    <R.CartesianGrid strokeDasharray="3 3" stroke="#e8e0c8"/>
-                    <R.XAxis dataKey="label" tick={{fontSize:10,fill:'#555'}}/>
-                    <R.YAxis tick={{fontSize:10,fill:'#555'}} tickFormatter={fmtAxis}/>
-                    <R.Tooltip content={<CustomTooltip/>}/>
-                    <R.Legend wrapperStyle={{fontSize:11}}/>
-                    <R.Bar dataKey="Income" fill="#66bb6a" radius={[3,3,0,0]}/>
-                    <R.Bar dataKey="Expenses" fill="#ef5350" radius={[3,3,0,0]}/>
-                    <R.Line type="monotone" dataKey="Net" stroke="#1565c0" strokeWidth={2.5} dot={{r:4}}/>
-                  </R.ComposedChart>
-                ) : (
-                  <R.ComposedChart data={data} margin={{top:10,right:20,left:10,bottom:10}}>
-                    <R.CartesianGrid strokeDasharray="3 3" stroke="#e8e0c8"/>
-                    <R.XAxis dataKey="label" tick={{fontSize:10,fill:'#555'}}/>
-                    <R.YAxis tick={{fontSize:10,fill:'#555'}} tickFormatter={fmtAxis}/>
-                    <R.Tooltip content={<CustomTooltip/>}/>
-                    <R.Legend wrapperStyle={{fontSize:11}}/>
-                    <R.Bar dataKey="OPD" stackId="inc" fill="#66bb6a"/>
-                    <R.Bar dataKey="IP" stackId="inc" fill="#2e7d32"/>
-                    <R.Bar dataKey="Pharma" stackId="inc" fill="#a5d6a7"/>
-                    <R.Bar dataKey="PharmaCost" stackId="exp" fill="#ef9a9a" name="Pharma cost"/>
-                    <R.Bar dataKey="Staff" stackId="exp" fill="#c62828"/>
-                    <R.Bar dataKey="Other" stackId="exp" fill="#ef5350"/>
-                    <R.Line type="monotone" dataKey="Net" stroke="#1565c0" strokeWidth={2.5} dot={{r:4}}/>
-                  </R.ComposedChart>
-                )}
-              </R.ResponsiveContainer>
+
+          <div style={{background:'var(--w)',border:'1px solid var(--bd)',borderRadius:8,padding:14}}>
+            <div style={{fontSize:10,fontWeight:700,color:'var(--t3)',textTransform:'uppercase',letterSpacing:'0.7px',marginBottom:10}}>Expenditure Breakdown</div>
+            <div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:13,borderBottom:'1px solid var(--bd)'}}>
+              <span>Pharma & Supplies</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--redtx)',fontWeight:600}}>{inrZ(tot.pharmaCost)}</span>
             </div>
-          )}
-          <div style={{textAlign:'center',fontSize:10,color:'var(--t3)',marginTop:8,fontStyle:'italic'}}>
-            {view==='totals'?'Hover to see exact figures · Toggle "Breakdown" to see income/expense components':'Income stacks (greens) above zero · Expense stacks (reds) · Net line shows profit'}
+            <div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:13,borderBottom:'1px solid var(--bd)'}}>
+              <span>Staff Salaries</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--ambtx)',fontWeight:600}}>{inrZ(tot.staffCost)}</span>
+            </div>
+            {tot.rent>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:13,borderBottom:'1px solid var(--bd)'}}><span>Rent</span><span style={{fontFamily:"'Noto Sans Mono',monospace"}}>{inrZ(tot.rent)}</span></div>}
+            {tot.utilities>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:13,borderBottom:'1px solid var(--bd)'}}><span>Utilities</span><span style={{fontFamily:"'Noto Sans Mono',monospace"}}>{inrZ(tot.utilities)}</span></div>}
+            {tot.internet>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:13,borderBottom:'1px solid var(--bd)'}}><span>Internet</span><span style={{fontFamily:"'Noto Sans Mono',monospace"}}>{inrZ(tot.internet)}</span></div>}
+            {tot.electricity>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:13,borderBottom:'1px solid var(--bd)'}}><span>Electricity</span><span style={{fontFamily:"'Noto Sans Mono',monospace"}}>{inrZ(tot.electricity)}</span></div>}
+            {tot.other>0&&<div style={{display:'flex',justifyContent:'space-between',padding:'6px 0',fontSize:13,borderBottom:'1px solid var(--bd)'}}><span>Other</span><span style={{fontFamily:"'Noto Sans Mono',monospace"}}>{inrZ(tot.other)}</span></div>}
+            <div style={{display:'flex',justifyContent:'space-between',padding:'8px 0 0',fontSize:13,fontWeight:700}}>
+              <span>Total Expenses</span>
+              <span style={{fontFamily:"'Noto Sans Mono',monospace",color:'var(--redtx)'}}>{inrZ(tot.totalExp)}</span>
+            </div>
           </div>
+        </div>
+
+        {/* Net profit footer banner */}
+        <div style={{background:tot.net>=0?'var(--grn)':'var(--red)',color:'#fff',padding:'18px 22px',borderRadius:8,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+          <div>
+            <div style={{fontSize:11,fontWeight:700,textTransform:'uppercase',letterSpacing:'0.7px',opacity:0.9}}>Net Profit (Bottom Line) — {yearMode==='cy'?year:`FY ${year}-${String(year+1).slice(2)}`}</div>
+            <div style={{fontSize:10,opacity:0.85,marginTop:2}}>{basis==='cash'?'Cash basis':'Gross billing'} · {tot.patientCount} patients</div>
+          </div>
+          <div style={{fontSize:32,fontWeight:700,fontFamily:"'Noto Sans Mono',monospace"}}>{(tot.net>=0?'+':'')}{inrZ(tot.net)}</div>
         </div>
       </div>
     </>
@@ -1636,7 +1908,7 @@ function SettingsView({ allData, ipRecords, syncStatus, setSyncStatus }) {
 const TABS = ['Day','Month','IP','Pharma','Staff','P&L','Trends','Export','Personal','Statement','Annual','Settings'];
 
 function TabBar({ active, onTab, syncDot }) {
-  const built=['Day','Month','IP','Pharma','Staff','P&L','Trends','Settings'];
+  const built=['Day','Month','IP','Pharma','Staff','P&L','Trends','Annual','Settings'];
   return (
     <div style={{display:'flex',alignItems:'stretch',background:'var(--g7)',paddingLeft:14,gap:2,flexShrink:0,width:'100%'}}>
       <div style={{display:'flex',alignItems:'center',gap:7,paddingRight:16,borderRight:'1px solid rgba(255,255,255,0.15)',marginRight:6}}>
@@ -1678,6 +1950,7 @@ function App() {
       {tab==='Staff'&&<StaffView/>}
       {tab==='P&L'&&<PnLView allData={allData} ipRecords={ipRecords}/>}
       {tab==='Trends'&&<TrendsView allData={allData} ipRecords={ipRecords}/>}
+      {tab==='Annual'&&<AnnualView allData={allData} ipRecords={ipRecords}/>}
       {tab==='Settings'&&<SettingsView allData={allData} ipRecords={ipRecords} syncStatus={syncStatus} setSyncStatus={setSyncStatus}/>}
     </div>
   );
